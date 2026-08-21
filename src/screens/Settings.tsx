@@ -12,8 +12,8 @@ import { cn } from "@/lib/utils";
 import { setAlwaysOnTop } from "@/lib/tauri";
 
 const ACCENTS = [
-  "#7c6cff", "#4aa8ff", "#31d0aa", "#f2b544",
-  "#ff7a5c", "#ff6b8b", "#e05fd0", "#9aa4b2",
+  "#ff4dd8", "#ff5b2e", "#7c6cff", "#4aa8ff",
+  "#3ddc84", "#f2b544", "#ff6b8b", "#e8e8e8",
 ];
 
 const TABS = [
@@ -123,7 +123,7 @@ export default function Settings({ onBack }: { onBack: () => void }) {
                   </Group>
 
                   <Group title="Surface">
-                    <Row title="Widget opacity" hint="How much of the desktop shows through.">
+                    <Row title="Tile opacity" hint="Below 100% the tiles turn to glass.">
                       <div className="w-47.5">
                         <Range
                           min={0.3}
@@ -135,7 +135,7 @@ export default function Settings({ onBack }: { onBack: () => void }) {
                         />
                       </div>
                     </Row>
-                    <Row title="Background blur" hint="Glass strength behind each widget.">
+                    <Row title="Background blur" hint="Only applies when tiles are translucent.">
                       <div className="w-[190px]">
                         <Range
                           min={0}
@@ -149,8 +149,8 @@ export default function Settings({ onBack }: { onBack: () => void }) {
                     <Row title="Corner radius">
                       <div className="w-[190px]">
                         <Range
-                          min={6}
-                          max={34}
+                          min={8}
+                          max={48}
                           value={s.radius}
                           onChange={(v) => update({ radius: v })}
                           format={(v) => `${v}px`}

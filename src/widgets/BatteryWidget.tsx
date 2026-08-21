@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
-import { motion } from "motion/react";
-import { BatteryCharging, Zap } from "lucide-react";
-import { Shell } from "./parts";
+import { Zap } from "lucide-react";
+import { Pad, Stat, TickMeter } from "./parts";
 import type { WidgetBodyProps } from "./loader";
 
 export default function BatteryWidget({ size }: WidgetBodyProps) {
-  const [pct, setPct] = useState(78);
+  const [pct, setPct] = useState(68);
   const [charging, setCharging] = useState(true);
 
   useEffect(() => {
@@ -16,64 +15,36 @@ export default function BatteryWidget({ size }: WidgetBodyProps) {
         if (next <= 22) setCharging(true);
         return Math.max(20, Math.min(100, next));
       });
-    }, 4000);
+    }, 5000);
     return () => clearInterval(t);
   }, [charging]);
 
-  const color = pct > 45 ? "#31d0aa" : pct > 20 ? "#f2b544" : "#ff6b6b";
-  const hours = Math.floor((pct / 100) * 6.4);
-  const mins = Math.round((((pct / 100) * 6.4) % 1) * 60);
+  const mins = Math.round((pct / 100) * 66);
 
   return (
-    <Shell
-      title="Power"
-      icon={<BatteryCharging size={12} />}
-      right={<span>{charging ? "charging" : "on battery"}</span>}
-    >
-      <div className="flex items-center gap-3">
-        <div className="relative flex h-[26px] w-[52px] shrink-0 items-center rounded-[7px] border-2 border-white/20 p-[3px]">
-          <motion.div
-            className="h-full rounded-[3px]"
-            style={{ background: color }}
-            animate={{ width: `${pct}%` }}
-            transition={{ type: "spring", stiffness: 120, damping: 22 }}
-          />
-          <span className="absolute -right-[5px] h-[9px] w-[3px] rounded-r-sm bg-white/20" />
-          {charging && (
-            <motion.span
-              animate={{ opacity: [0.4, 1, 0.4] }}
-              transition={{ duration: 1.8, repeat: Infinity }}
-              className="absolute inset-0 grid place-items-center"
-            >
-              <Zap size={12} className="fill-white text-white drop-shadow" />
-            </motion.span>
-          )}
-        </div>
+    <Pad size={size} className="justify-between">
+      <div className="flex items-start justify-between">
         <div>
-          <div className="flex items-baseline leading-none">
-            <span className="text-[24px] font-semibold text-white tabular-nums">{pct}</span>
-            <span className="ml-0.5 text-[13px] text-ink-400">%</span>
-          </div>
-          <div className="mt-1 text-[10.5px] text-ink-500">
-            {hours}h {mins}m {charging ? "to full" : "remaining"}
-          </div>
+          <Stat value={pct} unit="%" size={size === "sm" ? 34 : size === "md" ? 42 : 52} />
+          <div className="dim mt-1 text-[11px] font-semibold">{mins} MIN LEFT</div>
         </div>
+        {charging && (
+          <span
+            className="grid size-7 shrink-0 place-items-center rounded-full"
+            style={{ background: "color-mix(in srgb, var(--accent) 22%, transparent)" }}
+          >
+            <Zap size={13} className="fill-current" style={{ color: "var(--accent)" }} />
+          </span>
+        )}
       </div>
 
-      {size !== "sm" && (
-        <div className="mt-auto grid grid-cols-3 gap-1.5 pt-3">
-          {[
-            ["Health", "94%"],
-            ["Cycles", "312"],
-            ["Temp", "34°C"],
-          ].map(([k, v]) => (
-            <div key={k} className="rounded-lg border border-white/6 bg-white/[0.02] px-2 py-1.5">
-              <div className="text-[9px] text-ink-600">{k}</div>
-              <div className="mt-0.5 font-mono text-[11px] text-ink-200 tabular-nums">{v}</div>
-            </div>
-          ))}
-        </div>
-      )}
-    </Shell>
+      <TickMeter
+        value={pct}
+        accent="var(--accent)"
+        height={size === "sm" ? 44 : size === "md" ? 58 : 76}
+        ticks={size === "sm" ? 18 : 26}
+        labels={["0", "50", "100"]}
+      />
+    </Pad>
   );
 }

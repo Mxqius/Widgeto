@@ -1,20 +1,23 @@
 import { useEffect, useState } from "react";
-import { motion } from "motion/react";
-import { Heart, Pause, Play, Shuffle, SkipBack, SkipForward, Volume2 } from "lucide-react";
+import { AudioLines, Play } from "lucide-react";
+import { Line } from "./parts";
 import { pad } from "@/lib/utils";
 import type { WidgetBodyProps } from "./loader";
 
 const TRACKS = [
-  { title: "Neon Corridor", artist: "Lumen Kane", len: 214, art: ["#7c6cff", "#3b2fbf"] },
-  { title: "Slow Static", artist: "Mira Volt", len: 187, art: ["#e05fd0", "#7c2f8f"] },
-  { title: "Northern Drift", artist: "Halden", len: 246, art: ["#31d0aa", "#0f6f66"] },
+  { title: "HUMBLE.", artist: "Kendrick Lamar", len: 177, art: ["#e8452c", "#1a1a1a"] },
+  { title: "Neon Corridor", artist: "Lumen Kane", len: 214, art: ["#7c6cff", "#12123a"] },
+  { title: "Northern Drift", artist: "Halden", len: 246, art: ["#31d0aa", "#07332f"] },
 ];
 
+/**
+ * Album art fills the tile and is cut by a curved divider, with the track
+ * details sitting in the black below it.
+ */
 export default function MusicWidget({ size }: WidgetBodyProps) {
   const [i, setI] = useState(0);
   const [playing, setPlaying] = useState(true);
   const [t, setT] = useState(46);
-  const [liked, setLiked] = useState(false);
   const track = TRACKS[i];
 
   useEffect(() => {
@@ -32,107 +35,66 @@ export default function MusicWidget({ size }: WidgetBodyProps) {
   }, [playing, track.len]);
 
   const pct = (t / track.len) * 100;
-  const fmt = (s: number) => `${Math.floor(s / 60)}:${pad(s % 60)}`;
-  const big = size === "lg";
+  const artH = size === "sm" ? "58%" : "62%";
 
   return (
-    <div className="flex h-full flex-col p-3.5">
-      <div className={big ? "flex flex-col gap-3" : "flex items-center gap-3"}>
-        <motion.div
-          animate={playing ? { rotate: 360 } : {}}
-          transition={{ duration: 14, repeat: Infinity, ease: "linear" }}
-          className="relative shrink-0 overflow-hidden rounded-xl"
-          style={{
-            width: big ? "100%" : 46,
-            height: big ? 118 : 46,
-            background: `linear-gradient(135deg, ${track.art[0]}, ${track.art[1]})`,
-            borderRadius: big ? 14 : 12,
-          }}
+    <div className="relative h-full w-full">
+      {/* art, clipped by the curve */}
+      <div
+        className="absolute inset-x-0 top-0"
+        style={{
+          height: artH,
+          background: `linear-gradient(150deg, ${track.art[0]}, ${track.art[1]})`,
+          clipPath: "ellipse(120% 100% at 50% 0%)",
+        }}
+      >
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_28%_22%,rgba(255,255,255,0.35),transparent_58%)]" />
+      </div>
+
+      <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-1 px-4 pb-4">
+        <button
+          data-nodrag
+          onClick={() => setPlaying((p) => !p)}
+          className="mb-0.5 opacity-90 transition-opacity hover:opacity-100"
+          title={playing ? "Pause" : "Play"}
         >
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_25%,rgba(255,255,255,0.35),transparent_60%)]" />
-        </motion.div>
+          {playing ? (
+            <AudioLines size={size === "sm" ? 14 : 16} style={{ color: "var(--accent)" }} />
+          ) : (
+            <Play size={size === "sm" ? 14 : 16} className="fill-current" />
+          )}
+        </button>
 
-        <div className="min-w-0 flex-1">
-          <div className="truncate text-[13px] font-medium text-white">{track.title}</div>
-          <div className="truncate text-[11.5px] text-ink-500">{track.artist}</div>
+        <div className="max-w-full truncate text-[13px] font-bold tracking-tight">
+          {track.title}
         </div>
+        <div className="dim max-w-full truncate text-[10.5px] font-medium">{track.artist}</div>
 
-        {!big && (
-          <button
-            data-nodrag
-            onClick={() => setLiked((v) => !v)}
-            className="mr-12 shrink-0 rounded-md p-1 transition-colors hover:bg-white/8"
-          >
-            <Heart
-              size={13}
-              className={liked ? "fill-current" : "text-ink-500"}
-              style={liked ? { color: "var(--accent)" } : undefined}
-            />
-          </button>
+        <div className="mt-2 w-full" data-nodrag>
+          <Line value={pct} accent="#fff" />
+        </div>
+        {size !== "sm" && (
+          <div className="dimmer mt-1 flex w-full justify-between text-[9.5px] font-medium tabular-nums">
+            <span>
+              {Math.floor(t / 60)}:{pad(t % 60)}
+            </span>
+            <span>
+              {Math.floor(track.len / 60)}:{pad(track.len % 60)}
+            </span>
+          </div>
         )}
       </div>
 
-      <div className="mt-auto pt-3">
-        <div
+      {!playing && (
+        <button
           data-nodrag
-          className="group h-1 cursor-pointer overflow-hidden rounded-full bg-white/[0.08]"
-          onClick={(e) => {
-            const r = e.currentTarget.getBoundingClientRect();
-            setT(Math.round(((e.clientX - r.left) / r.width) * track.len));
-          }}
+          onClick={() => setPlaying(true)}
+          className="absolute inset-0 z-10"
+          title="Play"
         >
-          <motion.div
-            className="h-full rounded-full"
-            style={{ background: "var(--accent)" }}
-            animate={{ width: `${pct}%` }}
-            transition={{ duration: 0.3 }}
-          />
-        </div>
-        <div className="mt-1 flex justify-between font-mono text-[9.5px] text-ink-600 tabular-nums">
-          <span>{fmt(t)}</span>
-          <span>-{fmt(track.len - t)}</span>
-        </div>
-
-        <div className="mt-1.5 flex items-center justify-center gap-1.5">
-          {size !== "sm" && (
-            <IconBtn onClick={() => {}}>
-              <Shuffle size={12} />
-            </IconBtn>
-          )}
-          <IconBtn onClick={() => setI((n) => (n - 1 + TRACKS.length) % TRACKS.length)}>
-            <SkipBack size={14} className="fill-current" />
-          </IconBtn>
-          <motion.button
-            data-nodrag
-            whileTap={{ scale: 0.9 }}
-            onClick={() => setPlaying((p) => !p)}
-            className="grid size-8 place-items-center rounded-full text-white"
-            style={{ background: "var(--accent)", boxShadow: "0 4px 14px -4px var(--accent)" }}
-          >
-            {playing ? <Pause size={14} className="fill-current" /> : <Play size={14} className="ml-0.5 fill-current" />}
-          </motion.button>
-          <IconBtn onClick={() => setI((n) => (n + 1) % TRACKS.length)}>
-            <SkipForward size={14} className="fill-current" />
-          </IconBtn>
-          {size !== "sm" && (
-            <IconBtn onClick={() => {}}>
-              <Volume2 size={12} />
-            </IconBtn>
-          )}
-        </div>
-      </div>
+          <span className="sr-only">Play</span>
+        </button>
+      )}
     </div>
-  );
-}
-
-function IconBtn({ children, onClick }: { children: React.ReactNode; onClick: () => void }) {
-  return (
-    <button
-      data-nodrag
-      onClick={onClick}
-      className="grid size-7 place-items-center rounded-full text-ink-400 transition-colors hover:bg-white/8 hover:text-white"
-    >
-      {children}
-    </button>
   );
 }

@@ -1,70 +1,40 @@
-import { Activity, ArrowDown, ArrowUp, Wifi } from "lucide-react";
-import { Shell, Spark } from "./parts";
+import { ArrowDown, ArrowUp } from "lucide-react";
+import { Pad, Stat, TickMeter } from "./parts";
 import { useSeries } from "@/lib/hooks";
 import type { WidgetBodyProps } from "./loader";
 
 export default function NetworkWidget({ size }: WidgetBodyProps) {
-  const down = useSeries(30, 42, 40, 800);
-  const up = useSeries(30, 12, 16, 800);
-
-  const d = down[down.length - 1];
-  const u = up[up.length - 1];
-  const mb = (v: number) => (v / 8).toFixed(1);
+  const down = useSeries(24, 42, 40, 1100);
+  const up = useSeries(24, 12, 16, 1100);
+  const d = down[down.length - 1] / 8;
+  const u = up[up.length - 1] / 8;
 
   return (
-    <Shell
-      title="Network"
-      icon={<Activity size={12} />}
-      right={
-        <span className="flex items-center gap-1">
-          <Wifi size={10} /> 5 GHz
-        </span>
-      }
-    >
-      <div className="flex items-center gap-4">
-        <Stat icon={<ArrowDown size={11} />} value={mb(d)} color="#4aa8ff" label="down" />
-        <Stat icon={<ArrowUp size={11} />} value={mb(u)} color="#31d0aa" label="up" />
-        {size !== "sm" && (
-          <div className="ml-auto pr-12 text-right">
-            <div className="font-mono text-[11px] text-ink-200 tabular-nums">18 ms</div>
-            <div className="text-[9.5px] text-ink-600">latency</div>
-          </div>
-        )}
-      </div>
-
-      <div className="relative mt-auto -mx-1">
-        <Spark data={down} color="#4aa8ff" height={size === "lg" ? 62 : 42} />
-        <div className="absolute inset-x-0 bottom-0">
-          <Spark data={up} color="#31d0aa" height={size === "lg" ? 40 : 26} fill={false} />
+    <Pad size={size} className="justify-between">
+      <div>
+        <Stat
+          value={d.toFixed(1)}
+          unit="MB/S"
+          size={size === "sm" ? 30 : size === "md" ? 38 : 46}
+        />
+        <div className="dim mt-1 flex items-center gap-1 text-[11px] font-semibold">
+          <ArrowDown size={11} /> DOWN
         </div>
       </div>
-    </Shell>
-  );
-}
 
-function Stat({
-  icon,
-  value,
-  color,
-  label,
-}: {
-  icon: React.ReactNode;
-  value: string;
-  color: string;
-  label: string;
-}) {
-  return (
-    <div>
-      <div className="flex items-baseline gap-1">
-        <span style={{ color }} className="self-center">
-          {icon}
+      <TickMeter
+        value={Math.min(100, d * 8)}
+        accent="var(--accent)"
+        height={size === "sm" ? 30 : 42}
+        ticks={size === "sm" ? 16 : 24}
+      />
+
+      <div className="flex items-baseline justify-between">
+        <span className="dim flex items-center gap-1 text-[11px] font-semibold">
+          <ArrowUp size={11} /> UP
         </span>
-        <span className="font-mono text-[17px] leading-none font-semibold text-white tabular-nums">
-          {value}
-        </span>
-        <span className="text-[9.5px] text-ink-500">MB/s</span>
+        <span className="numeral text-[15px]">{u.toFixed(1)}</span>
       </div>
-      <div className="mt-1 text-[9.5px] text-ink-600">{label}</div>
-    </div>
+    </Pad>
   );
 }

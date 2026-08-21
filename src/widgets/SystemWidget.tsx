@@ -1,29 +1,31 @@
-import { Cpu } from "lucide-react";
-import { Bar, Ring, Shell, Spark } from "./parts";
+import { Pad, Stat, TickMeter } from "./parts";
 import { useSeries } from "@/lib/hooks";
 import type { WidgetBodyProps } from "./loader";
 
 export default function SystemWidget({ size }: WidgetBodyProps) {
-  const cpu = useSeries(28, 34, 26, 900);
-  const ram = useSeries(28, 61, 8, 2200);
-  const now = cpu[cpu.length - 1];
+  const cpu = useSeries(26, 34, 26, 1200);
+  const ram = useSeries(26, 61, 8, 3000);
+  const now = Math.round(cpu[cpu.length - 1]);
 
   return (
-    <Shell title="System" icon={<Cpu size={12} />} right={<span>live</span>}>
-      <div className="flex items-center gap-3.5">
-        <Ring value={now} size={size === "sm" ? 48 : 58} label={`${Math.round(now)}%`} sub="CPU" />
-        <div className="flex min-w-0 flex-1 flex-col gap-2">
-          <Bar label="Memory" value={ram[ram.length - 1]} color="#4aa8ff" />
-          <Bar label="Disk" value={47} color="#f2b544" />
-          {size === "lg" && <Bar label="GPU" value={22} color="#e05fd0" />}
-        </div>
+    <Pad size={size} className="justify-between">
+      <div>
+        <Stat value={now} unit="%" size={size === "sm" ? 34 : size === "md" ? 42 : 52} />
+        <div className="dim mt-1 text-[11px] font-semibold">CPU LOAD</div>
       </div>
 
-      {size !== "sm" && (
-        <div className="mt-auto -mx-1 pt-2">
-          <Spark data={cpu} height={size === "lg" ? 46 : 32} />
+      <div className="space-y-2.5">
+        <TickMeter
+          value={now}
+          accent="var(--accent)"
+          height={size === "sm" ? 26 : 36}
+          ticks={size === "sm" ? 16 : 24}
+        />
+        <div className="flex items-baseline justify-between">
+          <span className="dim text-[11px] font-semibold">MEMORY</span>
+          <span className="numeral text-[15px]">{Math.round(ram[ram.length - 1])}%</span>
         </div>
-      )}
-    </Shell>
+      </div>
+    </Pad>
   );
 }

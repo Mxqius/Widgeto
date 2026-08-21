@@ -43,7 +43,7 @@ main window            ─ the manager: owns all state, persists it
   └── DesktopMap       ─ scaled live map of the monitor work area
   └── useDesktopSync   ─ reconciles OS windows against the store
 
-w-<id> windows         ─ one per visible widget, index.html?w=<id>
+w-<kind> windows       ─ one per visible widget, index.html?w=<kind>
                          frameless · transparent · skipTaskbar · alwaysOnBottom
 ```
 
@@ -56,13 +56,29 @@ Positions are stored **relative to each monitor's work area** (taskbar excluded)
 correct on any display and survives resolution changes; the screen origin is added only when talking
 to the OS.
 
+## Design language
+
+Uniform squircle tiles on a square grid, with two circular tiles for contrast. Every tile is either
+flat near-black or flat white — no glass, no glow, no accent wash. There are no section headers or
+uppercase labels: hierarchy comes from type size and weight, so the content *is* the widget. A
+single magenta accent appears sparingly (meter tip, selected day, progress fill).
+
+Recurring elements live in `src/widgets/parts.tsx`: `Say`/`Muted` for the mixed-weight typographic
+sentences, `TickMeter` for tick-mark meters, `Line` for hairline scrubbers, `Stat` for big numerals
+and `Row`/`Swatch` for thumbnail lists.
+
+Tiles are solid by default. Dropping `backdrop-filter` from twelve always-on windows is also worth
+about 26 MB of GPU memory; turn tile opacity below 100% in Settings and the blur comes back.
+
 ## The 12 widgets
 
 Clock · Weather · System · Calendar · Tasks · Now Playing · Notes · Focus Timer · Markets ·
 Quick Launch · Network · Power
 
-Three sizes each (S/M/L, defined in `src/widgets/registry.tsx`), each with its own accent colour.
-Notes and Tasks keep their content per instance.
+**One of each — widgets cannot be duplicated.** `kind` is the identity, the store holds exactly one
+entry per kind, and adding or removing just flips its `open` flag, so a widget keeps its position
+and size while hidden. Three uniform square sizes (176 / 216 / 264 px) and a `theme` + `shape` per
+kind are declared in `src/widgets/registry.ts`. Notes and Tasks keep their content.
 
 ## Placement features
 
@@ -92,11 +108,11 @@ manager gets a tab per display.
 | ----- | ------ |
 | On the desktop | Drag a widget to move it · hover for resize/lock/hide · double-click cycles size |
 | Manager map | Drag a card to place it · double-click to show/hide |
-| Manager list | Size, lock, show/hide, delete, move to another display |
+| Manager list | Size, lock, show/hide, move to another display |
 
 | Keys | Action |
 | ---- | ------ |
-| `Ctrl+K` | Widget library |
+| `Ctrl+K` | Widget library (toggle widgets on and off) |
 | `Ctrl+,` | Settings |
 | `Ctrl+G` | Auto-arrange |
 | `Ctrl+D` | Dock everything |
@@ -105,7 +121,7 @@ manager gets a tab per display.
 
 ## Settings
 
-Appearance (accent, glass opacity, blur, radius, wallpaper) · Layout & docking (pull distance,
+Appearance (accent, tile opacity, blur, radius, wallpaper) · Layout & docking (pull distance,
 margins, snapping, arrange mode, spacing) · Widgets (formats, instances) · Desktop & window (layer,
 show/hide all, manager always-on-top, reset) · Shortcuts · About.
 
@@ -114,12 +130,15 @@ show/hide all, manager always-on-top, reset) · Shortcuts · About.
 ```
 src/
   lib/layout.ts         docking, alignment snapping, the four arrange algorithms
+  lib/defaults.ts       default settings, dependency-free so widget windows can read them
   lib/desktop.ts        monitors, widget-window lifecycle, the event contract
   lib/useDesktopSync.ts reconciles OS windows against the store, one pass at a time
   store/useApp.ts       widgets + settings; persisted only in the manager
   components/           DesktopMap, ManagerChrome, WidgetLibrary, ui primitives
   screens/              Manager, WidgetWindow, Settings
-  widgets/              registry + the 12 widget bodies + shared parts
+  widgets/registry.ts   metadata only (no bodies) so the manager stays small
+  widgets/loader.ts     one dynamic import per widget body
+  widgets/              the 12 bodies + shared parts + prefs context
 src-tauri/              Rust shell, capabilities, icons
 ```
 
@@ -131,3 +150,10 @@ Widget data is simulated — series wander plausibly rather than jumping. `host_
 Window movement is driven from the frontend via `setPosition`, which is what makes snapping and
 docking possible (a native drag would give up that control). On a slower machine a fast drag may
 show slight lag behind the cursor.
+
+**Memory is dominated by process count, not by code.** Each widget is its own WebView2 renderer and
+each renderer costs roughly 80 MB no matter how little it runs, so twelve widgets sit near 1 GB.
+Code-splitting cut the JS a widget window parses by ~76% (1539 KB to ~370 KB) and solid tiles cut
+GPU memory, which together took the whole process tree from ~1676 MB to ~1479 MB — but the only
+large lever left is fewer windows. A single fullscreen transparent overlay hosting every widget
+would be roughly one renderer instead of twelve, at the cost of hit-testing for click-through.

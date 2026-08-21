@@ -12,6 +12,8 @@ import {
   type MovedPayload,
 } from "@/lib/desktop";
 import { clamp, cn, isTauri } from "@/lib/utils";
+import { DEFAULT_SETTINGS } from "@/lib/defaults";
+import { BROWSER_AREA } from "@/lib/desktop";
 
 type Rect = { x: number; y: number; w: number; h: number };
 
@@ -22,8 +24,23 @@ type Rect = { x: number; y: number; w: number; h: number };
  * own record, which the manager pushes over the event bus. Keeping it out of
  * the store means a widget window loads neither the store nor the manager UI.
  */
+/** Outside Tauri there is no manager to talk to, so render a default tile. */
+function previewConfig(kind: WidgetKind): ConfigPayload {
+  return {
+    widget: {
+      kind, size: "md", x: 0, y: 0, z: 1,
+      locked: false, dock: null, alpha: 1, open: true, display: 0,
+    },
+    settings: DEFAULT_SETTINGS,
+    area: BROWSER_AREA,
+    neighbours: [],
+  };
+}
+
 export default function WidgetWindow({ kind }: { kind: WidgetKind }) {
-  const [cfg, setCfg] = useState<ConfigPayload | null>(null);
+  const [cfg, setCfg] = useState<ConfigPayload | null>(() =>
+    isTauri() ? null : previewConfig(kind),
+  );
   const [hovered, setHovered] = useState(false);
   const [dragging, setDragging] = useState(false);
 
@@ -177,7 +194,7 @@ export default function WidgetWindow({ kind }: { kind: WidgetKind }) {
 
   if (!cfg) {
     // waiting for the manager's first config broadcast
-    return <div className="surface h-full w-full rounded-[20px] opacity-30" />;
+    return <div className="tile tile-dark h-full w-full opacity-25" />;
   }
 
   return (
@@ -224,15 +241,24 @@ function WidgetShell({
     [settings.clock24h, settings.temperatureUnit],
   );
 
+  const circle = def.shape === "circle";
+  const translucent = settings.widgetAlpha < 0.98;
+
   return (
     <div
-      className="surface group relative h-full w-full overflow-hidden select-none"
+      className={cn(
+        "tile group h-full w-full select-none",
+        def.theme === "dark" ? "tile-dark" : "tile-light",
+        translucent && "tile-translucent",
+      )}
       style={{
-        borderRadius: settings.radius,
-        opacity: widget.alpha,
+        borderRadius: circle ? "50%" : settings.radius,
         cursor: locked ? "default" : dragging ? "grabbing" : "grab",
-        transform: dragging ? "scale(1.012)" : "none",
-        transition: "transform 140ms cubic-bezier(0.16,1,0.3,1)",
+        transform: dragging ? "scale(1.015)" : "none",
+        transition: "transform 160ms cubic-bezier(0.16,1,0.3,1)",
+        boxShadow: dragging
+          ? "0 26px 60px -18px rgba(0,0,0,0.65)"
+          : "0 10px 26px -14px rgba(0,0,0,0.5)",
         // @ts-expect-error custom property
         "--accent": def.accent,
       }}
@@ -245,28 +271,25 @@ function WidgetShell({
       onDoubleClick={() => onAction("cycle-size")}
     >
       <div
-        className="pointer-events-none absolute -top-16 -right-10 size-40 rounded-full opacity-[0.16] blur-3xl"
-        style={{ background: def.accent }}
-      />
-
-      <div
         data-nodrag
         className={cn(
-          "absolute top-1.5 right-1.5 z-20 flex items-center gap-0.5 rounded-lg border",
-          "border-white/[0.07] bg-ink-900/80 p-0.5 backdrop-blur-md transition-all duration-150",
+          "absolute z-20 flex items-center gap-0.5 rounded-full p-0.5 transition-all duration-150",
+          def.theme === "dark" ? "bg-white/12 text-white" : "bg-black/8 text-black",
+          circle ? "top-2 left-1/2 -translate-x-1/2" : "top-2 right-2",
           hovered && !dragging
-            ? "pointer-events-auto translate-y-0 opacity-100"
-            : "pointer-events-none -translate-y-1.5 opacity-0",
+            ? "pointer-events-auto opacity-100"
+            : "pointer-events-none opacity-0",
         )}
+        style={{ backdropFilter: "blur(8px)" }}
       >
         <Chip title="Resize" onClick={() => onAction("cycle-size")}>
-          <Maximize2 size={12} />
+          <Maximize2 size={11} />
         </Chip>
         <Chip title={locked ? "Unlock" : "Lock"} onClick={() => onAction("lock")}>
-          {locked ? <Lock size={12} /> : <LockOpen size={12} />}
+          {locked ? <Lock size={11} /> : <LockOpen size={11} />}
         </Chip>
-        <Chip title="Hide" danger onClick={() => onAction("hide")}>
-          <X size={13} />
+        <Chip title="Remove" onClick={() => onAction("hide")}>
+          <X size={12} />
         </Chip>
       </div>
 
@@ -283,21 +306,17 @@ function Chip({
   children,
   onClick,
   title,
-  danger,
 }: {
   children: React.ReactNode;
   onClick: () => void;
   title: string;
-  danger?: boolean;
 }) {
   return (
     <button
       title={title}
       onClick={onClick}
-      className={cn(
-        "flex size-6 items-center justify-center rounded-md text-ink-400 transition-colors",
-        danger ? "hover:bg-red-500/20 hover:text-red-300" : "hover:bg-white/10 hover:text-white",
-      )}
+      className="flex size-[22px] items-center justify-center rounded-full opacity-70
+                 transition-opacity hover:opacity-100"
     >
       {children}
     </button>

@@ -232,16 +232,19 @@ export default function DesktopMap({ display }: { display: number }) {
                   : { type: "spring", stiffness: 420, damping: 34 }
               }
               className={cn(
-                "absolute flex flex-col items-center justify-center gap-1 overflow-hidden rounded-lg border",
+                "absolute flex flex-col items-center justify-center gap-1 overflow-hidden",
                 locked ? "cursor-default" : active ? "cursor-grabbing" : "cursor-grab",
               )}
               style={{
                 zIndex: active ? 50 : w.z,
-                borderColor: active ? def.accent : "rgba(255,255,255,0.1)",
-                background: `linear-gradient(160deg, color-mix(in srgb, ${def.accent} 22%, transparent), rgba(13,14,16,0.86))`,
+                borderRadius: def.shape === "circle" ? "50%" : Math.max(4, 30 * scale),
+                background: def.theme === "dark" ? "#0a0a0b" : "#fbfbfa",
+                color: def.theme === "dark" ? "#fff" : "#0a0a0b",
+                outline: active ? `1.5px solid ${def.accent}` : "1px solid rgba(255,255,255,0.09)",
+                outlineOffset: active ? 1 : 0,
                 boxShadow: active
-                  ? `0 10px 28px -8px ${def.accent}`
-                  : "0 4px 12px -6px rgba(0,0,0,0.8)",
+                  ? `0 8px 22px -6px ${def.accent}`
+                  : "0 3px 10px -6px rgba(0,0,0,0.9)",
               }}
               title={`${def.name} · ${w.size.toUpperCase()}${w.open ? "" : " · hidden"}`}
             >

@@ -18,16 +18,20 @@
   --color-ink-200: #c1c3c9;
   --color-ink-100: #e8e9eb;
 
-  --radius-widget: 20px;
+  --radius-tile: 30px;
 
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 :root {
-  --accent: #7c6cff;
-  --accent-soft: rgba(124, 108, 255, 0.16);
-  --widget-alpha: 0.72;
-  --widget-blur: 22px;
+  --accent: #ff4dd8;
+  --accent-soft: rgba(255, 77, 216, 0.16);
+  --widget-alpha: 1;
+  --widget-blur: 18px;
+
+  /* the two tile grounds — solid, high contrast, no glass */
+  --tile-dark: #0a0a0b;
+  --tile-light: #fbfbfa;
   color-scheme: dark;
 }
 
@@ -63,25 +67,64 @@ body {
 @utility app-drag { -webkit-app-region: drag; }
 
 @layer components {
-  /* The signature Linear-style surface: dark glass + hairline top highlight */
-  .surface {
-    background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.045) 0%, rgba(255, 255, 255, 0) 42%),
-      color-mix(in srgb, var(--color-ink-900) calc(var(--widget-alpha) * 100%), transparent);
-    backdrop-filter: blur(var(--widget-blur)) saturate(160%);
-    -webkit-backdrop-filter: blur(var(--widget-blur)) saturate(160%);
-    border: 1px solid rgba(255, 255, 255, 0.07);
-    box-shadow:
-      0 0 0 0.5px rgba(0, 0, 0, 0.6),
-      0 1px 0 0 rgba(255, 255, 255, 0.06) inset,
-      0 18px 40px -12px rgba(0, 0, 0, 0.75),
-      0 4px 12px -4px rgba(0, 0, 0, 0.5);
+  /*
+   * Widget tiles. Solid by default — the reference language is flat black and
+   * flat white, and dropping backdrop-filter also takes real GPU work off
+   * twelve always-on windows. Blur only kicks in if the user dials the tile
+   * translucent.
+   */
+  .tile {
+    border-radius: var(--radius-tile);
+    overflow: hidden;
+    position: relative;
+    isolation: isolate;
   }
 
-  .surface-flat {
-    background: color-mix(in srgb, var(--color-ink-850) 92%, transparent);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+  .tile-dark {
+    background: color-mix(in srgb, var(--tile-dark) calc(var(--widget-alpha) * 100%), transparent);
+    color: #fff;
   }
+
+  .tile-light {
+    background: color-mix(in srgb, var(--tile-light) calc(var(--widget-alpha) * 100%), transparent);
+    color: #0a0a0b;
+  }
+
+  .tile-translucent {
+    backdrop-filter: blur(var(--widget-blur)) saturate(150%);
+    -webkit-backdrop-filter: blur(var(--widget-blur)) saturate(150%);
+  }
+
+  /* muted text that follows the tile's ground */
+  .tile-dark .dim { color: rgba(255, 255, 255, 0.5); }
+  .tile-dark .dimmer { color: rgba(255, 255, 255, 0.32); }
+  .tile-light .dim { color: rgba(10, 10, 11, 0.5); }
+  .tile-light .dimmer { color: rgba(10, 10, 11, 0.34); }
+
+  .tile-dark .rule { background: rgba(255, 255, 255, 0.1); }
+  .tile-light .rule { background: rgba(10, 10, 11, 0.1); }
+
+  /* the signature display type: tight, large, mixed weight in one line */
+  .display {
+    font-weight: 620;
+    letter-spacing: -0.035em;
+    line-height: 1.06;
+  }
+
+  .numeral {
+    font-variant-numeric: tabular-nums;
+    font-weight: 640;
+    letter-spacing: -0.04em;
+  }
+
+  /* white pill button, as on the booking card */
+  .pill {
+    @apply inline-flex items-center justify-center rounded-full px-3.5 h-8 text-[12.5px] font-semibold;
+    background: #fff;
+    color: #0a0a0b;
+    transition: transform 120ms var(--ease-out-expo), opacity 120ms;
+  }
+  .pill:active { transform: scale(0.96); }
 
   .hairline { border-color: rgba(255, 255, 255, 0.07); }
 

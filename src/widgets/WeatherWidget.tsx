@@ -1,74 +1,55 @@
-import { motion } from "motion/react";
-import { Cloud, CloudRain, CloudSun, Droplets, Sun, Wind } from "lucide-react";
-import { Shell } from "./parts";
+import { Cloud, CloudRain, CloudSun, Sun } from "lucide-react";
+import { Muted, Pad, Say } from "./parts";
 import { useWidgetPrefs } from "./prefs";
 import type { WidgetBodyProps } from "./loader";
 
 const ICONS = { sun: Sun, cloud: Cloud, rain: CloudRain, part: CloudSun };
-type Cond = keyof typeof ICONS;
 
-const FORECAST: { day: string; c: Cond; hi: number; lo: number }[] = [
-  { day: "Tue", c: "part", hi: 22, lo: 14 },
-  { day: "Wed", c: "sun", hi: 25, lo: 15 },
-  { day: "Thu", c: "rain", hi: 19, lo: 13 },
-  { day: "Fri", c: "cloud", hi: 18, lo: 12 },
-  { day: "Sat", c: "sun", hi: 24, lo: 16 },
-];
-
+/**
+ * The typographic card: one flowing sentence where the values carry the weight
+ * and the connective words drop back.
+ */
 export default function WeatherWidget({ size }: WidgetBodyProps) {
   const { temperatureUnit: unit } = useWidgetPrefs();
   const t = (c: number) => (unit === "C" ? c : Math.round((c * 9) / 5 + 32));
-  const days = size === "sm" ? 3 : size === "md" ? 4 : 5;
+  const Icon = ICONS.part;
+
+  const big = size === "sm" ? 21 : size === "md" ? 26 : 32;
+  const small = size === "sm" ? 15 : size === "md" ? 18 : 22;
 
   return (
-    <Shell title="Amsterdam" icon={<CloudSun size={12} />} right={<span>Feels {t(20)}°</span>}>
-      <div className="flex items-start gap-3">
-        <motion.div
-          animate={{ y: [0, -3, 0] }}
-          transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-          style={{ color: "var(--accent)" }}
-        >
-          <CloudSun size={size === "sm" ? 30 : 38} strokeWidth={1.4} />
-        </motion.div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start leading-none">
-            <span className="text-[30px] font-semibold tracking-tight text-white tabular-nums">
-              {t(21)}
-            </span>
-            <span className="mt-1 ml-0.5 text-[14px] text-ink-400">°{unit}</span>
-          </div>
-          <div className="mt-1 text-[11.5px] text-ink-400">Partly cloudy</div>
-        </div>
-        {size !== "sm" && (
-          <div className="flex shrink-0 flex-col gap-1 pr-12">
-            <span className="flex items-center gap-1 text-[10.5px] text-ink-400">
-              <Droplets size={10} /> 38%
-            </span>
-            <span className="flex items-center gap-1 text-[10.5px] text-ink-400">
-              <Wind size={10} /> 11 km/h
-            </span>
-          </div>
-        )}
-      </div>
+    <Pad size={size} className="justify-center gap-1">
+      <Say>
+        <span style={{ fontSize: big }}>{t(28)}°{unit}</span>{" "}
+        <span style={{ fontSize: small }}>
+          <Muted>now</Muted>
+        </span>
+      </Say>
+      <Say className="leading-tight">
+        <span style={{ fontSize: small }}>
+          <Muted>in</Muted>
+        </span>{" "}
+        <span style={{ fontSize: big }}>Chicago</span>
+      </Say>
+      <Say>
+        <span style={{ fontSize: small }}>
+          <Muted>feels</Muted>
+        </span>{" "}
+        <span style={{ fontSize: big }}>{t(38)}°</span>
+      </Say>
 
-      <div className="mt-auto flex items-end gap-1 pt-3">
-        {FORECAST.slice(0, days).map((f, i) => {
-          const Icon = ICONS[f.c];
-          return (
-            <motion.div
-              key={f.day}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.05 + i * 0.05 }}
-              className="flex flex-1 flex-col items-center gap-1 rounded-lg py-1.5 transition-colors hover:bg-white/5"
-            >
-              <span className="text-[9.5px] font-medium text-ink-500">{f.day}</span>
-              <Icon size={13} className="text-ink-300" strokeWidth={1.6} />
-              <span className="font-mono text-[10px] text-ink-200 tabular-nums">{t(f.hi)}°</span>
-            </motion.div>
-          );
-        })}
+      <div className="mt-2 flex items-center gap-1.5">
+        <Icon size={size === "sm" ? 17 : 21} strokeWidth={2} className="shrink-0" />
+        <Say>
+          <span style={{ fontSize: big }}>sunny</span>{" "}
+          <span style={{ fontSize: small }}>
+            <Muted>next</Muted>
+          </span>
+        </Say>
       </div>
-    </Shell>
+      <Say style={{ fontSize: big }}>
+        <Muted>{size === "sm" ? "4 hrs" : "4 hours"}</Muted>
+      </Say>
+    </Pad>
   );
 }

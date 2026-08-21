@@ -12,6 +12,9 @@ import { arrange, dockPosition } from "@/lib/layout";
 import { BROWSER_AREA, type Area } from "@/lib/desktop";
 import { WIDGET_KINDS, sizeOf } from "@/widgets/registry";
 import { clamp } from "@/lib/utils";
+import { DEFAULT_SETTINGS } from "@/lib/defaults";
+
+export { DEFAULT_SETTINGS };
 
 /**
  * `index.html?w=<kind>` is a widget's own desktop window. Those windows are
@@ -28,29 +31,6 @@ const noopStorage = {
   removeItem: () => {},
 };
 
-export const DEFAULT_SETTINGS: Settings = {
-  accent: "#7c6cff",
-  widgetAlpha: 0.72,
-  blur: 22,
-  radius: 20,
-  gap: 16,
-  margin: 24,
-  gridSize: 8,
-  snapToGrid: true,
-  autoDock: true,
-  dockThreshold: 56,
-  alignGuides: true,
-  autoArrange: false,
-  arrangeMode: "grid",
-  lockAll: false,
-  showGrid: true,
-  layer: "desktop",
-  managerAlwaysOnTop: false,
-  reduceMotion: false,
-  clock24h: true,
-  temperatureUnit: "C",
-  wallpaper: "aurora",
-};
 
 
 /**
@@ -276,6 +256,27 @@ export const useApp = create<AppState>()(
     }),
     {
       name: "widgeto.v3",
+      version: 2,
+      /**
+       * The tile redesign changed what the appearance defaults mean. Anyone
+       * carrying settings from before it would otherwise keep the old purple
+       * accent and small radius on top of the new flat tiles, so those four
+       * fields are re-based while positions and visibility are kept.
+       */
+      migrate: (persisted, from) => {
+        const p = (persisted ?? {}) as { settings?: Settings };
+        if (from >= 2 || !p.settings) return p;
+        return {
+          ...p,
+          settings: {
+            ...p.settings,
+            accent: DEFAULT_SETTINGS.accent,
+            radius: DEFAULT_SETTINGS.radius,
+            widgetAlpha: DEFAULT_SETTINGS.widgetAlpha,
+            blur: DEFAULT_SETTINGS.blur,
+          },
+        };
+      },
       storage: createJSONStorage(() => (IS_WIDGET_WINDOW ? noopStorage : localStorage)),
       partialize: (s) => ({ widgets: s.widgets, settings: s.settings, zTop: s.zTop }),
       /** Heal older/partial payloads so every kind exists exactly once. */

@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
-import { Check, ListTodo, Plus } from "lucide-react";
-import { Shell } from "./parts";
+import { Check } from "lucide-react";
+import { Pad, Stat } from "./parts";
 import { useLocal } from "@/lib/hooks";
 import { cn, uid } from "@/lib/utils";
 import type { WidgetBodyProps } from "./loader";
@@ -17,92 +16,81 @@ const SEED: Task[] = [
   { id: "b", text: "Wire up auto-docking", done: true },
   { id: "c", text: "Polish the settings screen", done: false },
   { id: "d", text: "Package the Tauri build", done: false },
-  { id: "e", text: "Write the README", done: false },
 ];
 
+/** Headed by a big done/total fraction, as on the watched-movies card. */
 export default function TasksWidget({ kind, size }: WidgetBodyProps) {
   const [tasks, setTasks] = useLocal<Task[]>(`widgeto.tasks.${kind}`, SEED);
   const [draft, setDraft] = useState("");
 
   const done = tasks.filter((t) => t.done).length;
   const pct = tasks.length ? (done / tasks.length) * 100 : 0;
-  const limit = size === "sm" ? 3 : size === "md" ? 5 : 8;
-
-  const toggle = (tid: string) =>
-    setTasks(tasks.map((t) => (t.id === tid ? { ...t, done: !t.done } : t)));
-
-  const addTask = () => {
-    const text = draft.trim();
-    if (!text) return;
-    setTasks([{ id: uid(), text, done: false }, ...tasks]);
-    setDraft("");
-  };
+  const limit = size === "sm" ? 2 : size === "md" ? 3 : 5;
 
   return (
-    <Shell
-      title="Tasks"
-      icon={<ListTodo size={12} />}
-      right={
-        <span className="tabular-nums">
-          {done}/{tasks.length}
-        </span>
-      }
-    >
-      <div className="mb-2 h-1 overflow-hidden rounded-full bg-white/[0.07]">
-        <motion.div
-          className="h-full rounded-full"
-          style={{ background: "var(--accent)" }}
-          animate={{ width: `${pct}%` }}
-          transition={{ type: "spring", stiffness: 160, damping: 24 }}
+    <Pad size={size} className="gap-2">
+      <div>
+        <div className="flex items-baseline">
+          <Stat value={done} size={size === "sm" ? 24 : 30} />
+          <span className="dim text-[15px] font-semibold">/{tasks.length}</span>
+        </div>
+        <div className="dim text-[10.5px] font-semibold">TASKS DONE</div>
+      </div>
+
+      <div className="relative h-[3px] w-full overflow-hidden rounded-full">
+        <span className="absolute inset-0 opacity-15" style={{ background: "currentColor" }} />
+        <span
+          className="absolute inset-y-0 left-0 rounded-full transition-[width] duration-400"
+          style={{ width: `${pct}%`, background: "var(--accent)" }}
         />
       </div>
 
-      <div className="-mr-1 min-h-0 flex-1 space-y-0.5 overflow-y-auto pr-1">
-        <AnimatePresence initial={false}>
-          {tasks.slice(0, limit).map((t) => (
-            <motion.button
-              key={t.id}
-              data-nodrag
-              layout
-              initial={{ opacity: 0, x: -8 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ type: "spring", stiffness: 480, damping: 36 }}
-              onClick={() => toggle(t.id)}
-              className="flex w-full items-center gap-2 rounded-lg px-1 py-1 text-left hover:bg-white/4"
+      <div className="-mr-1 min-h-0 flex-1 overflow-y-auto pr-1">
+        {tasks.slice(0, limit).map((t) => (
+          <button
+            key={t.id}
+            data-nodrag
+            onClick={() =>
+              setTasks(tasks.map((x) => (x.id === t.id ? { ...x, done: !x.done } : x)))
+            }
+            className="flex w-full items-center gap-2 py-[3px] text-left"
+          >
+            <span
+              className={cn(
+                "grid size-[14px] shrink-0 place-items-center rounded-[4px] border transition-colors",
+                t.done ? "border-transparent" : "border-current opacity-30",
+              )}
+              style={t.done ? { background: "var(--accent)" } : undefined}
             >
-              <span
-                className={cn(
-                  "grid size-[15px] shrink-0 place-items-center rounded-[5px] border transition-colors",
-                  t.done ? "border-transparent" : "border-white/20",
-                )}
-                style={t.done ? { background: "var(--accent)" } : undefined}
-              >
-                {t.done && <Check size={10} strokeWidth={3} className="text-white" />}
-              </span>
-              <span
-                className={cn(
-                  "truncate text-[12px] transition-colors",
-                  t.done ? "text-ink-600 line-through" : "text-ink-200",
-                )}
-              >
-                {t.text}
-              </span>
-            </motion.button>
-          ))}
-        </AnimatePresence>
+              {t.done && <Check size={9} strokeWidth={3.5} className="text-white" />}
+            </span>
+            <span
+              className={cn(
+                "truncate text-[11.5px] font-medium",
+                t.done && "dimmer line-through",
+              )}
+            >
+              {t.text}
+            </span>
+          </button>
+        ))}
       </div>
 
-      <div data-nodrag className="mt-2 flex items-center gap-1.5 border-t border-white/6 pt-2">
-        <Plus size={12} className="shrink-0 text-ink-600" />
+      {size !== "sm" && (
         <input
+          data-nodrag
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && addTask()}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && draft.trim()) {
+              setTasks([...tasks, { id: uid(), text: draft.trim(), done: false }]);
+              setDraft("");
+            }
+          }}
           placeholder="Add a task…"
-          className="w-full bg-transparent text-[12px] text-ink-100 outline-none placeholder:text-ink-600"
+          className="w-full bg-transparent text-[11.5px] font-medium outline-none placeholder:opacity-30"
         />
-      </div>
-    </Shell>
+      )}
+    </Pad>
   );
 }

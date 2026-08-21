@@ -1,160 +1,172 @@
-import type { ReactNode } from "react";
-import { motion } from "motion/react";
+import type { CSSProperties, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-/** Standard widget padding + optional header row. */
-export function Shell({
-  title,
-  icon,
-  right,
+/**
+ * Widget padding. There is deliberately no header row — in this design the
+ * content is the widget, and hierarchy comes from type size and weight.
+ */
+export function Pad({
   children,
   className,
-  dense,
+  size = "md",
 }: {
-  title?: string;
-  icon?: ReactNode;
-  right?: ReactNode;
   children: ReactNode;
   className?: string;
-  dense?: boolean;
+  size?: "sm" | "md" | "lg";
 }) {
   return (
-    <div className={cn("flex h-full flex-col", dense ? "p-3" : "p-3.5")}>
-      {title && (
-        <div className="mb-2.5 flex items-center gap-1.5">
-          <span style={{ color: "var(--accent)" }} className="flex shrink-0 items-center">
-            {icon}
-          </span>
-          <span className="label-xs truncate">{title}</span>
-          <div className="flex-1" />
-          <div className="flex shrink-0 items-center gap-1 pr-14 text-[10.5px] text-ink-500">
-            {right}
-          </div>
+    <div
+      className={cn("flex h-full flex-col", className)}
+      style={{ padding: size === "sm" ? 16 : size === "md" ? 18 : 22 }}
+    >
+      {children}
+    </div>
+  );
+}
+
+/**
+ * The signature typographic block: one flowing line where the values are
+ * heavy and white and the connective words fall back to muted.
+ */
+export function Say({
+  children,
+  className,
+  style,
+}: {
+  children: ReactNode;
+  className?: string;
+  style?: CSSProperties;
+}) {
+  return (
+    <div className={cn("display", className)} style={style}>
+      {children}
+    </div>
+  );
+}
+
+export function Muted({ children }: { children: ReactNode }) {
+  return <span className="dim font-medium">{children}</span>;
+}
+
+/** Vertical tick-mark meter, as on the battery card. */
+export function TickMeter({
+  value,
+  accent,
+  height = 56,
+  ticks = 26,
+  labels,
+}: {
+  value: number;
+  accent: string;
+  height?: number;
+  ticks?: number;
+  labels?: [string, string, string];
+}) {
+  const filled = Math.round((Math.min(100, Math.max(0, value)) / 100) * ticks);
+  return (
+    <div className="w-full">
+      <div className="flex items-end gap-[2px]" style={{ height }}>
+        {Array.from({ length: ticks }).map((_, i) => {
+          const on = i < filled;
+          const isEdge = i === filled - 1;
+          return (
+            <div
+              key={i}
+              className="flex-1 rounded-[1px] transition-[height,background] duration-300"
+              style={{
+                height: isEdge ? "100%" : on ? "58%" : "34%",
+                background: on
+                  ? isEdge
+                    ? accent
+                    : "currentColor"
+                  : "currentColor",
+                opacity: on ? (isEdge ? 1 : 0.55) : 0.14,
+              }}
+            />
+          );
+        })}
+      </div>
+      {labels && (
+        <div className="dimmer mt-2 flex justify-between text-[10px] font-medium tabular-nums">
+          <span>{labels[0]}</span>
+          <span>{labels[1]}</span>
+          <span>{labels[2]}</span>
         </div>
       )}
-      <div className={cn("flex min-h-0 flex-1 flex-col", className)}>{children}</div>
     </div>
   );
 }
 
-/** Progress ring used by system / battery / pomodoro widgets. */
-export function Ring({
+/** Hairline progress line, as under the album art. */
+export function Line({ value, accent }: { value: number; accent?: string }) {
+  return (
+    <div className="relative h-[2px] w-full rounded-full">
+      <div className="absolute inset-0 rounded-full opacity-25" style={{ background: "currentColor" }} />
+      <div
+        className="absolute top-0 left-0 h-full rounded-full transition-[width] duration-500"
+        style={{ width: `${Math.min(100, value)}%`, background: accent ?? "currentColor" }}
+      />
+      <span
+        className="absolute top-1/2 size-[7px] -translate-y-1/2 rounded-full transition-[left] duration-500"
+        style={{ left: `calc(${Math.min(100, value)}% - 3.5px)`, background: accent ?? "currentColor" }}
+      />
+    </div>
+  );
+}
+
+/** Big numeral with a small trailing unit. */
+export function Stat({
   value,
-  size = 56,
-  stroke = 5,
-  color,
-  label,
-  sub,
+  unit,
+  size = 44,
+  className,
 }: {
-  value: number;
+  value: ReactNode;
+  unit?: ReactNode;
   size?: number;
-  stroke?: number;
-  color?: string;
-  label?: ReactNode;
-  sub?: ReactNode;
+  className?: string;
 }) {
-  const r = (size - stroke) / 2;
-  const c = 2 * Math.PI * r;
   return (
-    <div className="relative grid shrink-0 place-items-center" style={{ width: size, height: size }}>
-      <svg width={size} height={size} className="-rotate-90">
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={r}
-          fill="none"
-          stroke="rgba(255,255,255,0.08)"
-          strokeWidth={stroke}
-        />
-        <motion.circle
-          cx={size / 2}
-          cy={size / 2}
-          r={r}
-          fill="none"
-          stroke={color ?? "var(--accent)"}
-          strokeWidth={stroke}
-          strokeLinecap="round"
-          strokeDasharray={c}
-          animate={{ strokeDashoffset: c - (c * Math.min(100, Math.max(0, value))) / 100 }}
-          transition={{ type: "spring", stiffness: 120, damping: 22 }}
-        />
-      </svg>
-      <div className="absolute flex flex-col items-center leading-none">
-        {label && <span className="text-[13px] font-semibold text-ink-100 tabular-nums">{label}</span>}
-        {sub && <span className="mt-0.5 text-[9px] text-ink-500">{sub}</span>}
-      </div>
+    <div className={cn("flex items-baseline", className)}>
+      <span className="numeral" style={{ fontSize: size, lineHeight: 1 }}>
+        {value}
+      </span>
+      {unit && (
+        <span className="dim ml-1 text-[13px] font-semibold">{unit}</span>
+      )}
     </div>
   );
 }
 
-/** Tiny smoothed area chart. */
-export function Spark({
-  data,
-  color,
-  height = 34,
-  fill = true,
+/** Compact list row with a square thumbnail, as on the movie/calendar cards. */
+export function Row({
+  swatch,
+  title,
+  meta,
+  right,
 }: {
-  data: number[];
-  color?: string;
-  height?: number;
-  fill?: boolean;
+  swatch?: ReactNode;
+  title: ReactNode;
+  meta?: ReactNode;
+  right?: ReactNode;
 }) {
-  if (data.length < 2) return <div style={{ height }} />;
-  const min = Math.min(...data);
-  const max = Math.max(...data);
-  const span = max - min || 1;
-  const w = 100;
-  const pts = data.map((v, i) => [
-    (i / (data.length - 1)) * w,
-    height - ((v - min) / span) * (height - 4) - 2,
-  ]);
-  const d = pts.map((p, i) => `${i === 0 ? "M" : "L"}${p[0].toFixed(2)},${p[1].toFixed(2)}`).join(" ");
-  const stroke = color ?? "var(--accent)";
-  const gid = `sg-${Math.abs(data[0] * 1000).toFixed(0)}-${data.length}`;
-
   return (
-    <svg viewBox={`0 0 ${w} ${height}`} preserveAspectRatio="none" width="100%" height={height}>
-      <defs>
-        <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={stroke} stopOpacity={0.34} />
-          <stop offset="100%" stopColor={stroke} stopOpacity={0} />
-        </linearGradient>
-      </defs>
-      {fill && <path d={`${d} L${w},${height} L0,${height} Z`} fill={`url(#${gid})`} />}
-      <path d={d} fill="none" stroke={stroke} strokeWidth={1.5} strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
-    </svg>
+    <div className="flex items-center gap-2.5 py-1">
+      {swatch}
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-[12px] font-semibold">{title}</div>
+        {meta && <div className="dim truncate text-[10.5px] font-medium">{meta}</div>}
+      </div>
+      {right}
+    </div>
   );
 }
 
-/** Thin labelled bar. */
-export function Bar({
-  label,
-  value,
-  color,
-  suffix = "%",
-}: {
-  label: string;
-  value: number;
-  color?: string;
-  suffix?: string;
-}) {
+export function Swatch({ from, to }: { from: string; to: string }) {
   return (
-    <div>
-      <div className="mb-1 flex items-baseline justify-between">
-        <span className="text-[11px] text-ink-400">{label}</span>
-        <span className="font-mono text-[11px] text-ink-200 tabular-nums">
-          {Math.round(value)}
-          {suffix}
-        </span>
-      </div>
-      <div className="h-1.5 overflow-hidden rounded-full bg-white/[0.07]">
-        <motion.div
-          className="h-full rounded-full"
-          style={{ background: color ?? "var(--accent)" }}
-          animate={{ width: `${Math.min(100, value)}%` }}
-          transition={{ type: "spring", stiffness: 140, damping: 24 }}
-        />
-      </div>
-    </div>
+    <span
+      className="size-7 shrink-0 rounded-[7px]"
+      style={{ background: `linear-gradient(140deg, ${from}, ${to})` }}
+    />
   );
 }
