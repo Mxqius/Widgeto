@@ -22,8 +22,6 @@ export default function ManagerChrome({ onOpenSettings }: { onOpenSettings: () =
           W
         </div>
         <span className="text-[13px] font-semibold tracking-tight text-ink-100">Widgeto</span>
-        <span className="text-[12px] text-ink-600">·</span>
-        <span className="text-[12px] text-ink-500">Widget manager</span>
       </div>
 
       <div className="flex-1" />

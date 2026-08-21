@@ -1,5 +1,6 @@
 {
   "name": "widgeto",
+  "description": "Desktop widgets, always on your screen",
   "private": true,
   "version": "0.1.0",
   "type": "module",

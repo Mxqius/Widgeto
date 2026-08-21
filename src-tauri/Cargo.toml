@@ -1,8 +1,7 @@
 [package]
 name = "widgeto"
 version = "0.1.0"
-description = "Desktop widget board"
-authors = ["you"]
+description = "Desktop widgets, always on your screen"
 edition = "2021"
 
 [lib]

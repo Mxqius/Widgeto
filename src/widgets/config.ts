@@ -21,12 +21,12 @@ export const DEFAULT_CONFIG = {
   markets: { symbols: ["BTC", "ETH", "SOL"] as string[], refreshSec: 60 },
   launcher: {
     links: [
-      { name: "GitHub", url: "https://github.com" },
-      { name: "Figma", url: "https://figma.com" },
-      { name: "Tauri", url: "https://tauri.app" },
-      { name: "Vercel", url: "https://vercel.com" },
+      { name: "Gmail", url: "https://mail.google.com" },
+      { name: "Calendar", url: "https://calendar.google.com" },
+      { name: "Drive", url: "https://drive.google.com" },
+      { name: "YouTube", url: "https://youtube.com" },
       { name: "Spotify", url: "https://open.spotify.com" },
-      { name: "Excalidraw", url: "https://excalidraw.com" },
+      { name: "Notion", url: "https://notion.so" },
     ] as QuickLink[],
   },
   network: { refreshSec: 2 },

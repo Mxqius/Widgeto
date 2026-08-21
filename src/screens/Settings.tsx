@@ -292,7 +292,7 @@ export default function Settings({ onBack }: { onBack: () => void }) {
                   <Group title="Data">
                     <Row
                       title="Weather and Markets"
-                      hint="Fetched in-process by the Rust core. No server to run."
+                      hint="Updates automatically in the background — nothing to install or run."
                     >
                       <DataStatus />
                     </Row>
@@ -323,7 +323,7 @@ export default function Settings({ onBack }: { onBack: () => void }) {
                   <Group title="Widgets on the desktop">
                     <Row
                       title="Desktop layer"
-                      hint="Where widget windows sit in the desktop z-order."
+                      hint="Where your widgets sit relative to other windows."
                     >
                       <Picker
                         value={s.layer}
@@ -431,9 +431,9 @@ export default function Settings({ onBack }: { onBack: () => void }) {
 
 const BLURB: Record<TabId, string> = {
   appearance: "Tune the glass, the accent and the density of your widgets.",
-  layout: "Control how widget windows snap, dock and re-order on your desktop.",
-  widgets: "Shared formats and the data service the widgets read from.",
-  window: "How widget windows and the manager behave on your desktop.",
+  layout: "Control how your widgets snap, dock and arrange themselves.",
+  widgets: "Shared formats, and where your live data comes from.",
+  window: "How Widgeto and your widgets behave on your desktop.",
   shortcuts: "Everything you can do without touching the mouse.",
   about: "Version, what it is built on, and what to send if something breaks.",
 };
@@ -442,9 +442,8 @@ const SHORTCUTS = [
   { combo: "Ctrl+,", what: "Open settings" },
   { combo: "Ctrl+G", what: "Auto-arrange the desktop" },
   { combo: "Ctrl+D", what: "Dock everything to zones" },
-  { combo: "Close window", what: "Parks the app in the tray" },
+  { combo: "Close window", what: "Keeps Widgeto running in the tray" },
   { combo: "Ctrl+L", what: "Lock / unlock every widget" },
-  { combo: "Double-click", what: "Cycle a widget through S / M / L" },
   { combo: "Esc", what: "Close the current overlay" },
 ];
 

@@ -21,7 +21,7 @@ export function Toggle({
       checked={checked}
       onCheckedChange={onChange}
       className={cn(
-        "relative h-5.5 w-9.5 shrink-0 rounded-full outline-none transition-colors duration-200",
+        "relative h-5.5 w-9.5 shrink-0 rounded-full flex items-center outline-none transition-colors duration-200",
         "border border-white/10 bg-white/6",
         "data-checked:border-transparent",
       )}

@@ -12,10 +12,10 @@ interface Task {
 }
 
 const SEED: Task[] = [
-  { id: "a", text: "Ship the widget prototype", done: true },
-  { id: "b", text: "Wire up auto-docking", done: true },
-  { id: "c", text: "Polish the settings screen", done: false },
-  { id: "d", text: "Package the Tauri build", done: false },
+  { id: "a", text: "Reply to emails", done: true },
+  { id: "b", text: "Plan the week ahead", done: false },
+  { id: "c", text: "Book the dentist appointment", done: false },
+  { id: "d", text: "Buy groceries", done: false },
 ];
 
 /** Headed by a big done/total fraction, as on the watched-movies card. */
