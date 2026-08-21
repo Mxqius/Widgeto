@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { fetchHealth } from "@/lib/data";
+import { isAutostartEnabled, setAutostart, setStartInTray } from "@/lib/startup";
 import { motion } from "motion/react";
 import {
   ArrowLeft, Blocks, Info, Keyboard, Magnet, Palette, RotateCcw,
@@ -330,6 +331,27 @@ export default function Settings({ onBack }: { onBack: () => void }) {
                     </Row>
                   </Group>
 
+                  <Group title="Startup">
+                    <Row
+                      title="Launch at login"
+                      hint="Registers Widgeto with Windows so your widgets are there on boot."
+                    >
+                      <AutostartToggle />
+                    </Row>
+                    <Row
+                      title="Start in the tray"
+                      hint="Come up as a tray icon instead of opening this window."
+                    >
+                      <Toggle
+                        checked={s.startInTray}
+                        onChange={(v) => {
+                          update({ startInTray: v });
+                          void setStartInTray(v);
+                        }}
+                      />
+                    </Row>
+                  </Group>
+
                   <Group title="Manager window">
                     <Row title="Always on top" hint="Keep this manager above other windows.">
                       <Toggle
@@ -467,5 +489,34 @@ function DataStatus() {
         Check
       </button>
     </div>
+  );
+}
+
+/**
+ * Reads the real OS registration rather than our own setting — it can be
+ * revoked outside the app, and showing a stale "on" would be a lie.
+ */
+function AutostartToggle() {
+  const [on, setOn] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const update = useApp((st) => st.update);
+
+  useEffect(() => {
+    void isAutostartEnabled().then(setOn);
+  }, []);
+
+  return (
+    <Toggle
+      checked={on}
+      onChange={async (v) => {
+        if (busy) return;
+        setBusy(true);
+        setOn(v); // optimistic, corrected below if the OS refuses
+        const actual = await setAutostart(v);
+        setOn(actual);
+        update({ launchAtLogin: actual });
+        setBusy(false);
+      }}
+    />
   );
 }

@@ -22,6 +22,8 @@ export const DEFAULT_SETTINGS: Settings = {
   showGrid: true,
   layer: "desktop",
   managerAlwaysOnTop: false,
+  launchAtLogin: false,
+  startInTray: false,
   reduceMotion: false,
   clock24h: true,
   temperatureUnit: "C",

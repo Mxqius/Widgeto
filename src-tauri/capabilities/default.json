@@ -40,6 +40,9 @@
     "core:window:allow-primary-monitor",
     "core:window:allow-monitor-from-point",
     "opener:allow-open-url",
-    "core:app:default"
+    "core:app:default",
+    "autostart:allow-enable",
+    "autostart:allow-disable",
+    "autostart:allow-is-enabled"
   ]
 }

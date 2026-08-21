@@ -23,6 +23,30 @@ fn host_info() -> HostInfo {
     }
 }
 
+/// Reads the one preference the Rust side needs before the UI boots.
+/// The frontend owns settings, so it mirrors this flag into a tiny file
+/// rather than the Rust side reaching into localStorage.
+fn start_hidden(app: &tauri::AppHandle) -> bool {
+    prefs_path(app)
+        .and_then(|p| std::fs::read_to_string(p).ok())
+        .map(|s| s.contains("\"startInTray\":true"))
+        .unwrap_or(false)
+}
+
+fn prefs_path(app: &tauri::AppHandle) -> Option<std::path::PathBuf> {
+    let dir = app.path().app_config_dir().ok()?;
+    std::fs::create_dir_all(&dir).ok()?;
+    Some(dir.join("startup.json"))
+}
+
+/// Mirror of the startup preferences, written by the settings screen.
+#[tauri::command]
+fn set_startup_prefs(app: tauri::AppHandle, start_in_tray: bool) -> Result<(), String> {
+    let path = prefs_path(&app).ok_or("no config dir")?;
+    std::fs::write(path, format!("{{\"startInTray\":{start_in_tray}}}"))
+        .map_err(|e| e.to_string())
+}
+
 /// Bring the manager back from the tray.
 fn show_manager(app: &tauri::AppHandle) {
     if let Some(w) = app.get_webview_window("main") {
@@ -69,8 +93,14 @@ pub fn run() {
 
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            // tells a login-launched instance to stay in the tray
+            Some(vec!["--startup"]),
+        ))
         .invoke_handler(tauri::generate_handler![
             host_info,
+            set_startup_prefs,
             data::weather,
             data::markets,
             data::quote,
@@ -127,6 +157,13 @@ pub fn run() {
 
             if let Some(w) = app.get_webview_window("main") {
                 let _ = w.set_shadow(true);
+
+                // launched by the OS at login, or the user chose to start in
+                // the tray: come up as a tray icon only
+                let from_login = std::env::args().any(|a| a == "--startup");
+                if from_login || start_hidden(app.handle()) {
+                    let _ = w.hide();
+                }
             }
             Ok(())
         })

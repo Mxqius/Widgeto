@@ -80,6 +80,10 @@ export interface Settings {
   /** where widget windows sit in the z-order of the desktop */
   layer: "desktop" | "normal" | "top";
   managerAlwaysOnTop: boolean;
+  /** register with the OS to start at login */
+  launchAtLogin: boolean;
+  /** come up as a tray icon rather than opening the manager */
+  startInTray: boolean;
   reduceMotion: boolean;
   clock24h: boolean;
   temperatureUnit: "C" | "F";
