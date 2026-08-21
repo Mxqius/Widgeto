@@ -11,7 +11,8 @@ import type {
 import { arrange, dockPosition } from "@/lib/layout";
 import { BROWSER_AREA, type Area } from "@/lib/desktop";
 import { WIDGET_KINDS, sizeOf } from "@/widgets/registry";
-import { clamp } from "@/lib/utils";
+import { clamp, uid } from "@/lib/utils";
+import { BUILTIN_PROFILES, snapshot, type Profile } from "@/lib/profiles";
 import { DEFAULT_SETTINGS } from "@/lib/defaults";
 
 export { DEFAULT_SETTINGS };
@@ -74,6 +75,8 @@ interface AppState {
   /** work areas of every monitor; index 0 is primary */
   areas: Area[];
   zTop: number;
+  profiles: Profile[];
+  activeProfile: string | null;
 
   setAreas: (a: Area[]) => void;
 
@@ -93,6 +96,12 @@ interface AppState {
   closeAll: () => void;
   openAll: () => void;
   update: (patch: Partial<Settings>) => void;
+
+  applyProfile: (id: string) => void;
+  saveProfile: (name: string) => string;
+  updateProfile: (id: string) => void;
+  renameProfile: (id: string, name: string) => void;
+  deleteProfile: (id: string) => void;
 }
 
 /** Patch one widget, reusing the previous array when nothing actually changed. */
@@ -118,6 +127,8 @@ export const useApp = create<AppState>()(
       settings: DEFAULT_SETTINGS,
       areas: [BROWSER_AREA],
       zTop: WIDGET_KINDS.length,
+      profiles: BUILTIN_PROFILES,
+      activeProfile: null,
 
       setAreas: (areas) => {
         const { areas: prev, widgets, settings } = get();
@@ -266,6 +277,67 @@ export const useApp = create<AppState>()(
       openAll: () => set({ widgets: get().widgets.map((w) => (w.open ? w : { ...w, open: true })) }),
 
       update: (patchIn) => set({ settings: { ...get().settings, ...patchIn } }),
+
+      /* ------------------------------------------------------- profiles -- */
+
+      applyProfile: (id) => {
+        const prof = get().profiles.find((p) => p.id === id);
+        if (!prof) return;
+
+        if (prof.entries) {
+          // a saved profile restores exact geometry
+          set({
+            activeProfile: id,
+            widgets: get().widgets.map((w) => {
+              const e = prof.entries![w.kind];
+              return e ? { ...w, ...e } : { ...w, open: false };
+            }),
+          });
+          return;
+        }
+
+        // a built-in only names its widgets; the arranger places them so the
+        // profile fits whatever screen it is applied on
+        const wanted = new Set(prof.kinds ?? []);
+        set({
+          activeProfile: id,
+          widgets: get().widgets.map((w) => ({ ...w, open: wanted.has(w.kind), dock: null })),
+        });
+        get().autoArrangeNow();
+      },
+
+      saveProfile: (name) => {
+        const id = uid();
+        set({
+          profiles: [
+            ...get().profiles,
+            { id, name: name.trim() || "Untitled", entries: snapshot(get().widgets) },
+          ],
+          activeProfile: id,
+        });
+        return id;
+      },
+
+      updateProfile: (id) =>
+        set({
+          profiles: get().profiles.map((p) =>
+            p.id === id && !p.builtin ? { ...p, entries: snapshot(get().widgets) } : p,
+          ),
+          activeProfile: id,
+        }),
+
+      renameProfile: (id, name) =>
+        set({
+          profiles: get().profiles.map((p) =>
+            p.id === id ? { ...p, name: name.trim() || p.name } : p,
+          ),
+        }),
+
+      deleteProfile: (id) =>
+        set({
+          profiles: get().profiles.filter((p) => p.id !== id || p.builtin),
+          activeProfile: get().activeProfile === id ? null : get().activeProfile,
+        }),
     }),
     {
       name: "widgeto.v3",
@@ -291,7 +363,13 @@ export const useApp = create<AppState>()(
         };
       },
       storage: createJSONStorage(() => (IS_WIDGET_WINDOW ? noopStorage : localStorage)),
-      partialize: (s) => ({ widgets: s.widgets, settings: s.settings, zTop: s.zTop }),
+      partialize: (s) => ({
+        widgets: s.widgets,
+        settings: s.settings,
+        zTop: s.zTop,
+        profiles: s.profiles,
+        activeProfile: s.activeProfile,
+      }),
       /** Heal older/partial payloads so every kind exists exactly once. */
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<AppState>;
@@ -301,6 +379,10 @@ export const useApp = create<AppState>()(
           ...p,
           settings: { ...DEFAULT_SETTINGS, ...(p.settings ?? {}) },
           widgets: current.widgets.map((base) => ({ ...base, ...(stored.get(base.kind) ?? {}) })),
+          profiles: [
+            ...BUILTIN_PROFILES,
+            ...((p.profiles ?? []).filter((x) => !x.builtin)),
+          ],
         };
       },
     },

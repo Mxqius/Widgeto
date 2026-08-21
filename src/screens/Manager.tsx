@@ -5,6 +5,7 @@ import {
   Settings2, SlidersHorizontal, X,
 } from "lucide-react";
 import WidgetSettings from "@/components/WidgetSettings";
+import ProfileBar from "@/components/ProfileBar";
 import { Picker, Tip } from "@/components/ui";
 import { useApp } from "@/store/useApp";
 import { WIDGETS } from "@/widgets/registry";
@@ -111,8 +112,13 @@ export default function Manager({ onOpenSettings }: { onOpenSettings: () => void
           </div>
         </div>
 
+        {/* ------------------------------------------------------ profiles */}
+        <div className="border-y border-white/6 bg-white/[0.015] px-6 py-2.5">
+          <ProfileBar />
+        </div>
+
         {/* ------------------------------------------------------- filters */}
-        <div className="flex items-center gap-2 px-6 pb-3">
+        <div className="flex items-center gap-2 px-6 pt-3 pb-3">
           <div className="flex h-8 w-full max-w-[280px] items-center gap-2 rounded-lg border border-white/6 bg-white/[0.03] px-2.5">
             <Search size={13} className="text-ink-500" />
             <input
