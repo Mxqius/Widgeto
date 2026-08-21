@@ -14,9 +14,9 @@
       {
         "label": "main",
         "title": "Widgeto \u2014 Widget Manager",
-        "width": 420,
-        "height": 640,
-        "minWidth": 380,
+        "width": 1120,
+        "height": 740,
+        "minWidth": 720,
         "minHeight": 520,
         "decorations": false,
         "transparent": true,
@@ -24,8 +24,7 @@
         "resizable": true,
         "center": true,
         "dragDropEnabled": false,
-        "backgroundColor": "#00000000",
-        "maxWidth": 560
+        "backgroundColor": "#00000000"
       }
     ],
     "security": {

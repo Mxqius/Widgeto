@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { motion } from "motion/react";
 import {
   ArrowDownUp, Check, Layers, Lock, LockOpen, Magnet, Plus, Search, Settings2,
-  SlidersHorizontal,
+  SlidersHorizontal, X,
 } from "lucide-react";
 import WidgetSettings from "@/components/WidgetSettings";
 import { Picker, Tip } from "@/components/ui";
@@ -15,9 +15,10 @@ import { cn } from "@/lib/utils";
 const SIZES: SizeKey[] = ["sm", "md", "lg"];
 
 /**
- * The first screen: a summary of what is on the desktop, then the catalogue.
- * Placement happens by dragging the widget itself, so there is no layout
- * canvas — this screen is about what exists and how each one is configured.
+ * The first screen. A summary strip across the top, then the catalogue as a
+ * responsive grid of cards — one column in a narrow window, up to four in a
+ * wide one. Placement happens by dragging the widget itself, so there is no
+ * layout canvas; this screen is about what exists and how it is configured.
  */
 export default function Manager({ onOpenSettings }: { onOpenSettings: () => void }) {
   const widgets = useApp((s) => s.widgets);
@@ -32,8 +33,8 @@ export default function Manager({ onOpenSettings }: { onOpenSettings: () => void
   const closeAll = useApp((s) => s.closeAll);
 
   const [q, setQ] = useState("");
-  const [expanded, setExpanded] = useState<WidgetKind | null>(null);
-  const [tab, setTab] = useState<"active" | "all">("active");
+  const [tuning, setTuning] = useState<WidgetKind | null>(null);
+  const [tab, setTab] = useState<"active" | "all">("all");
 
   const state = useMemo(() => new Map(widgets.map((w) => [w.kind, w])), [widgets]);
   const live = widgets.filter((w) => w.open).length;
@@ -51,48 +52,67 @@ export default function Manager({ onOpenSettings }: { onOpenSettings: () => void
     return list;
   }, [q, tab, state]);
 
+  const tuned = tuning ? WIDGETS.find((d) => d.kind === tuning) : null;
+
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      {/* ---------------------------------------------------------- hero */}
-      <div className="px-4 pt-4 pb-3">
-        <div className="flex items-end justify-between">
+    <div className="flex h-full min-h-0">
+      <div className="flex min-w-0 flex-1 flex-col">
+        {/* ------------------------------------------------------- summary */}
+        <div className="flex flex-wrap items-end gap-x-6 gap-y-3 px-6 pt-5 pb-4">
           <div>
-            <div className="flex items-baseline gap-1.5">
-              <span className="numeral text-[34px] leading-none text-white">{live}</span>
+            <div className="flex items-baseline gap-2">
+              <span className="numeral text-[40px] leading-none text-white">{live}</span>
               <span className="text-[13px] font-semibold text-ink-500">
-                / {WIDGETS.length} on your desktop
+                of {WIDGETS.length} on your desktop
               </span>
             </div>
-            <div className="mt-1 text-[11.5px] text-ink-500">
-              Drag a widget on screen to move it. It snaps to corners and edges.
+            <div className="mt-1.5 text-[12px] text-ink-500">
+              Drag a widget on screen to move it — it snaps to corners, edges and its neighbours.
             </div>
           </div>
-          <Tip label="App settings">
-            <button className="btn size-8 px-0" onClick={onOpenSettings}>
-              <Settings2 size={15} />
+
+          <div className="flex flex-1 flex-wrap items-center justify-end gap-1.5">
+            <button className="btn" onClick={() => autoArrangeNow()}>
+              <ArrowDownUp size={13} /> Arrange
             </button>
-          </Tip>
+            <button className="btn" onClick={redock}>
+              <Magnet size={13} /> Dock
+            </button>
+            <button
+              className="btn"
+              data-selected={settings.lockAll}
+              onClick={() => update({ lockAll: !settings.lockAll })}
+            >
+              {settings.lockAll ? <Lock size={13} /> : <LockOpen size={13} />}
+              {settings.lockAll ? "Locked" : "Lock"}
+            </button>
+            <button
+              className="btn"
+              onClick={() => (live === WIDGETS.length ? closeAll() : openAll())}
+            >
+              <Layers size={13} /> {live === WIDGETS.length ? "Hide all" : "Show all"}
+            </button>
+            <div className="mx-1 h-5 w-px bg-white/8" />
+            <Picker
+              value={settings.layer}
+              onChange={(v) => update({ layer: v })}
+              options={[
+                { value: "desktop", label: "On the desktop" },
+                { value: "normal", label: "Like a window" },
+                { value: "top", label: "Above everything" },
+              ]}
+            />
+            <Tip label="App settings">
+              <button className="btn size-8 px-0" onClick={onOpenSettings}>
+                <Settings2 size={15} />
+              </button>
+            </Tip>
+          </div>
         </div>
 
-        {/* quick actions */}
-        <div className="mt-3 grid grid-cols-4 gap-1.5">
-          <Action icon={<ArrowDownUp size={14} />} label="Arrange" onClick={() => autoArrangeNow()} />
-          <Action icon={<Magnet size={14} />} label="Dock" onClick={redock} />
-          <Action
-            icon={settings.lockAll ? <Lock size={14} /> : <LockOpen size={14} />}
-            label={settings.lockAll ? "Locked" : "Unlocked"}
-            active={settings.lockAll}
-            onClick={() => update({ lockAll: !settings.lockAll })}
-          />
-          <Action
-            icon={<Layers size={14} />}
-            label={live === WIDGETS.length ? "None" : "All"}
-            onClick={() => (live === WIDGETS.length ? closeAll() : openAll())}
-          />
-        </div>
-
-        <div className="mt-2.5 flex items-center gap-2">
-          <div className="flex h-8 flex-1 items-center gap-2 rounded-lg border border-white/6 bg-white/[0.03] px-2.5">
+        {/* ------------------------------------------------------- filters */}
+        <div className="flex items-center gap-2 px-6 pb-3">
+          <div className="flex h-8 w-full max-w-[280px] items-center gap-2 rounded-lg border border-white/6 bg-white/[0.03] px-2.5">
             <Search size={13} className="text-ink-500" />
             <input
               value={q}
@@ -103,12 +123,12 @@ export default function Manager({ onOpenSettings }: { onOpenSettings: () => void
           </div>
           {!q && (
             <div className="flex items-center gap-0.5 rounded-lg border border-white/6 bg-white/[0.03] p-0.5">
-              {(["active", "all"] as const).map((t) => (
+              {(["all", "active"] as const).map((t) => (
                 <button
                   key={t}
                   onClick={() => setTab(t)}
                   className={cn(
-                    "relative h-7 rounded-md px-2.5 text-[11.5px] font-medium capitalize transition-colors",
+                    "relative h-7 rounded-md px-3 text-[11.5px] font-medium capitalize transition-colors",
                     tab === t ? "text-white" : "text-ink-500 hover:text-ink-300",
                   )}
                 >
@@ -125,174 +145,164 @@ export default function Manager({ onOpenSettings }: { onOpenSettings: () => void
             </div>
           )}
         </div>
+
+        {/* ---------------------------------------------------------- grid */}
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-6">
+          <div
+            className="grid gap-2"
+            style={{ gridTemplateColumns: "repeat(auto-fill, minmax(248px, 1fr))" }}
+          >
+            {rows.map((def) => {
+              const w = state.get(def.kind);
+              if (!w) return null;
+              const Icon = def.icon;
+              const locked = w.locked || settings.lockAll;
+
+              return (
+                <div
+                  key={def.kind}
+                  className={cn(
+                    "group flex flex-col gap-2 rounded-xl border p-3 transition-colors",
+                    w.open
+                      ? "border-white/8 bg-white/[0.035]"
+                      : "border-white/5 bg-transparent hover:border-white/8",
+                  )}
+                >
+                  <div className="flex items-start gap-2.5">
+                    <button
+                      onClick={() => setOpen(def.kind, !w.open)}
+                      title={w.open ? "Remove from desktop" : "Add to desktop"}
+                      className="relative grid size-9 shrink-0 place-items-center rounded-[10px] border border-white/8 transition-transform active:scale-95"
+                      style={{
+                        background: `color-mix(in srgb, ${def.accent} ${w.open ? 20 : 9}%, transparent)`,
+                        color: def.accent,
+                        opacity: w.open ? 1 : 0.5,
+                      }}
+                    >
+                      <Icon size={16} />
+                      <span
+                        className="absolute -right-1 -bottom-1 grid size-4 place-items-center rounded-full border-2 border-ink-950"
+                        style={{ background: w.open ? def.accent : "#3a3a40" }}
+                      >
+                        {w.open ? (
+                          <Check size={8} strokeWidth={4} className="text-white" />
+                        ) : (
+                          <Plus size={8} strokeWidth={4} className="text-white" />
+                        )}
+                      </span>
+                    </button>
+
+                    <div className={cn("min-w-0 flex-1", !w.open && "opacity-55")}>
+                      <div className="truncate text-[12.5px] font-medium text-ink-100">
+                        {def.name}
+                      </div>
+                      <div className="truncate text-[10.5px] text-ink-500">
+                        {w.open
+                          ? `${Math.round(w.x)}, ${Math.round(w.y)}${w.dock ? ` · ${w.dock}` : ""}`
+                          : def.description}
+                      </div>
+                    </div>
+
+                    {HAS_CONFIG.has(def.kind) && (
+                      <Tip label="Widget settings">
+                        <button
+                          className="btn size-7 shrink-0 px-0"
+                          data-selected={tuning === def.kind}
+                          onClick={() => setTuning(tuning === def.kind ? null : def.kind)}
+                        >
+                          <SlidersHorizontal size={12} />
+                        </button>
+                      </Tip>
+                    )}
+                  </div>
+
+                  {w.open && (
+                    <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-0.5 rounded-lg border border-white/6 bg-white/[0.03] p-0.5">
+                        {SIZES.map((sz) => (
+                          <button
+                            key={sz}
+                            onClick={() => setSize(def.kind, sz)}
+                            title={`${sz.toUpperCase()} size`}
+                            className={cn(
+                              "h-6 w-7 rounded-md text-[10px] font-semibold uppercase transition-colors",
+                              w.size === sz
+                                ? "bg-white/12 text-white"
+                                : "text-ink-500 hover:text-ink-300",
+                            )}
+                          >
+                            {sz[0]}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="flex-1" />
+                      <Tip label={locked ? "Unlock position" : "Lock position"}>
+                        <button
+                          className="btn size-7 px-0"
+                          data-selected={locked}
+                          onClick={() => toggleLock(def.kind)}
+                        >
+                          {locked ? <Lock size={12} /> : <LockOpen size={12} />}
+                        </button>
+                      </Tip>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {rows.length === 0 && (
+            <div className="px-4 py-16 text-center">
+              <div className="text-[13px] font-medium text-ink-300">
+                {q ? `No widget matches “${q}”` : "Nothing on the desktop yet"}
+              </div>
+              {!q && (
+                <button className="btn btn-primary mx-auto mt-3 px-3" onClick={() => setTab("all")}>
+                  Browse all widgets
+                </button>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* ---------------------------------------------------------- list */}
-      <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-2">
-        {rows.map((def) => {
-          const w = state.get(def.kind);
-          if (!w) return null;
-          const Icon = def.icon;
-          const locked = w.locked || settings.lockAll;
-          const open = expanded === def.kind;
-
-          return (
-            <div
-              key={def.kind}
-              className={cn(
-                "mb-1.5 overflow-hidden rounded-xl border transition-colors",
-                w.open ? "border-white/8 bg-white/[0.035]" : "border-white/5 bg-transparent",
-              )}
-            >
-              <div className="flex items-center gap-2.5 p-2">
-                <button
-                  onClick={() => setOpen(def.kind, !w.open)}
-                  title={w.open ? "Remove from desktop" : "Add to desktop"}
-                  className="relative grid size-9 shrink-0 place-items-center rounded-[10px] border border-white/8 transition-transform active:scale-95"
-                  style={{
-                    background: `color-mix(in srgb, ${def.accent} ${w.open ? 20 : 9}%, transparent)`,
-                    color: def.accent,
-                    opacity: w.open ? 1 : 0.5,
-                  }}
-                >
-                  <Icon size={16} />
-                  <span
-                    className="absolute -right-1 -bottom-1 grid size-4 place-items-center rounded-full border-2 border-ink-950"
-                    style={{ background: w.open ? def.accent : "#3a3a40" }}
-                  >
-                    {w.open ? (
-                      <Check size={8} strokeWidth={4} className="text-white" />
-                    ) : (
-                      <Plus size={8} strokeWidth={4} className="text-white" />
-                    )}
-                  </span>
-                </button>
-
-                <div className={cn("min-w-0 flex-1", !w.open && "opacity-55")}>
-                  <div className="truncate text-[12.5px] font-medium text-ink-100">{def.name}</div>
-                  <div className="truncate text-[10.5px] text-ink-500">
-                    {w.open
-                      ? `${Math.round(w.x)}, ${Math.round(w.y)}${w.dock ? ` · ${w.dock}` : ""}`
-                      : def.description}
-                  </div>
-                </div>
-
-                {w.open && (
-                  <div className="flex items-center gap-0.5 rounded-lg border border-white/6 bg-white/[0.03] p-0.5">
-                    {SIZES.map((sz) => (
-                      <button
-                        key={sz}
-                        onClick={() => setSize(def.kind, sz)}
-                        title={`${sz.toUpperCase()} size`}
-                        className={cn(
-                          "h-6 w-6 rounded-md text-[10px] font-semibold uppercase transition-colors",
-                          w.size === sz ? "bg-white/12 text-white" : "text-ink-500 hover:text-ink-300",
-                        )}
-                      >
-                        {sz[0]}
-                      </button>
-                    ))}
-                  </div>
-                )}
-
-                {w.open && (
-                  <Tip label={locked ? "Unlock position" : "Lock position"}>
-                    <button
-                      className="btn size-7 px-0"
-                      data-selected={locked}
-                      onClick={() => toggleLock(def.kind)}
-                    >
-                      {locked ? <Lock size={12} /> : <LockOpen size={12} />}
-                    </button>
-                  </Tip>
-                )}
-
-                {HAS_CONFIG.has(def.kind) && (
-                  <Tip label="Widget settings">
-                    <button
-                      className="btn size-7 px-0"
-                      data-selected={open}
-                      onClick={() => setExpanded(open ? null : def.kind)}
-                    >
-                      <SlidersHorizontal size={12} />
-                    </button>
-                  </Tip>
-                )}
+      {/*
+        Always mounted and collapsed to zero width rather than swapped in and
+        out of AnimatePresence — the enter animation does not reliably fire
+        for this panel, and a plain CSS width transition always does.
+      */}
+      <aside
+        className="shrink-0 overflow-hidden border-l border-white/6 bg-white/[0.015]
+                   transition-[width] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]"
+        style={{ width: tuned ? 320 : 0, borderLeftWidth: tuned ? 1 : 0 }}
+        aria-hidden={!tuned}
+      >
+        {tuned && (
+          <div className="flex h-full w-[320px] flex-col">
+            <div className="flex items-center gap-2 border-b border-white/6 px-4 py-3">
+              <div
+                className="grid size-7 shrink-0 place-items-center rounded-lg"
+                style={{
+                  background: `color-mix(in srgb, ${tuned.accent} 18%, transparent)`,
+                  color: tuned.accent,
+                }}
+              >
+                <tuned.icon size={14} />
               </div>
-
-              <AnimatePresence initial={false}>
-                {open && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-                    className="overflow-hidden"
-                  >
-                    <div className="border-t border-white/6 px-3 pt-1 pb-2.5">
-                      <WidgetSettings kind={def.kind} />
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          );
-        })}
-
-        {rows.length === 0 && (
-          <div className="px-4 py-12 text-center">
-            <div className="text-[13px] font-medium text-ink-300">
-              {q ? `No widget matches “${q}”` : "Nothing on the desktop yet"}
-            </div>
-            {!q && (
-              <button className="btn btn-primary mx-auto mt-3 px-3" onClick={() => setTab("all")}>
-                Browse all widgets
+              <span className="flex-1 truncate text-[13px] font-semibold text-ink-100">
+                {tuned.name}
+              </span>
+              <button className="btn size-7 px-0" onClick={() => setTuning(null)} title="Close">
+                <X size={13} />
               </button>
-            )}
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto px-4 py-2">
+              <WidgetSettings kind={tuned.kind} />
+            </div>
           </div>
         )}
-      </div>
-
-      {/* --------------------------------------------------------- footer */}
-      <div className="flex items-center justify-between gap-2 border-t border-white/6 px-3 py-2">
-        <span className="text-[11px] text-ink-600">Widgets sit</span>
-        <Picker
-          value={settings.layer}
-          onChange={(v) => update({ layer: v })}
-          options={[
-            { value: "desktop", label: "On the desktop" },
-            { value: "normal", label: "Like a window" },
-            { value: "top", label: "Above everything" },
-          ]}
-        />
-      </div>
+      </aside>
     </div>
-  );
-}
-
-function Action({
-  icon,
-  label,
-  onClick,
-  active,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  onClick: () => void;
-  active?: boolean;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "flex flex-col items-center gap-1 rounded-xl border py-2 transition-colors",
-        active
-          ? "border-transparent bg-[var(--accent-soft)] text-white"
-          : "border-white/6 bg-white/[0.03] text-ink-300 hover:bg-white/[0.06] hover:text-white",
-      )}
-    >
-      {icon}
-      <span className="text-[10px] font-semibold">{label}</span>
-    </button>
   );
 }

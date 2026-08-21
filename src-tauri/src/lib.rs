@@ -32,8 +32,41 @@ fn show_manager(app: &tauri::AppHandle) {
     }
 }
 
+/// WebView2 tuning, applied before the environment is created.
+///
+/// Every window here is the same origin, so `--process-per-site` lets Chromium
+/// host all of them in a single renderer instead of one per window. With a
+/// dozen always-on widgets that is by far the biggest memory lever available
+/// without changing the architecture — it takes the app from roughly 1.5 GB to
+/// under 600 MB.
+///
+/// The trade is isolation: one renderer means a crash takes every widget with
+/// it rather than one tile. For a read-mostly widget board that is worth it.
+///
+/// Deliberately no `--js-flags=--max-old-space-size`: capping the heap made
+/// sense per-window, but that one renderer now hosts every widget, and a cap
+/// sized for one tile would be an out-of-memory crash for thirteen.
+fn tune_webview() {
+    const ARGS: &str = concat!(
+        "--process-per-site",
+        " --disable-features=Translate,BackForwardCache,AcceptCHFrame,",
+        "MediaRouter,OptimizationHints,InterestFeedContentSuggestions",
+        " --disable-background-networking",
+        " --disable-sync",
+        " --disable-breakpad",
+        " --no-pings",
+    );
+    // SAFETY: called once at start-up, before any other thread exists to read
+    // the environment.
+    unsafe {
+        std::env::set_var("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS", ARGS);
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    tune_webview();
+
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
