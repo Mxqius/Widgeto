@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useApp, DEFAULT_SETTINGS } from "@/store/useApp";
 import { Group, Picker, Range, Row, Segmented, Toggle } from "@/components/ui";
+import About from "@/components/About";
 import type { ArrangeMode } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { setAlwaysOnTop } from "@/lib/tauri";
@@ -420,36 +421,7 @@ export default function Settings({ onBack }: { onBack: () => void }) {
                 </Group>
               )}
 
-              {tab === "about" && (
-                <div className="surface-flat rounded-2xl p-6">
-                  <div
-                    className="mb-4 grid size-11 place-items-center rounded-xl text-[15px] font-bold text-white"
-                    style={{ background: "var(--accent)", boxShadow: "0 0 28px -6px var(--accent)" }}
-                  >
-                    W
-                  </div>
-                  <h3 className="text-[16px] font-semibold text-white">Widgeto 0.1.0</h3>
-                  <p className="mt-2 text-[13px] leading-relaxed text-ink-400">
-                    A desktop widget board prototype. Tauri 2 + React 19 + Vite 7, Base UI
-                    primitives, Tailwind v4 and Motion for the springs and micro-interactions.
-                  </p>
-                  <div className="mt-5 grid grid-cols-2 gap-2 text-[12px]">
-                    {[
-                      ["Shell", "Tauri 2 (Rust)"],
-                      ["UI", "React 19 + Base UI"],
-                      ["Styling", "Tailwind CSS v4"],
-                      ["Motion", "Motion 13"],
-                      ["State", "Zustand + persist"],
-                      ["Bundler", "Vite 7"],
-                    ].map(([k, v]) => (
-                      <div key={k} className="rounded-lg border border-white/6 bg-white/[0.02] px-3 py-2">
-                        <div className="label-xs">{k}</div>
-                        <div className="mt-0.5 text-ink-200">{v}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+              {tab === "about" && <About />}
           </motion.div>
         </div>
       </div>
@@ -463,7 +435,7 @@ const BLURB: Record<TabId, string> = {
   widgets: "Shared formats and the data service the widgets read from.",
   window: "How widget windows and the manager behave on your desktop.",
   shortcuts: "Everything you can do without touching the mouse.",
-  about: "What this prototype is built on.",
+  about: "Version, what it is built on, and what to send if something breaks.",
 };
 
 const SHORTCUTS = [
