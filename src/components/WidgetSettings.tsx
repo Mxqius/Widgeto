@@ -157,6 +157,24 @@ export default function WidgetSettings({ kind }: { kind: WidgetKind }) {
       const c = configOf("pet", stored);
       return (
         <>
+          <Field label="Species" stack>
+            <div className="flex gap-1">
+              {(["cat", "bun", "blob", "fox"] as const).map((sp) => (
+                <button
+                  key={sp}
+                  onClick={() => setConfig(kind, { species: sp })}
+                  className="flex-1 rounded-lg py-1.5 text-[11px] font-semibold capitalize transition-colors"
+                  style={
+                    c.species === sp
+                      ? { background: "var(--accent)", color: "#fff" }
+                      : { background: "rgba(255,255,255,0.06)", color: "var(--color-ink-400)" }
+                  }
+                >
+                  {sp}
+                </button>
+              ))}
+            </div>
+          </Field>
           <Field label="Name">
             <input
               className="field h-7 w-32 text-[12px]"
@@ -199,16 +217,26 @@ function LauncherLinks({ kind }: { kind: WidgetKind }) {
   const add = () => {
     const u = url.trim();
     if (!u) return;
-    const withProto = /^[a-z]+:\/\//i.test(u) ? u : `https://${u}`;
+
+    // a drive path, a UNC share or an existing protocol is left alone; only a
+    // bare domain gets https:// put in front of it
+    const isPath = /^[a-zA-Z]:[\\/]/.test(u) || u.startsWith("\\\\") || u.startsWith("/");
+    const hasProto = /^[a-z][a-z0-9+.-]*:\/\//i.test(u);
+    const target = isPath || hasProto ? u : `https://${u}`;
+
     let label = name.trim();
     if (!label) {
-      try {
-        label = new URL(withProto).hostname.replace(/^www\./, "");
-      } catch {
-        label = u;
+      if (isPath) {
+        label = u.split(/[\\/]/).pop()?.replace(/\.(exe|lnk|bat|cmd)$/i, "") || u;
+      } else {
+        try {
+          label = new URL(target).hostname.replace(/^www\./, "");
+        } catch {
+          label = u;
+        }
       }
     }
-    save([...c.links, { name: label, url: withProto }]);
+    save([...c.links, { name: label, url: target }]);
     setName("");
     setUrl("");
   };
@@ -218,7 +246,7 @@ function LauncherLinks({ kind }: { kind: WidgetKind }) {
       <div className="mb-1.5 text-[12px] font-medium text-ink-100">
         Shortcuts
         <span className="ml-1.5 text-[10.5px] text-ink-500">
-          sites, or any app:// or file:// link
+          a site, an .exe, a folder, or any app:// link
         </span>
       </div>
 
@@ -256,7 +284,7 @@ function LauncherLinks({ kind }: { kind: WidgetKind }) {
         />
         <input
           className="field h-7 flex-1 text-[12px]"
-          placeholder="figma.com"
+          placeholder="figma.com or C:\App\app.exe"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && add()}

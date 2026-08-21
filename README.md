@@ -68,35 +68,46 @@ actually exits.
 
 ## The manager
 
-One scrolling list, one row per widget: a toggle puts it on the desktop, the sliders button opens
-that widget's own settings inline, and the size/lock buttons appear once it is visible. There is no
-layout canvas — you place a widget by dragging the widget itself on the desktop, and the footer has
-Arrange / Dock / Lock plus the desktop-layer picker.
+A 420x640 window. The top of the first screen counts what is live and offers Arrange / Dock / Lock /
+All-or-None; below that, one row per widget. Tapping a widget's icon puts it on the desktop or takes
+it off, S/M/L sets its size, and the sliders button expands that widget's own settings inline. An
+active/all filter keeps the list short once you have chosen your set. There is no layout canvas —
+you place a widget by dragging the widget itself.
 
 ## Per-widget settings
 
 | Widget | Settings |
 | ------ | -------- |
-| Quick Launch | Add and remove shortcuts — any site or `app://` / `file://` link. Favicons resolve automatically. |
+| Quick Launch | Add and remove shortcuts — a site, an `.exe`, a folder, or an `app://` link. Favicons resolve automatically. |
 | Weather | City, resolved by the server's geocoder |
 | Markets | Watchlist, up to six tickers |
 | Clock | Caption text, second hand on/off |
 | Focus Timer | Focus / short / long durations |
 | Notes | Text size |
-| Pet | Name and colour |
+| Pet | Species (cat / bun / blob / fox), name and colour |
 
 ## Data layer
 
-Weather and Markets are fetched **in-process by the Rust core** and exposed as Tauri commands, so
-there is no sidecar, no port, no CORS and nothing extra to run or ship.
+Everything is fetched **in-process by the Rust core** and exposed as Tauri commands, so there is no
+sidecar, no port, no CORS and nothing extra to run or ship.
 
 | Command | Source |
 | ------- | ------ |
 | `weather(place)` | Open-Meteo geocoding + forecast |
 | `markets(symbols)` | CoinGecko simple price |
+| `system_stats()` | `sysinfo` — CPU per core, memory, disk, uptime |
+| `net_stats()` | `sysinfo` — real throughput, measured between polls |
+| `battery_stats()` | `starship-battery` — charge, health, time remaining |
+| `media_now()` / `media_control(a)` | Windows media session (SMTC) |
+| `launch(target)` | opens a URL, a file, a folder or an executable |
 | `quote()` | quote of the day, deterministic per day |
 | `whereami()` | coarse IP location |
 | `data_health()` | cache size, surfaced in Settings |
+
+**No widget is faked.** System, Network and Power read the real machine; Now Playing follows the
+actual media session and its transport buttons drive it; Clock, Calendar, Tasks, Notes and Focus
+Timer are real locally; Weather and Markets come from live upstreams. Quick Launch opens real
+sites, files and applications.
 
 Both upstreams are keyless. Every call goes through a TTL cache in `src-tauri/src/cache.rs` that
 doubles as a fallback: on an upstream failure the last good value is returned instead, and each
@@ -111,6 +122,12 @@ Live checks against the real upstreams live next to the code:
 
 ```bash
 npm run test:data
+```
+
+The machine probes are covered too, and those need no network:
+
+```bash
+cd src-tauri && cargo test
 ```
 
 ## Design language## Design language
@@ -132,9 +149,10 @@ about 26 MB of GPU memory; turn tile opacity below 100% in Settings and the blur
 Clock · Weather · System · Calendar · Tasks · Now Playing · Notes · Focus Timer · Markets ·
 Quick Launch · Network · Power · **Pet**
 
-The Pet is a small resident creature: it breathes and blinks on its own, its eyes follow your
-cursor, it bounces and throws hearts when you click it, and it dozes off after a while alone —
-waking the moment you touch it again.
+The Pet is a small resident creature in one of four shapes: it breathes and blinks on its own, its
+ears perk up and its eyes follow your cursor, it bounces and throws hearts when you click it, gets
+properly excited (stars, wider grin) if you pet it three times in four seconds, and dozes off after
+a while alone — waking the moment you touch it again.
 
 **One of each — widgets cannot be duplicated.** `kind` is the identity, the store holds exactly one
 entry per kind, and adding or removing just flips its `open` flag, so a widget keeps its position
@@ -167,7 +185,7 @@ manager gets a tab per display.
 
 | Where | Action |
 | ----- | ------ |
-| On the desktop | Drag a widget to move it · hover for resize/lock/hide · double-click cycles size |
+| On the desktop | Drag a widget to move it · hover for resize / lock / remove |
 | Manager map | Drag a card to place it · double-click to show/hide |
 | Manager list | Size, lock, show/hide, move to another display |
 
@@ -202,7 +220,9 @@ src/
   widgets/registry.ts   metadata only (no bodies) so the manager stays small
   widgets/loader.ts     one dynamic import per widget body
   widgets/              the 12 bodies + shared parts + prefs context
-src-tauri/src/data.rs   the data commands (weather, markets, quote, …)
+src-tauri/src/data.rs   network data commands (weather, markets, quote, …)
+src-tauri/src/system.rs local machine: cpu, memory, disk, network, battery,
+                        media session, and launching things
 src-tauri/src/cache.rs  TTL cache with stale fallback
 src-tauri/              Rust shell, tray, capabilities, icons
 ```

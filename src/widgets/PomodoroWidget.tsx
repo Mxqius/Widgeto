@@ -57,27 +57,43 @@ export default function PomodoroWidget({ size }: WidgetBodyProps) {
         ticks={size === "sm" ? 16 : 24}
       />
 
-      <div className="flex items-center justify-between" data-nodrag>
-        <div className="flex gap-1">
-          {(["focus", "short", "long"] as Mode[]).map((m) => (
-            <button
-              key={m}
-              onClick={() => setMode(m)}
-              className="rounded-full px-2 py-1 text-[10.5px] font-semibold capitalize transition-colors"
-              style={
-                m === mode
-                  ? { background: "var(--accent)", color: "#fff" }
-                  : { background: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.6)" }
-              }
-            >
-              {m}
-            </button>
-          ))}
-        </div>
-        <div className="flex items-center gap-1">
+      <div className="flex items-center justify-between gap-2" data-nodrag>
+        {/* at the smallest tile the labels do not fit, so the mode becomes a
+            single tap-through chip instead of three buttons */}
+        {size === "sm" ? (
+          <button
+            onClick={() => {
+              const order: Mode[] = ["focus", "short", "long"];
+              setMode(order[(order.indexOf(mode) + 1) % order.length]);
+            }}
+            className="rounded-full px-2 py-1 text-[10px] font-semibold capitalize"
+            style={{ background: "var(--accent)", color: "#fff" }}
+            title="Tap to change mode"
+          >
+            {mode}
+          </button>
+        ) : (
+          <div className="flex min-w-0 gap-1">
+            {(["focus", "short", "long"] as Mode[]).map((m) => (
+              <button
+                key={m}
+                onClick={() => setMode(m)}
+                className="rounded-full px-2 py-1 text-[10.5px] font-semibold capitalize transition-colors"
+                style={
+                  m === mode
+                    ? { background: "var(--accent)", color: "#fff" }
+                    : { background: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.6)" }
+                }
+              >
+                {m}
+              </button>
+            ))}
+          </div>
+        )}
+        <div className="flex shrink-0 items-center gap-1">
           <button
             onClick={() => setRunning((r) => !r)}
-            className="grid size-7 place-items-center rounded-full bg-white text-black"
+            className="grid size-7 shrink-0 place-items-center rounded-full bg-white text-black"
             title={running ? "Pause" : "Start"}
           >
             {running ? (
@@ -91,7 +107,7 @@ export default function PomodoroWidget({ size }: WidgetBodyProps) {
               setRunning(false);
               setLeft(MODES[mode]);
             }}
-            className="dim grid size-7 place-items-center rounded-full transition-colors hover:text-white"
+            className="dim grid size-7 shrink-0 place-items-center rounded-full transition-colors hover:text-white"
             title="Reset"
           >
             <RotateCcw size={12} />

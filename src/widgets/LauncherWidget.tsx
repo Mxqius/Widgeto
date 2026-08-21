@@ -1,11 +1,13 @@
 import { Globe } from "lucide-react";
 import { Pad } from "./parts";
 import { useWidgetConfig } from "./prefs";
-import { openExternal } from "@/lib/tauri";
+import { launch } from "@/lib/data";
 import type { WidgetBodyProps } from "./loader";
 
 /** Favicons come straight from the site, so any URL the user adds gets a mark. */
 function faviconFor(url: string) {
+  // only web links have a favicon; exes and files fall back to a glyph
+  if (!/^https?:\/\//i.test(url) && !/^[\w.-]+\.[a-z]{2,}/i.test(url)) return null;
   try {
     const host = new URL(url.startsWith("http") ? url : `https://${url}`).hostname;
     return `https://www.google.com/s2/favicons?sz=64&domain=${host}`;
@@ -17,6 +19,7 @@ function faviconFor(url: string) {
 export default function LauncherWidget({ size }: WidgetBodyProps) {
   const { links } = useWidgetConfig("launcher");
   const count = size === "sm" ? 4 : size === "md" ? 6 : 9;
+  const cols = size === "sm" ? 2 : 3;
   const shown = links.slice(0, count);
 
   return (
@@ -28,7 +31,10 @@ export default function LauncherWidget({ size }: WidgetBodyProps) {
           Add sites or apps in this widget's settings.
         </div>
       ) : (
-        <div className="grid flex-1 grid-cols-3 content-center gap-2">
+        <div
+          className="grid flex-1 content-center gap-2"
+          style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
+        >
           {shown.map((l) => {
             const icon = faviconFor(l.url);
             return (
@@ -36,9 +42,10 @@ export default function LauncherWidget({ size }: WidgetBodyProps) {
                 key={l.url + l.name}
                 data-nodrag
                 title={`${l.name} — ${l.url}`}
-                onClick={() => openExternal(l.url)}
-                className="grid aspect-square place-items-center rounded-2xl bg-white/8
+                onClick={() => void launch(l.url).catch(() => {})}
+                className="grid min-h-0 place-items-center rounded-2xl bg-white/8
                            transition-colors hover:bg-white/16"
+                style={{ aspectRatio: size === "sm" ? "1.5 / 1" : "1 / 1" }}
               >
                 {icon ? (
                   <img

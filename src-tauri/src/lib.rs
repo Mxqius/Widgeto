@@ -1,5 +1,6 @@
 mod cache;
 mod data;
+mod system;
 
 use tauri::{
     menu::{Menu, MenuItem, PredefinedMenuItem},
@@ -41,7 +42,13 @@ pub fn run() {
             data::markets,
             data::quote,
             data::whereami,
-            data::data_health
+            data::data_health,
+            system::system_stats,
+            system::net_stats,
+            system::battery_stats,
+            system::media_now,
+            system::media_control,
+            system::launch
         ])
         .setup(|app| {
             let handle = app.handle();

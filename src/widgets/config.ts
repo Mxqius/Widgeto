@@ -31,7 +31,7 @@ export const DEFAULT_CONFIG = {
   },
   network: {},
   battery: {},
-  pet: { name: "Mochi", hue: 320 },
+  pet: { name: "Mochi", hue: 320, species: "cat" as "cat" | "bun" | "blob" | "fox" },
 } satisfies Record<WidgetKind, object>;
 
 export type ConfigOf<K extends WidgetKind> = (typeof DEFAULT_CONFIG)[K];

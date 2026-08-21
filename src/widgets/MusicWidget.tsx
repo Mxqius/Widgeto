@@ -1,100 +1,122 @@
-import { useEffect, useState } from "react";
-import { AudioLines, Play } from "lucide-react";
+import { AudioLines, Music, Pause, Play, SkipBack, SkipForward } from "lucide-react";
 import { Line } from "./parts";
+import { useMedia } from "@/lib/queries";
+import { mediaControl } from "@/lib/data";
 import { pad } from "@/lib/utils";
 import type { WidgetBodyProps } from "./loader";
 
-const TRACKS = [
-  { title: "HUMBLE.", artist: "Kendrick Lamar", len: 177, art: ["#e8452c", "#1a1a1a"] },
-  { title: "Neon Corridor", artist: "Lumen Kane", len: 214, art: ["#7c6cff", "#12123a"] },
-  { title: "Northern Drift", artist: "Halden", len: 246, art: ["#31d0aa", "#07332f"] },
-];
+/** Turns "Spotify.exe" / an AUMID into something worth showing. */
+function appLabel(id: string | null) {
+  if (!id) return null;
+  const last = id.split("!").pop() ?? id;
+  return last.replace(/\.exe$/i, "").replace(/^App$/i, "");
+}
 
 /**
- * Album art fills the tile and is cut by a curved divider, with the track
- * details sitting in the black below it.
+ * Follows the system media session, so whatever is actually playing — Spotify,
+ * a browser tab, a local player — shows up here with working transport.
  */
 export default function MusicWidget({ size }: WidgetBodyProps) {
-  const [i, setI] = useState(0);
-  const [playing, setPlaying] = useState(true);
-  const [t, setT] = useState(46);
-  const track = TRACKS[i];
+  const { data, refetch } = useMedia();
+  const small = size === "sm";
 
-  useEffect(() => {
-    if (!playing) return;
-    const id = setInterval(() => {
-      setT((v) => {
-        if (v + 1 >= track.len) {
-          setI((n) => (n + 1) % TRACKS.length);
-          return 0;
-        }
-        return v + 1;
-      });
-    }, 1000);
-    return () => clearInterval(id);
-  }, [playing, track.len]);
+  const send = async (a: "toggle" | "next" | "prev") => {
+    try {
+      await mediaControl(a);
+    } catch {
+      /* nothing is playing, or the source refused the command */
+    }
+    setTimeout(() => void refetch(), 250);
+  };
 
-  const pct = (t / track.len) * 100;
-  const artH = size === "sm" ? "58%" : "62%";
+  const title = data?.title;
+  const hasTrack = !!title;
+  const pos = data?.positionSec ?? 0;
+  const dur = data?.durationSec ?? 0;
+  const pct = dur > 0 ? (pos / dur) * 100 : 0;
+  const fmt = (s: number) => `${Math.floor(s / 60)}:${pad(s % 60)}`;
 
   return (
-    <div className="relative h-full w-full">
-      {/* art, clipped by the curve */}
-      <div
-        className="absolute inset-x-0 top-0"
-        style={{
-          height: artH,
-          background: `linear-gradient(150deg, ${track.art[0]}, ${track.art[1]})`,
-          clipPath: "ellipse(120% 100% at 50% 0%)",
-        }}
-      >
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_28%_22%,rgba(255,255,255,0.35),transparent_58%)]" />
-      </div>
-
-      <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-1 px-4 pb-4">
-        <button
-          data-nodrag
-          onClick={() => setPlaying((p) => !p)}
-          className="mb-0.5 opacity-90 transition-opacity hover:opacity-100"
-          title={playing ? "Pause" : "Play"}
-        >
-          {playing ? (
-            <AudioLines size={size === "sm" ? 14 : 16} style={{ color: "var(--accent)" }} />
-          ) : (
-            <Play size={size === "sm" ? 14 : 16} className="fill-current" />
-          )}
-        </button>
-
-        <div className="max-w-full truncate text-[13px] font-bold tracking-tight">
-          {track.title}
-        </div>
-        <div className="dim max-w-full truncate text-[10.5px] font-medium">{track.artist}</div>
-
-        <div className="mt-2 w-full" data-nodrag>
-          <Line value={pct} accent="#fff" />
-        </div>
-        {size !== "sm" && (
-          <div className="dimmer mt-1 flex w-full justify-between text-[9.5px] font-medium tabular-nums">
-            <span>
-              {Math.floor(t / 60)}:{pad(t % 60)}
-            </span>
-            <span>
-              {Math.floor(track.len / 60)}:{pad(track.len % 60)}
-            </span>
-          </div>
+    <div className="relative flex h-full w-full flex-col p-4">
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-1 text-center">
+        {hasTrack ? (
+          <>
+            {data?.playing ? (
+              <AudioLines
+                size={small ? 15 : 18}
+                style={{ color: "var(--accent)" }}
+                className="mb-1 shrink-0"
+              />
+            ) : (
+              <Music size={small ? 15 : 18} className="dim mb-1 shrink-0" />
+            )}
+            <div
+              className="line-clamp-2 w-full font-bold tracking-tight"
+              style={{ fontSize: small ? 12 : 13.5, lineHeight: 1.25 }}
+            >
+              {title}
+            </div>
+            {data?.artist && (
+              <div className="dim w-full truncate text-[10.5px] font-medium">{data.artist}</div>
+            )}
+            {!small && data?.app && (
+              <div className="dimmer w-full truncate text-[9.5px] font-semibold">
+                {appLabel(data.app)}
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            <Music size={small ? 16 : 20} className="dimmer mb-1" />
+            <div className="dim text-[11.5px] font-semibold">Nothing playing</div>
+            {!small && (
+              <div className="dimmer text-[10px] font-medium">Start a track to control it here</div>
+            )}
+          </>
         )}
       </div>
 
-      {!playing && (
-        <button
-          data-nodrag
-          onClick={() => setPlaying(true)}
-          className="absolute inset-0 z-10"
-          title="Play"
-        >
-          <span className="sr-only">Play</span>
-        </button>
+      {hasTrack && dur > 0 && (
+        <div className="mb-2" data-nodrag>
+          <Line value={pct} accent="#fff" />
+          <div className="dimmer mt-1 flex justify-between text-[9px] font-semibold tabular-nums">
+            <span>{fmt(pos)}</span>
+            <span>{fmt(dur)}</span>
+          </div>
+        </div>
       )}
+
+      <div className="flex shrink-0 items-center justify-center gap-2" data-nodrag>
+        <button
+          onClick={() => send("prev")}
+          className="dim transition-opacity hover:opacity-100 disabled:opacity-20"
+          disabled={!hasTrack}
+          title="Previous"
+        >
+          <SkipBack size={small ? 13 : 15} className="fill-current" />
+        </button>
+        <button
+          onClick={() => send("toggle")}
+          className="grid place-items-center rounded-full bg-white text-black transition-transform active:scale-95 disabled:opacity-20"
+          style={{ width: small ? 26 : 30, height: small ? 26 : 30 }}
+          disabled={!hasTrack}
+          title={data?.playing ? "Pause" : "Play"}
+        >
+          {data?.playing ? (
+            <Pause size={small ? 12 : 13} className="fill-current" />
+          ) : (
+            <Play size={small ? 12 : 13} className="ml-0.5 fill-current" />
+          )}
+        </button>
+        <button
+          onClick={() => send("next")}
+          className="dim transition-opacity hover:opacity-100 disabled:opacity-20"
+          disabled={!hasTrack}
+          title="Next"
+        >
+          <SkipForward size={small ? 13 : 15} className="fill-current" />
+        </button>
+      </div>
     </div>
   );
 }

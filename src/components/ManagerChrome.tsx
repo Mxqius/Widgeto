@@ -11,12 +11,12 @@ export default function ManagerChrome({ onOpenSettings }: { onOpenSettings: () =
 
   return (
     <header
-      className="app-drag relative z-[600] flex h-11 shrink-0 items-center gap-2 border-b border-white/[0.06]
+      className="app-drag relative z-600 flex h-11 shrink-0 items-center gap-2 border-b border-white/6
                  bg-ink-950/80 px-2.5 backdrop-blur-xl"
     >
       <div className="flex items-center gap-2 pl-1">
         <div
-          className="grid size-[19px] place-items-center rounded-[6px] text-[10px] font-bold text-white"
+          className="grid size-4.75 place-items-center rounded-md text-[10px] font-bold text-white"
           style={{ background: "var(--accent)", boxShadow: "0 0 16px -4px var(--accent)" }}
         >
           W

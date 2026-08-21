@@ -1,5 +1,19 @@
+import { useRef } from "react";
 import { QueryClient, useQuery } from "@tanstack/react-query";
-import { fetchMarkets, fetchWeather, type Asset, type Weather } from "./data";
+import {
+  fetchBattery,
+  fetchMarkets,
+  fetchMedia,
+  fetchNet,
+  fetchSystem,
+  fetchWeather,
+  type Asset,
+  type BatteryStats,
+  type MediaNow,
+  type NetStats,
+  type SystemStats,
+  type Weather,
+} from "./data";
 import { isTauri } from "./utils";
 
 /**
@@ -71,4 +85,38 @@ export function useMarkets(symbols: string[]) {
     source: q.data?.source,
     refetch: q.refetch,
   };
+}
+
+/* --------------------------------------------------- live machine readings */
+
+/** Local probes are cheap and want to look live, so they poll on a short beat. */
+function useLocal<T>(key: string, fn: () => Promise<T>, ms: number) {
+  return useQuery({
+    queryKey: [key],
+    queryFn: fn,
+    enabled: isTauri(),
+    refetchInterval: ms,
+    staleTime: 0,
+    retry: 0,
+  });
+}
+
+export const useSystem = () => useLocal<SystemStats>("system", fetchSystem, 2000);
+export const useNet = () => useLocal<NetStats>("net", fetchNet, 1500);
+export const useBattery = () => useLocal<BatteryStats>("battery", fetchBattery, 20_000);
+export const useMedia = () => useLocal<MediaNow>("media", fetchMedia, 2000);
+
+/**
+ * Keeps the last N readings so a widget can draw a trend. Query results are
+ * point-in-time, so the history lives here rather than in each widget.
+ */
+export function useTrail(value: number | undefined, len = 28) {
+  const trail = useRef<number[]>([]);
+  if (value !== undefined && Number.isFinite(value)) {
+    const last = trail.current[trail.current.length - 1];
+    if (last !== value || trail.current.length < 2) {
+      trail.current = [...trail.current, value].slice(-len);
+    }
+  }
+  return trail.current.length ? trail.current : [0];
 }

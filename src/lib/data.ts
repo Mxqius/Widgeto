@@ -47,3 +47,56 @@ export const fetchMarkets = (symbols: string[]) => call<Fetched<Markets>>("marke
 export const fetchQuote = () => call<{ text: string; who: string }>("quote");
 
 export const fetchHealth = () => call<{ ok: boolean; cached: number }>("data_health");
+
+/* ------------------------------------------------------------ local system */
+
+export interface SystemStats {
+  cpu: number;
+  cpuCores: number[];
+  memUsed: number;
+  memTotal: number;
+  memPct: number;
+  diskUsed: number;
+  diskTotal: number;
+  diskPct: number;
+  uptimeSec: number;
+  hostName: string | null;
+}
+
+export interface NetStats {
+  downBps: number;
+  upBps: number;
+  totalRx: number;
+  totalTx: number;
+}
+
+export interface BatteryStats {
+  present: boolean;
+  percent: number;
+  charging: boolean;
+  full: boolean;
+  secsLeft: number | null;
+  health: number | null;
+  tempC: number | null;
+}
+
+export interface MediaNow {
+  playing: boolean;
+  title: string | null;
+  artist: string | null;
+  album: string | null;
+  app: string | null;
+  positionSec: number | null;
+  durationSec: number | null;
+}
+
+export const fetchSystem = () => call<SystemStats>("system_stats");
+export const fetchNet = () => call<NetStats>("net_stats");
+export const fetchBattery = () => call<BatteryStats>("battery_stats");
+export const fetchMedia = () => call<MediaNow>("media_now");
+
+export const mediaControl = (action: "play" | "pause" | "toggle" | "next" | "prev") =>
+  call<void>("media_control", { action });
+
+/** Opens a URL, a file, a folder or an executable. */
+export const launch = (target: string) => call<void>("launch", { target });

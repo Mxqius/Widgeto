@@ -1,30 +1,54 @@
 import { Pad, Stat, TickMeter } from "./parts";
-import { useSeries } from "@/lib/hooks";
+import { useSystem, useTrail } from "@/lib/queries";
 import type { WidgetBodyProps } from "./loader";
 
+const gb = (bytes: number) => bytes / 1_000_000_000;
+
 export default function SystemWidget({ size }: WidgetBodyProps) {
-  const cpu = useSeries(26, 34, 26, 1200);
-  const ram = useSeries(26, 61, 8, 3000);
-  const now = Math.round(cpu[cpu.length - 1]);
+  const { data } = useSystem();
+  const cpu = data?.cpu ?? 0;
+  useTrail(cpu);
+
+  const small = size === "sm";
+  const hours = Math.floor((data?.uptimeSec ?? 0) / 3600);
 
   return (
     <Pad size={size} className="justify-between">
       <div>
-        <Stat value={now} unit="%" size={size === "sm" ? 34 : size === "md" ? 42 : 52} />
-        <div className="dim mt-1 text-[11px] font-semibold">CPU LOAD</div>
+        <Stat value={Math.round(cpu)} unit="%" size={small ? 30 : size === "md" ? 40 : 50} />
+        <div className="dim mt-0.5 text-[10.5px] font-semibold">
+          CPU{data?.cpuCores.length ? ` · ${data.cpuCores.length} CORES` : ""}
+        </div>
       </div>
 
-      <div className="space-y-2.5">
-        <TickMeter
-          value={now}
-          accent="var(--accent)"
-          height={size === "sm" ? 26 : 36}
-          ticks={size === "sm" ? 16 : 24}
-        />
+      <TickMeter
+        value={cpu}
+        accent="var(--accent)"
+        height={small ? 22 : size === "md" ? 34 : 46}
+        ticks={small ? 14 : 24}
+      />
+
+      <div className="space-y-1">
         <div className="flex items-baseline justify-between">
-          <span className="dim text-[11px] font-semibold">MEMORY</span>
-          <span className="numeral text-[15px]">{Math.round(ram[ram.length - 1])}%</span>
+          <span className="dim text-[10.5px] font-semibold">MEM</span>
+          <span className="numeral text-[13px]">
+            {data ? `${gb(data.memUsed).toFixed(1)}/${gb(data.memTotal).toFixed(0)}G` : "—"}
+          </span>
         </div>
+        {!small && (
+          <div className="flex items-baseline justify-between">
+            <span className="dim text-[10.5px] font-semibold">DISK</span>
+            <span className="numeral text-[13px]">
+              {data ? `${Math.round(data.diskPct)}%` : "—"}
+            </span>
+          </div>
+        )}
+        {size === "lg" && (
+          <div className="flex items-baseline justify-between">
+            <span className="dim text-[10.5px] font-semibold">UPTIME</span>
+            <span className="numeral text-[13px]">{hours}h</span>
+          </div>
+        )}
       </div>
     </Pad>
   );

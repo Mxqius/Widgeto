@@ -12,6 +12,7 @@ import { Lock, LockOpen, Maximize2, X } from "lucide-react";
 import type {
   DockZone,
   Settings,
+  SizeKey,
   WidgetInstance,
   WidgetKind,
 } from "@/lib/types";
@@ -40,10 +41,13 @@ type Rect = { x: number; y: number; w: number; h: number };
  */
 /** Outside Tauri there is no manager to talk to, so render a default tile. */
 function previewConfig(kind: WidgetKind): ConfigPayload {
+  // `&size=sm|md|lg` lets the browser preview exercise each tile size
+  const q = new URLSearchParams(window.location.search).get("size");
+  const size: SizeKey = q === "sm" || q === "lg" ? q : "md";
   return {
     widget: {
       kind,
-      size: "md",
+      size,
       x: 0,
       y: 0,
       z: 1,
@@ -310,7 +314,6 @@ function WidgetShell({
       onPointerCancel={onPointerUp}
       onMouseEnter={() => onHover(true)}
       onMouseLeave={() => onHover(false)}
-      onDoubleClick={() => onAction("cycle-size")}
     >
       <div
         data-nodrag
