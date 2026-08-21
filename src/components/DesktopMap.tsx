@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { EyeOff, Lock } from "lucide-react";
-import type { DockZone, WidgetInstance } from "@/lib/types";
+import type { DockZone, WidgetInstance, WidgetKind } from "@/lib/types";
 import { DOCK_ZONES, alignSnap, dockPosition, resolveDock, snapToGrid, type Guide } from "@/lib/layout";
 import { useApp } from "@/store/useApp";
 import { byKind, sizeOf } from "@/widgets/registry";
@@ -26,7 +26,7 @@ export default function DesktopMap({ display }: { display: number }) {
 
   const ref = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.3);
-  const [dragId, setDragId] = useState<string | null>(null);
+  const [dragId, setDragId] = useState<WidgetKind | null>(null);
   const [guides, setGuides] = useState<Guide[]>([]);
   const [dock, setDock] = useState<DockZone | null>(null);
   const drag = useRef({ dx: 0, dy: 0, x: 0, y: 0, dock: null as DockZone | null });
@@ -61,15 +61,15 @@ export default function DesktopMap({ display }: { display: number }) {
       drag.current.dy = (e.clientY - r.top) / scale - w.y;
       drag.current.x = w.x;
       drag.current.y = w.y;
-      focus(w.id);
-      setDragId(w.id);
+      focus(w.kind);
+      setDragId(w.kind);
     },
     [scale, settings.lockAll, focus],
   );
 
   const onMove = useCallback(
     (e: React.PointerEvent, w: WidgetInstance) => {
-      if (dragId !== w.id || !area) return;
+      if (dragId !== w.kind || !area) return;
       const host = ref.current;
       if (!host) return;
       const r = host.getBoundingClientRect();
@@ -94,7 +94,7 @@ export default function DesktopMap({ display }: { display: number }) {
       }
       if (!zone && settings.alignGuides) {
         const others = widgets
-          .filter((o) => o.id !== w.id && o.open)
+          .filter((o) => o.kind !== w.kind && o.open)
           .map((o) => {
             const [ow, oh] = sizeOf(o.kind, o.size);
             return { x: o.x, y: o.y, w: ow, h: oh };
@@ -115,10 +115,10 @@ export default function DesktopMap({ display }: { display: number }) {
       drag.current.dock = zone;
       setGuides(g);
       setDock(zone);
-      move(w.id, nx, ny, zone);
+      move(w.kind, nx, ny, zone);
       if (w.open) {
-        markMoved(w.id, nx, ny);
-        void moveWidgetWindow(w.id, nx + area.x, ny + area.y);
+        markMoved(w.kind, nx, ny);
+        void moveWidgetWindow(w.kind, nx + area.x, ny + area.y);
       }
     },
     [dragId, area, scale, settings, widgets, move],
@@ -126,13 +126,13 @@ export default function DesktopMap({ display }: { display: number }) {
 
   const onUp = useCallback(
     (w: WidgetInstance) => {
-      if (dragId !== w.id) return;
+      if (dragId !== w.kind) return;
       setDragId(null);
       setGuides([]);
       setDock(null);
       if (area) {
-        markMoved(w.id, drag.current.x, drag.current.y);
-        void moveWidgetWindow(w.id, drag.current.x + area.x, drag.current.y + area.y);
+        markMoved(w.kind, drag.current.x, drag.current.y);
+        void moveWidgetWindow(w.kind, drag.current.x + area.x, drag.current.y + area.y);
       }
     },
     [dragId, area],
@@ -208,16 +208,16 @@ export default function DesktopMap({ display }: { display: number }) {
           const def = byKind(w.kind);
           const Icon = def.icon;
           const [ww, wh] = sizeOf(w.kind, w.size);
-          const active = dragId === w.id;
+          const active = dragId === w.kind;
           const locked = w.locked || settings.lockAll;
           return (
             <motion.div
-              key={w.id}
+              key={w.kind}
               onPointerDown={(e) => onDown(e, w)}
               onPointerMove={(e) => onMove(e, w)}
               onPointerUp={() => onUp(w)}
               onPointerCancel={() => onUp(w)}
-              onDoubleClick={() => setOpen(w.id, !w.open)}
+              onDoubleClick={() => setOpen(w.kind, !w.open)}
               animate={{
                 left: w.x * scale,
                 top: w.y * scale,

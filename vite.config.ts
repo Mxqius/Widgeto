@@ -21,5 +21,17 @@ export default defineConfig({
     target: process.env.TAURI_ENV_PLATFORM === "windows" ? "chrome105" : "safari13",
     minify: !process.env.TAURI_ENV_DEBUG ? "esbuild" : false,
     sourcemap: !!process.env.TAURI_ENV_DEBUG,
+    rollupOptions: {
+      output: {
+        // Keep the heavy vendors in their own chunks. A widget window then
+        // pulls react + motion + its own body, and never Base UI, which only
+        // the manager needs.
+        manualChunks: {
+          react: ["react", "react-dom", "react/jsx-runtime"],
+          motion: ["motion", "motion/react"],
+          baseui: ["@base-ui/react"],
+        },
+      },
+    },
   },
 });

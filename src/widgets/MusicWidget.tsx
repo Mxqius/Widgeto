@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { Heart, Pause, Play, Shuffle, SkipBack, SkipForward, Volume2 } from "lucide-react";
 import { pad } from "@/lib/utils";
-import type { SizeKey } from "@/lib/types";
+import type { WidgetBodyProps } from "./loader";
 
 const TRACKS = [
   { title: "Neon Corridor", artist: "Lumen Kane", len: 214, art: ["#7c6cff", "#3b2fbf"] },
@@ -10,7 +10,7 @@ const TRACKS = [
   { title: "Northern Drift", artist: "Halden", len: 246, art: ["#31d0aa", "#0f6f66"] },
 ];
 
-export default function MusicWidget({ size }: { size: SizeKey }) {
+export default function MusicWidget({ size }: WidgetBodyProps) {
   const [i, setI] = useState(0);
   const [playing, setPlaying] = useState(true);
   const [t, setT] = useState(46);

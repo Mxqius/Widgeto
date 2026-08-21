@@ -3,12 +3,12 @@ import { motion } from "motion/react";
 import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import { Shell } from "./parts";
 import { cn } from "@/lib/utils";
-import type { SizeKey } from "@/lib/types";
+import type { WidgetBodyProps } from "./loader";
 
 const DOW = ["M", "T", "W", "T", "F", "S", "S"];
 const EVENT_DAYS = [4, 9, 12, 18, 23, 27];
 
-export default function CalendarWidget({ size }: { size: SizeKey }) {
+export default function CalendarWidget({ size }: WidgetBodyProps) {
   const [offset, setOffset] = useState(0);
   const today = new Date();
 

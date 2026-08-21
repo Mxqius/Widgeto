@@ -1,4 +1,4 @@
-import type { DockZone, SizeKey, WidgetInstance, WidgetKind } from "./types";
+import type { DockZone, Settings, SizeKey, WidgetInstance, WidgetKind } from "./types";
 import { isTauri } from "./utils";
 import { sizeOf } from "@/widgets/registry";
 
@@ -15,7 +15,8 @@ export interface Area {
 /** Fallback used in the browser so the manager still renders a plausible desktop. */
 export const BROWSER_AREA: Area = { x: 0, y: 0, w: 1920, h: 1032, scale: 1, name: "Preview" };
 
-export const labelFor = (id: string) => `w-${id}`;
+/** One widget per kind, so the kind is the window label. */
+export const labelFor = (kind: WidgetKind) => `w-${kind}`;
 
 /**
  * What has actually been pushed to each OS window. Shared so that a live drag
@@ -27,11 +28,11 @@ export interface Applied {
   size: string;
   layer: string;
 }
-export const applied = new Map<string, Applied>();
+export const applied = new Map<WidgetKind, Applied>();
 
 /** Record a position we have just pushed, so reconcile treats it as done. */
-export function markMoved(id: string, x: number, y: number) {
-  const a = applied.get(id);
+export function markMoved(kind: WidgetKind, x: number, y: number) {
+  const a = applied.get(kind);
   if (a) {
     a.x = Math.round(x);
     a.y = Math.round(y);
@@ -74,17 +75,16 @@ async function wv(label: string) {
 /** Spawn the always-on-desktop window that hosts a single widget. */
 export async function openWidgetWindow(w: WidgetInstance, onDesktop: boolean) {
   if (!isTauri()) return;
-  const existing = await wv(labelFor(w.id));
+  const existing = await wv(labelFor(w.kind));
   if (existing) {
     await existing.show();
-    await existing.setFocus();
     return;
   }
   const { WebviewWindow } = await import("@tauri-apps/api/webviewWindow");
   const [width, height] = sizeOf(w.kind, w.size);
 
-  const win = new WebviewWindow(labelFor(w.id), {
-    url: `index.html?w=${w.id}`,
+  const win = new WebviewWindow(labelFor(w.kind), {
+    url: `index.html?w=${w.kind}`,
     title: w.kind,
     width,
     height,
@@ -114,19 +114,19 @@ export async function openWidgetWindow(w: WidgetInstance, onDesktop: boolean) {
   });
 }
 
-export async function closeWidgetWindow(id: string) {
-  await (await wv(labelFor(id)))?.close();
+export async function closeWidgetWindow(kind: WidgetKind) {
+  await (await wv(labelFor(kind)))?.close();
 }
 
-export async function moveWidgetWindow(id: string, x: number, y: number) {
-  const win = await wv(labelFor(id));
+export async function moveWidgetWindow(kind: WidgetKind, x: number, y: number) {
+  const win = await wv(labelFor(kind));
   if (!win) return;
   const { LogicalPosition } = await import("@tauri-apps/api/dpi");
   await win.setPosition(new LogicalPosition(Math.round(x), Math.round(y)));
 }
 
-export async function resizeWidgetWindow(id: string, kind: WidgetKind, size: SizeKey) {
-  const win = await wv(labelFor(id));
+export async function resizeWidgetWindow(kind: WidgetKind, size: SizeKey) {
+  const win = await wv(labelFor(kind));
   if (!win) return;
   const { LogicalSize } = await import("@tauri-apps/api/dpi");
   const [w, h] = sizeOf(kind, size);
@@ -136,8 +136,8 @@ export async function resizeWidgetWindow(id: string, kind: WidgetKind, size: Siz
 /** Desktop layer: pinned behind windows, normal, or floating above everything. */
 export type Layer = "desktop" | "normal" | "top";
 
-export async function applyLayer(id: string, layer: Layer) {
-  const win = await wv(labelFor(id));
+export async function applyLayer(kind: WidgetKind, layer: Layer) {
+  const win = await wv(labelFor(kind));
   if (!win) return;
   await win.setAlwaysOnBottom(layer === "desktop");
   await win.setAlwaysOnTop(layer === "top");
@@ -146,26 +146,36 @@ export async function applyLayer(id: string, layer: Layer) {
 /* ------------------------------------------------------------------- events */
 
 export const EVT = {
-  /** manager -> a widget window: your config changed */
-  config: (id: string) => `widget:config:${id}`,
+  /** manager -> one widget window: your config changed */
+  config: (kind: WidgetKind) => `widget:config:${kind}`,
   /** widget window -> manager: I was dragged, here is where I landed */
   moved: "widget:moved",
-  /** widget window -> manager: close me / resize me */
+  /** widget window -> manager: hide me / resize me / lock me */
   action: "widget:action",
-  /** manager -> widget windows: shared appearance settings changed */
-  theme: "widget:theme",
   /** widget window -> manager: I am up, send me my config */
   hello: "widget:hello",
 } as const;
 
+/**
+ * What a widget window needs to render and drag itself — just its own record,
+ * the shared settings and its monitor, rather than the whole store.
+ */
+export interface ConfigPayload {
+  widget: WidgetInstance;
+  settings: Settings;
+  area: Area;
+  /** rects of the other visible widgets on the same display, for alignment */
+  neighbours: { x: number; y: number; w: number; h: number }[];
+}
+
 export interface MovedPayload {
-  id: string;
+  kind: WidgetKind;
   x: number;
   y: number;
   dock: DockZone | null;
 }
 
 export interface ActionPayload {
-  id: string;
-  kind: "close" | "cycle-size" | "lock";
+  kind: WidgetKind;
+  action: "hide" | "cycle-size" | "lock";
 }

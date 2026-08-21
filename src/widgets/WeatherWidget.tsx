@@ -1,8 +1,8 @@
 import { motion } from "motion/react";
 import { Cloud, CloudRain, CloudSun, Droplets, Sun, Wind } from "lucide-react";
 import { Shell } from "./parts";
-import { useApp } from "@/store/useApp";
-import type { SizeKey } from "@/lib/types";
+import { useWidgetPrefs } from "./prefs";
+import type { WidgetBodyProps } from "./loader";
 
 const ICONS = { sun: Sun, cloud: Cloud, rain: CloudRain, part: CloudSun };
 type Cond = keyof typeof ICONS;
@@ -15,8 +15,8 @@ const FORECAST: { day: string; c: Cond; hi: number; lo: number }[] = [
   { day: "Sat", c: "sun", hi: 24, lo: 16 },
 ];
 
-export default function WeatherWidget({ size }: { size: SizeKey }) {
-  const unit = useApp((s) => s.settings.temperatureUnit);
+export default function WeatherWidget({ size }: WidgetBodyProps) {
+  const { temperatureUnit: unit } = useWidgetPrefs();
   const t = (c: number) => (unit === "C" ? c : Math.round((c * 9) / 5 + 32));
   const days = size === "sm" ? 3 : size === "md" ? 4 : 5;
 

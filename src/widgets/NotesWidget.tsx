@@ -1,11 +1,11 @@
 import { StickyNote } from "lucide-react";
 import { Shell } from "./parts";
 import { useLocal } from "@/lib/hooks";
-import type { SizeKey } from "@/lib/types";
+import type { WidgetBodyProps } from "./loader";
 
-export default function NotesWidget({ id }: { id: string; size: SizeKey }) {
+export default function NotesWidget({ kind }: WidgetBodyProps) {
   const [text, setText] = useLocal(
-    `widgeto.notes.${id}`,
+    `widgeto.notes.${kind}`,
     "Drag a widget near any corner — it docks itself.\n\nDouble-click to cycle size.",
   );
 

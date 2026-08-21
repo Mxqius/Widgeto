@@ -1,12 +1,12 @@
 import { motion } from "motion/react";
 import { useNow } from "@/lib/hooks";
-import { useApp } from "@/store/useApp";
+import { useWidgetPrefs } from "./prefs";
 import { pad } from "@/lib/utils";
-import type { SizeKey } from "@/lib/types";
+import type { WidgetBodyProps } from "./loader";
 
-export default function ClockWidget({ size }: { size: SizeKey }) {
+export default function ClockWidget({ size }: WidgetBodyProps) {
   const now = useNow(1000);
-  const h24 = useApp((s) => s.settings.clock24h);
+  const { clock24h: h24 } = useWidgetPrefs();
 
   const s = now.getSeconds();
   const m = now.getMinutes();

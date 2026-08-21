@@ -4,7 +4,7 @@ import {
 } from "lucide-react";
 import { Shell } from "./parts";
 import { openExternal } from "@/lib/tauri";
-import type { SizeKey } from "@/lib/types";
+import type { WidgetBodyProps } from "./loader";
 
 const APPS = [
   { name: "Browser", icon: Chrome, color: "#4aa8ff", url: "https://vercel.com" },
@@ -17,7 +17,7 @@ const APPS = [
   { name: "Docs", icon: LayoutGrid, color: "#9aa4b2", url: "https://tauri.app" },
 ];
 
-export default function LauncherWidget({ size }: { size: SizeKey }) {
+export default function LauncherWidget({ size }: WidgetBodyProps) {
   const count = size === "sm" ? 4 : size === "md" ? 6 : 8;
 
   return (

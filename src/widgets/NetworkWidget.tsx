@@ -1,9 +1,9 @@
 import { Activity, ArrowDown, ArrowUp, Wifi } from "lucide-react";
 import { Shell, Spark } from "./parts";
 import { useSeries } from "@/lib/hooks";
-import type { SizeKey } from "@/lib/types";
+import type { WidgetBodyProps } from "./loader";
 
-export default function NetworkWidget({ size }: { size: SizeKey }) {
+export default function NetworkWidget({ size }: WidgetBodyProps) {
   const down = useSeries(30, 42, 40, 800);
   const up = useSeries(30, 12, 16, 800);
 

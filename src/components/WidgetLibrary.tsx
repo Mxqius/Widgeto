@@ -1,10 +1,15 @@
 import { useMemo, useState } from "react";
 import { Dialog } from "@base-ui/react/dialog";
 import { AnimatePresence, motion } from "motion/react";
-import { Plus, Search } from "lucide-react";
+import { Check, Plus, Search } from "lucide-react";
 import { WIDGETS } from "@/widgets/registry";
 import { useApp } from "@/store/useApp";
+import { cn } from "@/lib/utils";
 
+/**
+ * The full catalogue of widget kinds. Each one is either on the desktop or not
+ * — there is exactly one of each, so this is a toggle list, not an "add" list.
+ */
 export default function WidgetLibrary({
   open,
   onOpenChange,
@@ -12,8 +17,8 @@ export default function WidgetLibrary({
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }) {
-  const add = useApp((s) => s.add);
   const widgets = useApp((s) => s.widgets);
+  const toggle = useApp((s) => s.toggle);
   const [q, setQ] = useState("");
 
   const results = useMemo(() => {
@@ -24,7 +29,11 @@ export default function WidgetLibrary({
     );
   }, [q]);
 
-  const countOf = (kind: string) => widgets.filter((w) => w.kind === kind).length;
+  const isOn = useMemo(
+    () => new Map(widgets.map((w) => [w.kind, w.open])),
+    [widgets],
+  );
+  const live = widgets.filter((w) => w.open).length;
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -69,43 +78,44 @@ export default function WidgetLibrary({
               </div>
 
               <div className="grid grid-cols-1 gap-1.5 overflow-y-auto p-3 sm:grid-cols-2">
-                {results.map((w, i) => {
+                {results.map((w) => {
                   const Icon = w.icon;
-                  const n = countOf(w.kind);
+                  const on = isOn.get(w.kind) ?? false;
                   return (
-                    <motion.button
+                    <button
                       key={w.kind}
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.018, duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-                      whileHover={{ y: -2 }}
-                      whileTap={{ scale: 0.985 }}
-                      onClick={() => add(w.kind)}
-                      className="group flex items-center gap-3 rounded-xl border border-white/6 bg-white/[0.025]
-                                 p-3 text-left transition-colors hover:border-white/12 hover:bg-white/[0.055]"
+                      onClick={() => toggle(w.kind)}
+                      className={cn(
+                        "group flex items-center gap-3 rounded-xl border p-3 text-left transition-colors",
+                        on
+                          ? "border-white/12 bg-white/[0.06]"
+                          : "border-white/6 bg-white/[0.02] hover:border-white/10 hover:bg-white/[0.045]",
+                      )}
                     >
                       <div
                         className="grid size-9 shrink-0 place-items-center rounded-[10px] border border-white/8"
                         style={{
-                          background: `color-mix(in srgb, ${w.accent} 16%, transparent)`,
+                          background: `color-mix(in srgb, ${w.accent} ${on ? 22 : 12}%, transparent)`,
                           color: w.accent,
                         }}
                       >
                         <Icon size={16} strokeWidth={2} />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[13px] font-medium text-ink-100">{w.name}</span>
-                          {n > 0 && <span className="chip">{n}</span>}
-                        </div>
+                        <div className="text-[13px] font-medium text-ink-100">{w.name}</div>
                         <div className="truncate text-[11.5px] text-ink-500">{w.description}</div>
                       </div>
-                      <Plus
-                        size={15}
-                        className="shrink-0 text-ink-600 opacity-0 transition-opacity group-hover:opacity-100"
-                        style={{ color: w.accent }}
-                      />
-                    </motion.button>
+                      <span
+                        className={cn(
+                          "grid size-6 shrink-0 place-items-center rounded-full border transition-colors",
+                          on ? "border-transparent text-white" : "border-white/12 text-ink-600",
+                        )}
+                        style={on ? { background: w.accent } : undefined}
+                        title={on ? "On the desktop — click to remove" : "Click to add to the desktop"}
+                      >
+                        {on ? <Check size={13} strokeWidth={3} /> : <Plus size={13} />}
+                      </span>
+                    </button>
                   );
                 })}
                 {results.length === 0 && (
@@ -117,7 +127,7 @@ export default function WidgetLibrary({
 
               <div className="flex items-center justify-between border-t border-white/6 px-4 py-2.5">
                 <span className="text-[11.5px] text-ink-500">
-                  {WIDGETS.length} widget types · click to add to the board
+                  {live} of {WIDGETS.length} on the desktop · one of each
                 </span>
                 <Dialog.Close className="btn text-[12px]">Done</Dialog.Close>
               </div>

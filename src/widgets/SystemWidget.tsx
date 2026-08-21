@@ -1,9 +1,9 @@
 import { Cpu } from "lucide-react";
 import { Bar, Ring, Shell, Spark } from "./parts";
 import { useSeries } from "@/lib/hooks";
-import type { SizeKey } from "@/lib/types";
+import type { WidgetBodyProps } from "./loader";
 
-export default function SystemWidget({ size }: { size: SizeKey }) {
+export default function SystemWidget({ size }: WidgetBodyProps) {
   const cpu = useSeries(28, 34, 26, 900);
   const ram = useSeries(28, 61, 8, 2200);
   const now = cpu[cpu.length - 1];

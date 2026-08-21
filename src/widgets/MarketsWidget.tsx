@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { TrendingDown, TrendingUp } from "lucide-react";
 import { Shell, Spark } from "./parts";
-import type { SizeKey } from "@/lib/types";
+import type { WidgetBodyProps } from "./loader";
 
 interface Row {
   sym: string;
@@ -27,7 +27,7 @@ const INITIAL: Row[] = [
   { sym: "AAPL", name: "Apple", price: 241.6, chg: -0.3, data: seedSeries(241) },
 ];
 
-export default function MarketsWidget({ size }: { size: SizeKey }) {
+export default function MarketsWidget({ size }: WidgetBodyProps) {
   const [rows, setRows] = useState(INITIAL);
   const limit = size === "sm" ? 2 : size === "md" ? 3 : 4;
 

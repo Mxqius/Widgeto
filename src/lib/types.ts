@@ -25,8 +25,11 @@ export type DockZone =
   | "bottom-right"
   | "center";
 
+/**
+ * One widget per kind — `kind` *is* the identity. There is no separate id, so
+ * the desktop can never hold two of the same widget.
+ */
 export interface WidgetInstance {
-  id: string;
   kind: WidgetKind;
   /** position *within* its display's work area, in logical pixels */
   x: number;

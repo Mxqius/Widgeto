@@ -32,14 +32,13 @@ export default function Settings({ onBack }: { onBack: () => void }) {
   const s = useApp((st) => st.settings);
   const update = useApp((st) => st.update);
   const widgets = useApp((st) => st.widgets);
-  const add = useApp((st) => st.add);
+  const toggle = useApp((st) => st.toggle);
   const openAll = useApp((st) => st.openAll);
-  const remove = useApp((st) => st.remove);
   const reset = useApp((st) => st.reset);
   const closeAll = useApp((st) => st.closeAll);
   const autoArrangeNow = useApp((st) => st.autoArrangeNow);
 
-  const countOf = (k: WidgetKind) => widgets.filter((w) => w.kind === k).length;
+  const isOn = (k: WidgetKind) => widgets.find((w) => w.kind === k)?.open ?? false;
 
   return (
     <motion.div
@@ -125,7 +124,7 @@ export default function Settings({ onBack }: { onBack: () => void }) {
 
                   <Group title="Surface">
                     <Row title="Widget opacity" hint="How much of the desktop shows through.">
-                      <div className="w-[190px]">
+                      <div className="w-47.5">
                         <Range
                           min={0.3}
                           max={1}
@@ -255,7 +254,7 @@ export default function Settings({ onBack }: { onBack: () => void }) {
                       <Toggle checked={s.autoArrange} onChange={(v) => update({ autoArrange: v })} />
                     </Row>
                     <Row title="Spacing between widgets">
-                      <div className="w-[190px]">
+                      <div className="w-47.5">
                         <Range
                           min={0}
                           max={48}
@@ -296,7 +295,7 @@ export default function Settings({ onBack }: { onBack: () => void }) {
                   <Group title={`Widget types — ${widgets.length} placed`}>
                     {WIDGETS.map((w) => {
                       const Icon = w.icon;
-                      const n = countOf(w.kind);
+                      const on = isOn(w.kind);
                       return (
                         <div key={w.kind} className="flex items-center gap-3 px-4 py-2.5">
                           <div
@@ -312,20 +311,7 @@ export default function Settings({ onBack }: { onBack: () => void }) {
                             <div className="text-[13px] font-medium text-ink-100">{w.name}</div>
                             <div className="truncate text-[11.5px] text-ink-500">{w.description}</div>
                           </div>
-                          {n > 0 && <span className="chip">{n} on desktop</span>}
-                          <button className="btn h-7 px-2 text-[12px]" onClick={() => add(w.kind)}>
-                            Add
-                          </button>
-                          <button
-                            disabled={n === 0}
-                            className="btn h-7 px-2 text-[12px] disabled:opacity-30"
-                            onClick={() => {
-                              const last = [...widgets].reverse().find((i) => i.kind === w.kind);
-                              if (last) remove(last.id);
-                            }}
-                          >
-                            Remove
-                          </button>
+                          <Toggle checked={on} onChange={() => toggle(w.kind)} />
                         </div>
                       );
                     })}

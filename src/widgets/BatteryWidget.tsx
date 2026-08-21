@@ -2,9 +2,9 @@ import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { BatteryCharging, Zap } from "lucide-react";
 import { Shell } from "./parts";
-import type { SizeKey } from "@/lib/types";
+import type { WidgetBodyProps } from "./loader";
 
-export default function BatteryWidget({ size }: { size: SizeKey }) {
+export default function BatteryWidget({ size }: WidgetBodyProps) {
   const [pct, setPct] = useState(78);
   const [charging, setCharging] = useState(true);
 

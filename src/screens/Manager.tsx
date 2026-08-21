@@ -2,7 +2,7 @@ import { useState } from "react";
 import { motion } from "motion/react";
 import {
   ArrowDownUp, CircleDashed, Eye, EyeOff, Grid2x2, Grid3x3, Layers, LayoutGrid,
-  Lock, LockOpen, Magnet, Monitor, Pin, Plus, Settings2, Trash2,
+  Lock, LockOpen, Magnet, Monitor, Pin, Plus, Settings2,
 } from "lucide-react";
 import DesktopMap from "@/components/DesktopMap";
 import { Picker, Segmented, Tip } from "@/components/ui";
@@ -25,7 +25,6 @@ export default function Manager({
   const autoArrangeNow = useApp((s) => s.autoArrangeNow);
   const redock = useApp((s) => s.redock);
   const setOpen = useApp((s) => s.setOpen);
-  const remove = useApp((s) => s.remove);
   const cycleSize = useApp((s) => s.cycleSize);
   const toggleLock = useApp((s) => s.toggleLock);
   const setDisplay = useApp((s) => s.setDisplay);
@@ -134,7 +133,7 @@ export default function Manager({
             const locked = w.locked || settings.lockAll;
             return (
               <motion.div
-                key={w.id}
+                key={w.kind}
                 layout
                 transition={{ type: "spring", stiffness: 480, damping: 38 }}
                 className={cn(
@@ -165,19 +164,19 @@ export default function Manager({
                     <button
                       title="Move to the next display"
                       className="btn size-7 px-0 text-[10px]"
-                      onClick={() => setDisplay(w.id, (w.display + 1) % areas.length)}
+                      onClick={() => setDisplay(w.kind, (w.display + 1) % areas.length)}
                     >
                       {w.display + 1}
                     </button>
                   )}
-                  <button title="Cycle size" className="btn size-7 px-0 text-[10px]" onClick={() => cycleSize(w.id)}>
+                  <button title="Cycle size" className="btn size-7 px-0 text-[10px]" onClick={() => cycleSize(w.kind)}>
                     {w.size.toUpperCase()}
                   </button>
                   <button
                     title={locked ? "Unlock" : "Lock"}
                     className="btn size-7 px-0"
                     data-selected={locked}
-                    onClick={() => toggleLock(w.id)}
+                    onClick={() => toggleLock(w.kind)}
                   >
                     {locked ? <Lock size={12} /> : <LockOpen size={12} />}
                   </button>
@@ -185,16 +184,9 @@ export default function Manager({
                     title={w.open ? "Hide from desktop" : "Show on desktop"}
                     className="btn size-7 px-0"
                     data-selected={w.open}
-                    onClick={() => setOpen(w.id, !w.open)}
+                    onClick={() => setOpen(w.kind, !w.open)}
                   >
                     {w.open ? <Eye size={12} /> : <EyeOff size={12} />}
-                  </button>
-                  <button
-                    title="Delete"
-                    className="btn size-7 px-0 text-ink-500 opacity-0 group-hover:opacity-100 hover:bg-red-500/15 hover:text-red-300"
-                    onClick={() => remove(w.id)}
-                  >
-                    <Trash2 size={12} />
                   </button>
                 </div>
               </motion.div>

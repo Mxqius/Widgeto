@@ -10,11 +10,11 @@ import type {
 } from "@/lib/types";
 import { arrange, dockPosition } from "@/lib/layout";
 import { BROWSER_AREA, type Area } from "@/lib/desktop";
-import { sizeOf } from "@/widgets/registry";
-import { clamp, uid } from "@/lib/utils";
+import { WIDGET_KINDS, sizeOf } from "@/widgets/registry";
+import { clamp } from "@/lib/utils";
 
 /**
- * `index.html?w=<id>` is a widget's own desktop window. Those windows are
+ * `index.html?w=<kind>` is a widget's own desktop window. Those windows are
  * read-only replicas: the manager owns the state and pushes it over the event
  * bus. Without this, twelve replicas would race each other writing conflicting
  * snapshots into the one shared localStorage key.
@@ -52,19 +52,18 @@ export const DEFAULT_SETTINGS: Settings = {
   wallpaper: "aurora",
 };
 
-const STARTER: WidgetKind[] = [
-  "clock", "weather", "system", "music",
-  "tasks", "calendar", "pomodoro", "markets",
-  "notes", "network", "battery", "launcher",
-];
 
-/** Lay the starter set out in reading order across a 1920x1032 work area. */
+/**
+ * The store always holds exactly one entry per widget kind. Adding and removing
+ * is just flipping `open` — nothing is ever created or destroyed, so a widget
+ * keeps its position and size across being hidden and shown again.
+ */
 function seed(): WidgetInstance[] {
   const out: WidgetInstance[] = [];
   let x = 24;
   let y = 24;
   let rowH = 0;
-  STARTER.forEach((kind, i) => {
+  WIDGET_KINDS.forEach((kind, i) => {
     const [w, h] = sizeOf(kind, "md");
     if (x + w > BROWSER_AREA.w - 24) {
       x = 24;
@@ -72,7 +71,6 @@ function seed(): WidgetInstance[] {
       rowH = 0;
     }
     out.push({
-      id: uid(),
       kind,
       size: "md",
       x,
@@ -95,23 +93,18 @@ interface AppState {
   settings: Settings;
   /** work areas of every monitor; index 0 is primary */
   areas: Area[];
-  activeId: string | null;
   zTop: number;
 
   setAreas: (a: Area[]) => void;
-  areaOf: (w: WidgetInstance) => Area;
 
-  add: (kind: WidgetKind) => string;
-  remove: (id: string) => void;
-  duplicate: (id: string) => void;
-  setOpen: (id: string, open: boolean) => void;
-  move: (id: string, x: number, y: number, dock?: DockZone | null) => void;
-  setDisplay: (id: string, display: number) => void;
-  setSize: (id: string, size: SizeKey) => void;
-  cycleSize: (id: string) => void;
-  setAlpha: (id: string, a: number) => void;
-  toggleLock: (id: string) => void;
-  focus: (id: string) => void;
+  setOpen: (kind: WidgetKind, open: boolean) => void;
+  toggle: (kind: WidgetKind) => void;
+  move: (kind: WidgetKind, x: number, y: number, dock?: DockZone | null) => void;
+  setDisplay: (kind: WidgetKind, display: number) => void;
+  setSize: (kind: WidgetKind, size: SizeKey) => void;
+  cycleSize: (kind: WidgetKind) => void;
+  toggleLock: (kind: WidgetKind) => void;
+  focus: (kind: WidgetKind) => void;
   autoArrangeNow: (mode?: ArrangeMode) => void;
   redock: () => void;
   reset: () => void;
@@ -120,16 +113,29 @@ interface AppState {
   update: (patch: Partial<Settings>) => void;
 }
 
+/** Patch one widget, reusing the previous array when nothing actually changed. */
+function patch(
+  widgets: WidgetInstance[],
+  kind: WidgetKind,
+  fn: (w: WidgetInstance) => WidgetInstance,
+) {
+  let changed = false;
+  const next = widgets.map((w) => {
+    if (w.kind !== kind) return w;
+    const n = fn(w);
+    if (n !== w) changed = true;
+    return n;
+  });
+  return changed ? next : widgets;
+}
+
 export const useApp = create<AppState>()(
   persist(
     (set, get) => ({
       widgets: IS_WIDGET_WINDOW ? [] : seed(),
       settings: DEFAULT_SETTINGS,
       areas: [BROWSER_AREA],
-      activeId: null,
-      zTop: STARTER.length,
-
-      areaOf: (w) => get().areas[w.display] ?? get().areas[0] ?? BROWSER_AREA,
+      zTop: WIDGET_KINDS.length,
 
       setAreas: (areas) => {
         const { areas: prev, widgets, settings } = get();
@@ -173,105 +179,76 @@ export const useApp = create<AppState>()(
         set(changed ? { areas, widgets: next } : { areas });
       },
 
-      add: (kind) => {
-        const { widgets, zTop, areas, settings } = get();
-        const [w, h] = sizeOf(kind, "md");
-        const a = areas[0] ?? BROWSER_AREA;
-        const z = zTop + 1;
-        const id = uid();
-        const spot = findFreeSpot(widgets, { w, h }, a, settings.margin, settings.gap);
+      setOpen: (kind, open) =>
+        set({ widgets: patch(get().widgets, kind, (w) => (w.open === open ? w : { ...w, open })) }),
+
+      toggle: (kind) =>
+        set({ widgets: patch(get().widgets, kind, (w) => ({ ...w, open: !w.open })) }),
+
+      move: (kind, x, y, dock = null) =>
         set({
-          zTop: z,
-          widgets: [
-            ...widgets,
-            { id, kind, size: "md", x: spot.x, y: spot.y, z, locked: false, dock: null, alpha: 1, open: true, display: 0 },
-          ],
+          widgets: patch(get().widgets, kind, (w) =>
+            w.x === x && w.y === y && w.dock === dock ? w : { ...w, x, y, dock },
+          ),
+        }),
+
+      setDisplay: (kind, display) =>
+        set({ widgets: patch(get().widgets, kind, (w) => ({ ...w, display, dock: null })) }),
+
+      setSize: (kind, size) => {
+        const { settings, areas } = get();
+        set({
+          widgets: patch(get().widgets, kind, (w) => {
+            if (w.size === size) return w;
+            const next = { ...w, size };
+            if (w.dock) {
+              const a = areas[w.display] ?? areas[0];
+              const [ww, wh] = sizeOf(w.kind, size);
+              if (a) Object.assign(next, dockPosition(w.dock, { x: w.x, y: w.y, w: ww, h: wh }, a, settings.margin));
+            }
+            return next;
+          }),
         });
         if (settings.autoArrange) get().autoArrangeNow();
-        return id;
       },
 
-      remove: (id) => set({ widgets: get().widgets.filter((w) => w.id !== id) }),
-
-      duplicate: (id) => {
-        const src = get().widgets.find((w) => w.id === id);
-        if (!src) return;
-        const z = get().zTop + 1;
-        set({
-          zTop: z,
-          widgets: [
-            ...get().widgets,
-            { ...src, id: uid(), x: src.x + 28, y: src.y + 28, z, dock: null },
-          ],
-        });
-      },
-
-      setOpen: (id, open) =>
-        set({ widgets: get().widgets.map((w) => (w.id === id ? { ...w, open } : w)) }),
-
-      move: (id, x, y, dock = null) =>
-        set({ widgets: get().widgets.map((w) => (w.id === id ? { ...w, x, y, dock } : w)) }),
-
-      setDisplay: (id, display) =>
-        set({ widgets: get().widgets.map((w) => (w.id === id ? { ...w, display, dock: null } : w)) }),
-
-      setSize: (id, size) => {
-        set({ widgets: get().widgets.map((w) => (w.id === id ? { ...w, size } : w)) });
-        const { settings } = get();
-        const w = get().widgets.find((i) => i.id === id);
-        if (w?.dock) {
-          const a = get().areaOf(w);
-          const [ww, wh] = sizeOf(w.kind, w.size);
-          const p = dockPosition(w.dock, { x: w.x, y: w.y, w: ww, h: wh }, a, settings.margin);
-          set({ widgets: get().widgets.map((i) => (i.id === id ? { ...i, ...p } : i)) });
-        }
-        if (settings.autoArrange) get().autoArrangeNow();
-      },
-
-      cycleSize: (id) => {
+      cycleSize: (kind) => {
         const order: SizeKey[] = ["sm", "md", "lg"];
-        const w = get().widgets.find((i) => i.id === id);
+        const w = get().widgets.find((i) => i.kind === kind);
         if (!w) return;
-        get().setSize(id, order[(order.indexOf(w.size) + 1) % order.length]);
+        get().setSize(kind, order[(order.indexOf(w.size) + 1) % order.length]);
       },
 
-      setAlpha: (id, a) =>
-        set({ widgets: get().widgets.map((w) => (w.id === id ? { ...w, alpha: a } : w)) }),
+      toggleLock: (kind) =>
+        set({ widgets: patch(get().widgets, kind, (w) => ({ ...w, locked: !w.locked })) }),
 
-      toggleLock: (id) =>
-        set({ widgets: get().widgets.map((w) => (w.id === id ? { ...w, locked: !w.locked } : w)) }),
-
-      focus: (id) => {
+      focus: (kind) => {
         const z = get().zTop + 1;
-        set({
-          zTop: z,
-          activeId: id,
-          widgets: get().widgets.map((w) => (w.id === id ? { ...w, z } : w)),
-        });
+        set({ zTop: z, widgets: patch(get().widgets, kind, (w) => ({ ...w, z })) });
       },
 
       autoArrangeNow: (mode) => {
         const { widgets, areas, settings } = get();
         const m = mode ?? settings.arrangeMode;
-        // pack each display independently
         const next = [...widgets];
         areas.forEach((a, di) => {
           const onThis = widgets.filter((w) => w.display === di && w.open);
+          if (!onThis.length) return;
           const items = onThis.map((w) => {
             const [ww, wh] = sizeOf(w.kind, w.size);
-            return { id: w.id, w: ww, h: wh };
+            return { id: w.kind, w: ww, h: wh };
           });
           const pos = arrange(items, a, m, settings.gap, settings.margin);
           for (const w of onThis) {
-            const i = next.findIndex((n) => n.id === w.id);
-            next[i] = { ...next[i], ...pos[w.id], dock: null };
+            const i = next.findIndex((n) => n.kind === w.kind);
+            next[i] = { ...next[i], ...pos[w.kind], dock: null };
           }
         });
         set({ widgets: next });
       },
 
       redock: () => {
-        const { widgets, settings } = get();
+        const { widgets, areas, settings } = get();
         const zones: DockZone[] = [
           "top-left", "top-right", "bottom-left", "bottom-right",
           "left", "right", "top", "bottom", "center",
@@ -280,7 +257,8 @@ export const useApp = create<AppState>()(
         set({
           widgets: widgets.map((w) => {
             if (!w.open) return w;
-            const a = get().areaOf(w);
+            const a = areas[w.display] ?? areas[0];
+            if (!a) return w;
             const [ww, wh] = sizeOf(w.kind, w.size);
             const zone = zones[n++ % zones.length];
             const p = dockPosition(zone, { x: w.x, y: w.y, w: ww, h: wh }, a, settings.margin);
@@ -289,52 +267,28 @@ export const useApp = create<AppState>()(
         });
       },
 
-      reset: () => set({ widgets: seed(), zTop: STARTER.length, settings: DEFAULT_SETTINGS }),
+      reset: () => set({ widgets: seed(), zTop: WIDGET_KINDS.length, settings: DEFAULT_SETTINGS }),
 
-      closeAll: () => set({ widgets: get().widgets.map((w) => ({ ...w, open: false })) }),
-      openAll: () => set({ widgets: get().widgets.map((w) => ({ ...w, open: true })) }),
+      closeAll: () => set({ widgets: get().widgets.map((w) => (w.open ? { ...w, open: false } : w)) }),
+      openAll: () => set({ widgets: get().widgets.map((w) => (w.open ? w : { ...w, open: true })) }),
 
-      update: (patch) => set({ settings: { ...get().settings, ...patch } }),
+      update: (patchIn) => set({ settings: { ...get().settings, ...patchIn } }),
     }),
     {
-      name: "widgeto.v2",
+      name: "widgeto.v3",
       storage: createJSONStorage(() => (IS_WIDGET_WINDOW ? noopStorage : localStorage)),
       partialize: (s) => ({ widgets: s.widgets, settings: s.settings, zTop: s.zTop }),
+      /** Heal older/partial payloads so every kind exists exactly once. */
+      merge: (persisted, current) => {
+        const p = (persisted ?? {}) as Partial<AppState>;
+        const stored = new Map((p.widgets ?? []).map((w) => [w.kind, w]));
+        return {
+          ...current,
+          ...p,
+          settings: { ...DEFAULT_SETTINGS, ...(p.settings ?? {}) },
+          widgets: current.widgets.map((base) => ({ ...base, ...(stored.get(base.kind) ?? {}) })),
+        };
+      },
     },
   ),
 );
-
-/** First non-overlapping slot, scanning left-to-right then top-to-bottom. */
-function findFreeSpot(
-  widgets: WidgetInstance[],
-  size: { w: number; h: number },
-  a: { w: number; h: number },
-  margin: number,
-  gap: number,
-) {
-  const taken = widgets
-    .filter((w) => w.open)
-    .map((w) => {
-      const [ww, wh] = sizeOf(w.kind, w.size);
-      return { x: w.x, y: w.y, w: ww, h: wh };
-    });
-  const step = 24;
-  for (let y = margin; y < a.h - size.h; y += step) {
-    for (let x = margin; x < a.w - size.w; x += step) {
-      const hit = taken.some(
-        (t) =>
-          x < t.x + t.w + gap &&
-          x + size.w + gap > t.x &&
-          y < t.y + t.h + gap &&
-          y + size.h + gap > t.y,
-      );
-      if (!hit) return { x, y };
-    }
-  }
-  return { x: margin + Math.random() * 60, y: margin + Math.random() * 60 };
-}
-
-// Dev-only handle so the store can be inspected from the console.
-if (import.meta.env.DEV) {
-  (window as unknown as { __widgeto: unknown }).__widgeto = useApp;
-}

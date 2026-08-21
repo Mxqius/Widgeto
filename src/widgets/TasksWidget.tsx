@@ -4,7 +4,7 @@ import { Check, ListTodo, Plus } from "lucide-react";
 import { Shell } from "./parts";
 import { useLocal } from "@/lib/hooks";
 import { cn, uid } from "@/lib/utils";
-import type { SizeKey } from "@/lib/types";
+import type { WidgetBodyProps } from "./loader";
 
 interface Task {
   id: string;
@@ -20,8 +20,8 @@ const SEED: Task[] = [
   { id: "e", text: "Write the README", done: false },
 ];
 
-export default function TasksWidget({ id, size }: { id: string; size: SizeKey }) {
-  const [tasks, setTasks] = useLocal<Task[]>(`widgeto.tasks.${id}`, SEED);
+export default function TasksWidget({ kind, size }: WidgetBodyProps) {
+  const [tasks, setTasks] = useLocal<Task[]>(`widgeto.tasks.${kind}`, SEED);
   const [draft, setDraft] = useState("");
 
   const done = tasks.filter((t) => t.done).length;
