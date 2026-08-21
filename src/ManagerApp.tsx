@@ -2,15 +2,14 @@ import { useEffect, useState } from "react";
 import { AnimatePresence } from "motion/react";
 import { Tooltip } from "@base-ui/react/tooltip";
 import ManagerChrome from "@/components/ManagerChrome";
-import WidgetLibrary from "@/components/WidgetLibrary";
 import Manager from "@/screens/Manager";
 import Settings from "@/screens/Settings";
 import { useApp } from "@/store/useApp";
 import { useDesktopSync } from "@/lib/useDesktopSync";
 import { setAlwaysOnTop } from "@/lib/tauri";
+import { isTauri } from "@/lib/utils";
 
 export default function ManagerApp() {
-  const [library, setLibrary] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const accent = useApp((s) => s.settings.accent);
   const update = useApp((s) => s.update);
@@ -30,23 +29,30 @@ export default function ManagerApp() {
     if (useApp.getState().settings.managerAlwaysOnTop) setAlwaysOnTop(true);
   }, []);
 
+  // tray menu -> show/hide every widget
+  useEffect(() => {
+    if (!isTauri()) return;
+    let un: (() => void) | undefined;
+    (async () => {
+      const { listen } = await import("@tauri-apps/api/event");
+      un = await listen<string>("tray:widgets", (e) => {
+        const st = useApp.getState();
+        if (e.payload === "show_all") st.openAll();
+        if (e.payload === "hide_all") st.closeAll();
+      });
+    })();
+    return () => un?.();
+  }, []);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const mod = e.ctrlKey || e.metaKey;
       const typing =
         e.target instanceof HTMLElement && ["INPUT", "TEXTAREA"].includes(e.target.tagName);
 
-      if (e.key === "Escape") {
-        setLibrary(false);
-        return;
-      }
       if (!mod || typing) return;
 
       switch (e.key.toLowerCase()) {
-        case "k":
-          e.preventDefault();
-          setLibrary((v) => !v);
-          break;
         case ",":
           e.preventDefault();
           setSettingsOpen((v) => !v);
@@ -81,7 +87,7 @@ export default function ManagerApp() {
         <ManagerChrome onOpenSettings={() => setSettingsOpen(true)} />
 
         <main className="relative min-h-0 flex-1">
-          <Manager onOpenLibrary={() => setLibrary(true)} onOpenSettings={() => setSettingsOpen(true)} />
+          <Manager onOpenSettings={() => setSettingsOpen(true)} />
           <AnimatePresence>
             {settingsOpen && (
               <div className="absolute inset-0 z-[700]">
@@ -90,8 +96,6 @@ export default function ManagerApp() {
             )}
           </AnimatePresence>
         </main>
-
-        <WidgetLibrary open={library} onOpenChange={setLibrary} />
       </div>
     </Tooltip.Provider>
   );

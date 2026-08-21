@@ -237,8 +237,13 @@ function WidgetShell({
   const Body = widgetBody(widget.kind);
   const locked = widget.locked || settings.lockAll;
   const prefs = useMemo(
-    () => ({ clock24h: settings.clock24h, temperatureUnit: settings.temperatureUnit }),
-    [settings.clock24h, settings.temperatureUnit],
+    () => ({
+      clock24h: settings.clock24h,
+      temperatureUnit: settings.temperatureUnit,
+      apiBase: settings.apiBase,
+      config: widget.config ?? {},
+    }),
+    [settings.clock24h, settings.temperatureUnit, settings.apiBase, widget.config],
   );
 
   const circle = def.shape === "circle";

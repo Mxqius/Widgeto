@@ -21,17 +21,17 @@ export function Toggle({
       checked={checked}
       onCheckedChange={onChange}
       className={cn(
-        "relative h-[22px] w-[38px] shrink-0 rounded-full outline-none transition-colors duration-200",
-        "border border-white/10 bg-white/[0.06]",
-        "data-[checked]:border-transparent",
+        "relative h-5.5 w-9.5 shrink-0 rounded-full outline-none transition-colors duration-200",
+        "border border-white/10 bg-white/6",
+        "data-checked:border-transparent",
       )}
       style={checked ? { background: "var(--accent)" } : undefined}
     >
       <Switch.Thumb
         className={cn(
-          "block size-[16px] rounded-full bg-white shadow-[0_1px_4px_rgba(0,0,0,0.5)]",
-          "translate-x-[3px] transition-transform duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]",
-          "data-[checked]:translate-x-[19px]",
+          "block size-4 rounded-full bg-white shadow-[0_1px_4px_rgba(0,0,0,0.5)]",
+          "translate-x-0.75 transition-transform duration-200 ease-out-expo",
+          "data-checked:translate-x-4.75",
         )}
       />
     </Switch.Root>
@@ -122,7 +122,7 @@ export function Picker<T extends string>({
                 value={o.value}
                 className="flex cursor-default items-center justify-between gap-4 rounded-lg px-2.5 py-1.5
                            text-[12.5px] text-ink-200 outline-none select-none
-                           data-[highlighted]:bg-white/[0.07] data-[highlighted]:text-white"
+                           data-highlighted:bg-white/[0.07] data-highlighted:text-white"
               >
                 <Select.ItemText>{o.label}</Select.ItemText>
                 <Select.ItemIndicator>

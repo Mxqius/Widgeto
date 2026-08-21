@@ -37,7 +37,7 @@ export default function TasksWidget({ kind, size }: WidgetBodyProps) {
         <div className="dim text-[10.5px] font-semibold">TASKS DONE</div>
       </div>
 
-      <div className="relative h-[3px] w-full overflow-hidden rounded-full">
+      <div className="relative h-0.75 w-full overflow-hidden rounded-full">
         <span className="absolute inset-0 opacity-15" style={{ background: "currentColor" }} />
         <span
           className="absolute inset-y-0 left-0 rounded-full transition-[width] duration-400"
@@ -53,11 +53,11 @@ export default function TasksWidget({ kind, size }: WidgetBodyProps) {
             onClick={() =>
               setTasks(tasks.map((x) => (x.id === t.id ? { ...x, done: !x.done } : x)))
             }
-            className="flex w-full items-center gap-2 py-[3px] text-left"
+            className="flex w-full items-center gap-2 py-0.75 text-left"
           >
             <span
               className={cn(
-                "grid size-[14px] shrink-0 place-items-center rounded-[4px] border transition-colors",
+                "grid size-3.5 shrink-0 place-items-center rounded-sm border transition-colors",
                 t.done ? "border-transparent" : "border-current opacity-30",
               )}
               style={t.done ? { background: "var(--accent)" } : undefined}

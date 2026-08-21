@@ -135,19 +135,6 @@ export function useDesktopSync() {
     return () => clearTimeout(t);
   }, [appearance]);
 
-  /* ------------------------------------ tear the desktop down on exit -- */
-  useEffect(() => {
-    if (!isTauri()) return;
-    let un: (() => void) | undefined;
-    (async () => {
-      const { getCurrentWindow, getAllWindows } = await import("@tauri-apps/api/window");
-      un = await getCurrentWindow().onCloseRequested(async () => {
-        const all = await getAllWindows();
-        await Promise.all(all.filter((w) => w.label.startsWith("w-")).map((w) => w.close()));
-      });
-    })();
-    return () => un?.();
-  }, []);
 }
 
 /** One full pass: create, close, move, resize and re-layer every widget window. */

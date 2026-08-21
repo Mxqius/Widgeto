@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { getHealth, setApiBase } from "@/lib/api";
 import { motion } from "motion/react";
 import {
   ArrowLeft, Blocks, Info, Keyboard, Magnet, Palette, RotateCcw,
@@ -6,8 +7,7 @@ import {
 } from "lucide-react";
 import { useApp, DEFAULT_SETTINGS } from "@/store/useApp";
 import { Group, Picker, Range, Row, Segmented, Toggle } from "@/components/ui";
-import { WIDGETS } from "@/widgets/registry";
-import type { ArrangeMode, WidgetKind } from "@/lib/types";
+import type { ArrangeMode } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { setAlwaysOnTop } from "@/lib/tauri";
 
@@ -31,14 +31,11 @@ export default function Settings({ onBack }: { onBack: () => void }) {
   const [tab, setTab] = useState<TabId>("appearance");
   const s = useApp((st) => st.settings);
   const update = useApp((st) => st.update);
-  const widgets = useApp((st) => st.widgets);
-  const toggle = useApp((st) => st.toggle);
   const openAll = useApp((st) => st.openAll);
   const reset = useApp((st) => st.reset);
   const closeAll = useApp((st) => st.closeAll);
   const autoArrangeNow = useApp((st) => st.autoArrangeNow);
 
-  const isOn = (k: WidgetKind) => widgets.find((w) => w.kind === k)?.open ?? false;
 
   return (
     <motion.div
@@ -275,6 +272,23 @@ export default function Settings({ onBack }: { onBack: () => void }) {
 
               {tab === "widgets" && (
                 <>
+                  <Group title="Data service">
+                    <Row
+                      title="API endpoint"
+                      hint="Local Hono service that feeds Weather and Markets."
+                    >
+                      <input
+                        className="field h-8 w-[230px] text-[12px]"
+                        value={s.apiBase}
+                        onChange={(e) => update({ apiBase: e.target.value })}
+                        placeholder="http://localhost:8787"
+                      />
+                    </Row>
+                    <Row title="Connection" hint="Widgets fall back to sample data when it is down.">
+                      <ApiStatus base={s.apiBase} />
+                    </Row>
+                  </Group>
+
                   <Group title="Formats">
                     <Row title="24-hour clock">
                       <Toggle checked={s.clock24h} onChange={(v) => update({ clock24h: v })} />
@@ -292,30 +306,6 @@ export default function Settings({ onBack }: { onBack: () => void }) {
                     </Row>
                   </Group>
 
-                  <Group title={`Widget types — ${widgets.length} placed`}>
-                    {WIDGETS.map((w) => {
-                      const Icon = w.icon;
-                      const on = isOn(w.kind);
-                      return (
-                        <div key={w.kind} className="flex items-center gap-3 px-4 py-2.5">
-                          <div
-                            className="grid size-8 shrink-0 place-items-center rounded-[9px] border border-white/8"
-                            style={{
-                              background: `color-mix(in srgb, ${w.accent} 15%, transparent)`,
-                              color: w.accent,
-                            }}
-                          >
-                            <Icon size={15} />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="text-[13px] font-medium text-ink-100">{w.name}</div>
-                            <div className="truncate text-[11.5px] text-ink-500">{w.description}</div>
-                          </div>
-                          <Toggle checked={on} onChange={() => toggle(w.kind)} />
-                        </div>
-                      );
-                    })}
-                  </Group>
                 </>
               )}
 
@@ -432,18 +422,49 @@ export default function Settings({ onBack }: { onBack: () => void }) {
 const BLURB: Record<TabId, string> = {
   appearance: "Tune the glass, the accent and the density of your widgets.",
   layout: "Control how widget windows snap, dock and re-order on your desktop.",
-  widgets: "Add or remove widget instances and set their data formats.",
+  widgets: "Shared formats and the data service the widgets read from.",
   window: "How widget windows and the manager behave on your desktop.",
   shortcuts: "Everything you can do without touching the mouse.",
   about: "What this prototype is built on.",
 };
 
 const SHORTCUTS = [
-  { combo: "Ctrl+K", what: "Open the widget library" },
   { combo: "Ctrl+,", what: "Open settings" },
   { combo: "Ctrl+G", what: "Auto-arrange the desktop" },
   { combo: "Ctrl+D", what: "Dock everything to zones" },
+  { combo: "Close window", what: "Parks the app in the tray" },
   { combo: "Ctrl+L", what: "Lock / unlock every widget" },
   { combo: "Double-click", what: "Cycle a widget through S / M / L" },
   { combo: "Esc", what: "Close the current overlay" },
 ];
+
+/** Pings the API so the endpoint field can be verified without leaving Settings. */
+function ApiStatus({ base }: { base: string }) {
+  const [state, setState] = useState<"idle" | "checking" | "up" | "down">("idle");
+
+  const check = async () => {
+    setState("checking");
+    setApiBase(base);
+    const res = await getHealth();
+    setState(res?.ok ? "up" : "down");
+  };
+
+  return (
+    <div className="flex items-center gap-2">
+      {state !== "idle" && (
+        <span
+          className="text-[11.5px] font-semibold"
+          style={{
+            color:
+              state === "up" ? "#3ddc84" : state === "down" ? "#ff6b6b" : "var(--color-ink-400)",
+          }}
+        >
+          {state === "checking" ? "checking…" : state === "up" ? "connected" : "unreachable"}
+        </span>
+      )}
+      <button className="btn" onClick={check}>
+        Test
+      </button>
+    </div>
+  );
+}

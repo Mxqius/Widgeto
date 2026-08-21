@@ -25,6 +25,7 @@ const LOADERS: Record<WidgetKind, () => Promise<{ default: Body }>> = {
   launcher: () => import("./LauncherWidget"),
   network: () => import("./NetworkWidget"),
   battery: () => import("./BatteryWidget"),
+  pet: () => import("./PetWidget"),
 };
 
 const CACHE = new Map<WidgetKind, LazyExoticComponent<Body>>();

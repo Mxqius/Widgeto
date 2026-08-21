@@ -1,5 +1,5 @@
 import { useNow } from "@/lib/hooks";
-import { useWidgetPrefs } from "./prefs";
+import { useWidgetConfig, useWidgetPrefs } from "./prefs";
 import { pad } from "@/lib/utils";
 import type { WidgetBodyProps } from "./loader";
 
@@ -10,6 +10,7 @@ import type { WidgetBodyProps } from "./loader";
 export default function ClockWidget({ size }: WidgetBodyProps) {
   const now = useNow(1000);
   const { clock24h } = useWidgetPrefs();
+  const cfg = useWidgetConfig("clock");
 
   const s = now.getSeconds();
   const m = now.getMinutes();
@@ -60,9 +61,11 @@ export default function ClockWidget({ size }: WidgetBodyProps) {
         <g style={{ transform: `rotate(${m * 6 + s * 0.1}deg)`, transformOrigin: "50px 50px" }}>
           <rect x="49.3" y="16" width="1.5" height="36" rx="0.75" fill="#0a0a0b" />
         </g>
-        <g style={{ transform: `rotate(${s * 6}deg)`, transformOrigin: "50px 50px" }}>
-          <rect x="49.7" y="14" width="0.7" height="40" rx="0.35" fill="var(--accent)" />
-        </g>
+        {cfg.showSeconds && (
+          <g style={{ transform: `rotate(${s * 6}deg)`, transformOrigin: "50px 50px" }}>
+            <rect x="49.7" y="14" width="0.7" height="40" rx="0.35" fill="var(--accent)" />
+          </g>
+        )}
         <circle cx="50" cy="50" r="2" fill="var(--accent)" />
         <circle cx="50" cy="50" r="0.9" fill="#fbfbfa" />
       </svg>
@@ -71,7 +74,7 @@ export default function ClockWidget({ size }: WidgetBodyProps) {
         className="absolute inset-x-0 flex items-center justify-center gap-1 text-[11px] font-semibold tabular-nums"
         style={{ top: "63%" }}
       >
-        <span style={{ color: "var(--accent)" }}>{size === "sm" ? "" : "AMS"}</span>
+        <span style={{ color: "var(--accent)" }}>{size === "sm" ? "" : cfg.label}</span>
         <span>
           {hh}:{pad(m)}
         </span>

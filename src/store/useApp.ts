@@ -84,6 +84,7 @@ interface AppState {
   setSize: (kind: WidgetKind, size: SizeKey) => void;
   cycleSize: (kind: WidgetKind) => void;
   toggleLock: (kind: WidgetKind) => void;
+  setConfig: (kind: WidgetKind, patch: Record<string, unknown>) => void;
   focus: (kind: WidgetKind) => void;
   autoArrangeNow: (mode?: ArrangeMode) => void;
   redock: () => void;
@@ -201,6 +202,14 @@ export const useApp = create<AppState>()(
 
       toggleLock: (kind) =>
         set({ widgets: patch(get().widgets, kind, (w) => ({ ...w, locked: !w.locked })) }),
+
+      setConfig: (kind, patchIn) =>
+        set({
+          widgets: patch(get().widgets, kind, (w) => ({
+            ...w,
+            config: { ...(w.config ?? {}), ...patchIn },
+          })),
+        }),
 
       focus: (kind) => {
         const z = get().zTop + 1;

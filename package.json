@@ -9,7 +9,10 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "app": "tauri dev",
-    "app:build": "tauri build"
+    "app:build": "tauri build",
+    "server": "npm --prefix server run start",
+    "server:dev": "npm --prefix server run dev",
+    "server:install": "npm --prefix server install"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

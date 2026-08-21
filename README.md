@@ -22,6 +22,17 @@ npm install
 ```
 
 ```bash
+npm run server:install
+```
+
+The data service feeds Weather and Markets. Widgets fall back to sample data when it is not
+running, so this is optional:
+
+```bash
+npm run server
+```
+
+```bash
 npm run app
 ```
 
@@ -56,6 +67,50 @@ Positions are stored **relative to each monitor's work area** (taskbar excluded)
 correct on any display and survives resolution changes; the screen origin is added only when talking
 to the OS.
 
+## Tray
+
+Widgeto lives in the system tray. Closing the manager window parks it there — the widgets stay on
+the desktop. Left-click the tray icon to bring the manager back; right-click for **Open Widgeto**,
+**Show all widgets**, **Hide all widgets** and **Quit**. Quit from the tray is the only thing that
+actually exits.
+
+## The manager
+
+One scrolling list, one row per widget: a toggle puts it on the desktop, the sliders button opens
+that widget's own settings inline, and the size/lock buttons appear once it is visible. There is no
+layout canvas — you place a widget by dragging the widget itself on the desktop, and the footer has
+Arrange / Dock / Lock plus the desktop-layer picker.
+
+## Per-widget settings
+
+| Widget | Settings |
+| ------ | -------- |
+| Quick Launch | Add and remove shortcuts — any site or `app://` / `file://` link. Favicons resolve automatically. |
+| Weather | City, resolved by the server's geocoder |
+| Markets | Watchlist, up to six tickers |
+| Clock | Caption text, second hand on/off |
+| Focus Timer | Focus / short / long durations |
+| Notes | Text size |
+| Pet | Name and colour |
+
+## The backend
+
+A small [Hono](https://hono.dev) service in `server/`, no auth, no database, no keys.
+
+| Route | Source |
+| ----- | ------ |
+| `GET /health` | uptime + cache size |
+| `GET /api/weather?q=Chicago` | Open-Meteo geocoding + forecast |
+| `GET /api/markets?symbols=BTC,ETH` | CoinGecko simple price |
+| `GET /api/quote` | quote of the day, deterministic per day |
+| `GET /api/icon?url=…` | favicon for a Quick Launch entry |
+| `GET /api/whereami` | coarse IP location, for "use my location" |
+
+Both upstreams are keyless. Every route goes through a TTL cache that doubles as a fallback: on an
+upstream failure the last good value is served with `x-cache: stale`, and only a cold cache errors.
+Responses always carry `x-cache: live | cache | stale`. Change the endpoint in Settings → Widgets,
+where there is also a connection test.
+
 ## Design language
 
 Uniform squircle tiles on a square grid, with two circular tiles for contrast. Every tile is either
@@ -73,7 +128,11 @@ about 26 MB of GPU memory; turn tile opacity below 100% in Settings and the blur
 ## The 12 widgets
 
 Clock · Weather · System · Calendar · Tasks · Now Playing · Notes · Focus Timer · Markets ·
-Quick Launch · Network · Power
+Quick Launch · Network · Power · **Pet**
+
+The Pet is a small resident creature: it breathes and blinks on its own, its eyes follow your
+cursor, it bounces and throws hearts when you click it, and it dozes off after a while alone —
+waking the moment you touch it again.
 
 **One of each — widgets cannot be duplicated.** `kind` is the identity, the store holds exactly one
 entry per kind, and adding or removing just flips its `open` flag, so a widget keeps its position
@@ -112,7 +171,6 @@ manager gets a tab per display.
 
 | Keys | Action |
 | ---- | ------ |
-| `Ctrl+K` | Widget library (toggle widgets on and off) |
 | `Ctrl+,` | Settings |
 | `Ctrl+G` | Auto-arrange |
 | `Ctrl+D` | Dock everything |
@@ -136,10 +194,13 @@ src/
   store/useApp.ts       widgets + settings; persisted only in the manager
   components/           DesktopMap, ManagerChrome, WidgetLibrary, ui primitives
   screens/              Manager, WidgetWindow, Settings
+  lib/api.ts            client for the Hono service; every call degrades to sample data
+  widgets/config.ts     per-widget settings and their defaults
   widgets/registry.ts   metadata only (no bodies) so the manager stays small
   widgets/loader.ts     one dynamic import per widget body
   widgets/              the 12 bodies + shared parts + prefs context
-src-tauri/              Rust shell, capabilities, icons
+src-tauri/              Rust shell, tray, capabilities, icons
+server/                 Hono data service (own package.json)
 ```
 
 ## Prototype notes

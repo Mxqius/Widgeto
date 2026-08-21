@@ -2,17 +2,25 @@ import { useEffect, useState } from "react";
 import { Pause, Play, RotateCcw } from "lucide-react";
 import { Pad, Stat, TickMeter } from "./parts";
 import { pad } from "@/lib/utils";
+import { useWidgetConfig } from "./prefs";
 import type { WidgetBodyProps } from "./loader";
 
-const MODES = { focus: 25 * 60, short: 5 * 60, long: 15 * 60 };
-type Mode = keyof typeof MODES;
+type Mode = "focus" | "short" | "long";
 
 export default function PomodoroWidget({ size }: WidgetBodyProps) {
+  const cfg = useWidgetConfig("pomodoro");
+  const MODES: Record<Mode, number> = {
+    focus: cfg.focusMin * 60,
+    short: cfg.shortMin * 60,
+    long: cfg.longMin * 60,
+  };
+
   const [mode, setMode] = useState<Mode>("focus");
   const [left, setLeft] = useState(MODES.focus);
   const [running, setRunning] = useState(false);
 
-  useEffect(() => setLeft(MODES[mode]), [mode]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => setLeft(MODES[mode]), [mode, cfg.focusMin, cfg.shortMin, cfg.longMin]);
 
   useEffect(() => {
     if (!running) return;
@@ -26,6 +34,7 @@ export default function PomodoroWidget({ size }: WidgetBodyProps) {
       });
     }, 1000);
     return () => clearInterval(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [running, mode]);
 
   const total = MODES[mode];

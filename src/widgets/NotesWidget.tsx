@@ -1,8 +1,10 @@
 import { Pad } from "./parts";
 import { useLocal } from "@/lib/hooks";
+import { useWidgetConfig } from "./prefs";
 import type { WidgetBodyProps } from "./loader";
 
 export default function NotesWidget({ kind, size }: WidgetBodyProps) {
+  const cfg = useWidgetConfig("notes");
   const [text, setText] = useLocal(
     `widgeto.notes.${kind}`,
     "Drag a widget near a corner and it docks itself.\n\nDouble-click to resize.",
@@ -22,7 +24,8 @@ export default function NotesWidget({ kind, size }: WidgetBodyProps) {
         onChange={(e) => setText(e.target.value)}
         spellCheck={false}
         placeholder="Start typing…"
-        className="h-full w-full resize-none bg-transparent text-[12px] leading-relaxed
+        style={{ fontSize: cfg.fontSize }}
+        className="h-full w-full resize-none bg-transparent leading-relaxed
                    font-medium outline-none placeholder:opacity-30"
       />
     </Pad>

@@ -2,7 +2,7 @@ import type { ComponentType } from "react";
 import type { LucideProps } from "lucide-react";
 import {
   Activity, BatteryCharging, CalendarDays, Clock, Cloud, Gauge,
-  LayoutGrid, ListTodo, Music4, StickyNote, Timer, TrendingUp,
+  LayoutGrid, ListTodo, Music4, PawPrint, StickyNote, Timer, TrendingUp,
 } from "lucide-react";
 import type { SizeKey, WidgetKind } from "@/lib/types";
 
@@ -99,6 +99,12 @@ export const WIDGETS: WidgetDef[] = [
     kind: "network", name: "Network", description: "Live throughput graph",
     icon: Activity, accent: "#ff4dd8",
     theme: "dark", shape: "squircle",
+    sizes: TILE,
+  },
+  {
+    kind: "pet", name: "Pet", description: "A small creature that reacts to you",
+    icon: PawPrint, accent: "#ff4dd8",
+    theme: "light", shape: "squircle",
     sizes: TILE,
   },
   {

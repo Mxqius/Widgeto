@@ -10,7 +10,8 @@ export type WidgetKind =
   | "markets"
   | "launcher"
   | "network"
-  | "battery";
+  | "battery"
+  | "pet";
 
 export type SizeKey = "sm" | "md" | "lg";
 
@@ -44,6 +45,8 @@ export interface WidgetInstance {
   open: boolean;
   /** index into the list of monitors */
   display: number;
+  /** widget-specific settings, merged over DEFAULT_CONFIG for its kind */
+  config?: Record<string, unknown>;
 }
 
 export interface Rect {
@@ -78,4 +81,6 @@ export interface Settings {
   clock24h: boolean;
   temperatureUnit: "C" | "F";
   wallpaper: string;
+  /** base URL of the local Hono service that feeds the data widgets */
+  apiBase: string;
 }
