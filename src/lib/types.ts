@@ -47,6 +47,9 @@ export interface WidgetInstance {
   display: number;
   /** widget-specific settings, merged over DEFAULT_CONFIG for its kind */
   config?: Record<string, unknown>;
+  /** appearance overrides; unset means "use the kind's default" */
+  accent?: string;
+  theme?: "dark" | "light";
 }
 
 export interface Rect {

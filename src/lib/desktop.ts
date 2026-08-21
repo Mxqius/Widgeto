@@ -27,6 +27,7 @@ export interface Applied {
   y: number;
   size: string;
   layer: string;
+  display: number;
 }
 export const applied = new Map<WidgetKind, Applied>();
 
@@ -163,16 +164,43 @@ export const EVT = {
 export interface ConfigPayload {
   widget: WidgetInstance;
   settings: Settings;
+  /** the widget's own monitor */
   area: Area;
+  /** every monitor, so a drag can carry the widget onto another one */
+  areas: Area[];
   /** rects of the other visible widgets on the same display, for alignment */
   neighbours: { x: number; y: number; w: number; h: number }[];
 }
 
 export interface MovedPayload {
   kind: WidgetKind;
+  /** position local to `display`'s work area */
   x: number;
   y: number;
   dock: DockZone | null;
+  /** which monitor the widget was dropped on */
+  display: number;
+}
+
+/** The monitor whose work area contains a point, or the nearest one. */
+export function areaAt(areas: Area[], x: number, y: number): number {
+  const hit = areas.findIndex(
+    (a) => x >= a.x && x < a.x + a.w && y >= a.y && y < a.y + a.h,
+  );
+  if (hit >= 0) return hit;
+
+  let best = 0;
+  let bestDist = Infinity;
+  areas.forEach((a, i) => {
+    const cx = Math.max(a.x, Math.min(x, a.x + a.w));
+    const cy = Math.max(a.y, Math.min(y, a.y + a.h));
+    const d = (cx - x) ** 2 + (cy - y) ** 2;
+    if (d < bestDist) {
+      bestDist = d;
+      best = i;
+    }
+  });
+  return best;
 }
 
 export interface ActionPayload {

@@ -22,6 +22,7 @@ import { widgetBody } from "@/widgets/loader";
 import { PrefsContext } from "@/widgets/prefs";
 import {
   EVT,
+  areaAt,
   type ActionPayload,
   type ConfigPayload,
   type MovedPayload,
@@ -41,9 +42,14 @@ type Rect = { x: number; y: number; w: number; h: number };
  */
 /** Outside Tauri there is no manager to talk to, so render a default tile. */
 function previewConfig(kind: WidgetKind): ConfigPayload {
-  // `&size=sm|md|lg` lets the browser preview exercise each tile size
-  const q = new URLSearchParams(window.location.search).get("size");
+  // `&size=`, `&accent=` and `&theme=` let the browser preview exercise each
+  // tile size and the per-widget appearance overrides
+  const p = new URLSearchParams(window.location.search);
+  const q = p.get("size");
   const size: SizeKey = q === "sm" || q === "lg" ? q : "md";
+  const t = p.get("theme");
+  const accent = p.get("accent") ?? undefined;
+  const theme = t === "dark" || t === "light" ? t : undefined;
   return {
     widget: {
       kind,
@@ -56,9 +62,12 @@ function previewConfig(kind: WidgetKind): ConfigPayload {
       alpha: 1,
       open: true,
       display: 0,
+      accent: accent ? `#${accent.replace(/^#/, "")}` : undefined,
+      theme,
     },
     settings: DEFAULT_SETTINGS,
     area: BROWSER_AREA,
+    areas: [BROWSER_AREA],
     neighbours: [],
   };
 }
@@ -89,6 +98,7 @@ function WidgetWindowInner({ kind }: { kind: WidgetKind }) {
     x: 0,
     y: 0,
     dock: null as DockZone | null,
+    display: 0,
     raf: 0,
   });
 
@@ -149,6 +159,7 @@ function WidgetWindowInner({ kind }: { kind: WidgetKind }) {
       drag.current.dock = null;
       drag.current.x = widget.x;
       drag.current.y = widget.y;
+      drag.current.display = widget.display;
 
       if (isTauri()) {
         const { getCurrentWindow } = await import("@tauri-apps/api/window");
@@ -168,14 +179,21 @@ function WidgetWindowInner({ kind }: { kind: WidgetKind }) {
   const onPointerMove = useCallback(
     (e: React.PointerEvent) => {
       if (!dragging || !cfg) return;
-      const { widget, settings: s, area: a, neighbours } = cfg;
+      const { widget, settings: s, areas, neighbours } = cfg;
       const [w, h] = sizeOf(widget.kind, widget.size);
 
-      // unsnapped target, in work-area-local logical pixels
-      let nx = drag.current.winX - a.x + (e.screenX - drag.current.startX);
-      let ny = drag.current.winY - a.y + (e.screenY - drag.current.startY);
-      nx = clamp(nx, -w * 0.4, a.w - w * 0.6);
-      ny = clamp(ny, -h * 0.25, a.h - h * 0.4);
+      // Work in absolute screen space first: the pointer may well have crossed
+      // onto another monitor, and clamping to the starting one is exactly what
+      // used to make a widget impossible to move between displays.
+      const absX = drag.current.winX + (e.screenX - drag.current.startX);
+      const absY = drag.current.winY + (e.screenY - drag.current.startY);
+
+      // whichever monitor the widget's middle sits over now owns it
+      const di = areaAt(areas, absX + w / 2, absY + h / 2);
+      const a = areas[di] ?? areas[0];
+
+      let nx = clamp(absX - a.x, -w * 0.4, a.w - w * 0.6);
+      let ny = clamp(absY - a.y, -h * 0.25, a.h - h * 0.4);
 
       const rect: Rect = { x: nx, y: ny, w, h };
       let zone: DockZone | null = null;
@@ -190,7 +208,8 @@ function WidgetWindowInner({ kind }: { kind: WidgetKind }) {
           snapped = true;
         }
       }
-      if (!zone && s.alignGuides) {
+      // only align against neighbours that share the monitor we are now over
+      if (!zone && s.alignGuides && di === widget.display) {
         const snap = alignSnap(rect, neighbours, a, 10);
         nx = snap.x;
         ny = snap.y;
@@ -204,6 +223,7 @@ function WidgetWindowInner({ kind }: { kind: WidgetKind }) {
       drag.current.dock = zone;
       drag.current.x = nx;
       drag.current.y = ny;
+      drag.current.display = di;
 
       if (!drag.current.raf) {
         drag.current.raf = requestAnimationFrame(async () => {
@@ -211,10 +231,11 @@ function WidgetWindowInner({ kind }: { kind: WidgetKind }) {
           if (!isTauri()) return;
           const { getCurrentWindow } = await import("@tauri-apps/api/window");
           const { LogicalPosition } = await import("@tauri-apps/api/dpi");
+          const target = areas[drag.current.display] ?? areas[0];
           await getCurrentWindow().setPosition(
             new LogicalPosition(
-              Math.round(drag.current.x + a.x),
-              Math.round(drag.current.y + a.y),
+              Math.round(drag.current.x + target.x),
+              Math.round(drag.current.y + target.y),
             ),
           );
         });
@@ -226,12 +247,14 @@ function WidgetWindowInner({ kind }: { kind: WidgetKind }) {
   const onPointerUp = useCallback(async () => {
     if (!dragging) return;
     setDragging(false);
-    const { x, y, dock } = drag.current;
+    const { x, y, dock, display } = drag.current;
     // reflect locally right away; the manager is the one that persists it
-    setCfg((c) => (c ? { ...c, widget: { ...c.widget, x, y, dock } } : c));
+    setCfg((c) =>
+      c ? { ...c, widget: { ...c.widget, x, y, dock, display }, area: c.areas[display] ?? c.area } : c,
+    );
     if (!isTauri()) return;
     const { emit } = await import("@tauri-apps/api/event");
-    await emit(EVT.moved, { kind, x, y, dock } satisfies MovedPayload);
+    await emit(EVT.moved, { kind, x, y, dock, display } satisfies MovedPayload);
   }, [dragging, kind]);
 
   if (!cfg) {
@@ -277,6 +300,8 @@ function WidgetShell({
 }) {
   const def = byKind(widget.kind);
   const Body = widgetBody(widget.kind);
+  const accent = widget.accent ?? def.accent;
+  const theme = widget.theme ?? def.theme;
   const locked = widget.locked || settings.lockAll;
   const prefs = useMemo(
     () => ({
@@ -294,7 +319,7 @@ function WidgetShell({
     <div
       className={cn(
         "tile group h-full w-full select-none",
-        def.theme === "dark" ? "tile-dark" : "tile-light",
+        theme === "dark" ? "tile-dark" : "tile-light",
         translucent && "tile-translucent",
       )}
       style={{
@@ -306,7 +331,7 @@ function WidgetShell({
           ? "0 26px 60px -18px rgba(0,0,0,0.65)"
           : "0 10px 26px -14px rgba(0,0,0,0.5)",
         // @ts-expect-error custom property
-        "--accent": def.accent,
+        "--accent": accent,
       }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
@@ -319,9 +344,7 @@ function WidgetShell({
         data-nodrag
         className={cn(
           "absolute z-20 flex items-center gap-0.5 rounded-full p-0.5 transition-all duration-150",
-          def.theme === "dark"
-            ? "bg-white/12 text-white"
-            : "bg-black/8 text-black",
+          theme === "dark" ? "bg-white/12 text-white" : "bg-black/8 text-black",
           circle ? "top-2 left-1/2 -translate-x-1/2" : "top-2 right-2",
           hovered && !dragging
             ? "pointer-events-auto opacity-100"

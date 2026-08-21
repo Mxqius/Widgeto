@@ -3,6 +3,8 @@ import { Plus, X } from "lucide-react";
 import { Range, Toggle } from "./ui";
 import { useApp } from "@/store/useApp";
 import { configOf, type QuickLink } from "@/widgets/config";
+import { byKind } from "@/widgets/registry";
+import { cn } from "@/lib/utils";
 import type { WidgetKind } from "@/lib/types";
 
 /** Row scaffolding shared by every panel. */
@@ -36,8 +38,94 @@ function Field({
 
 const MARKET_SYMBOLS = ["BTC", "ETH", "SOL", "ADA", "DOGE", "XRP", "DOT", "LINK", "AVAX", "MATIC"];
 
-/** The settings a single widget exposes. Returns null for kinds with none. */
+const SWATCHES = [
+  "#ff4dd8", "#ff5b2e", "#ffb020", "#3ddc84",
+  "#4aa8ff", "#7c6cff", "#ff6b8b", "#e8e8e8",
+];
+
+/** Colour and ground, offered for every widget. */
+function Appearance({ kind }: { kind: WidgetKind }) {
+  const w = useApp((s) => s.widgets.find((i) => i.kind === kind));
+  const setAppearance = useApp((s) => s.setAppearance);
+  const def = byKind(kind);
+  const accent = w?.accent ?? def.accent;
+  const theme = w?.theme ?? def.theme;
+
+  return (
+    <>
+      <Field label="Colour" hint="Tints meters, highlights and progress." stack>
+        <div className="flex flex-wrap items-center gap-1.5">
+          {SWATCHES.map((c) => (
+            <button
+              key={c}
+              onClick={() => setAppearance(kind, { accent: c, theme: w?.theme })}
+              title={c}
+              className={cn(
+                "size-[22px] rounded-full transition-transform hover:scale-110",
+                accent.toLowerCase() === c.toLowerCase() &&
+                  "ring-2 ring-white/70 ring-offset-2 ring-offset-ink-900",
+              )}
+              style={{ background: c }}
+            />
+          ))}
+          <label
+            className="relative size-[22px] cursor-pointer overflow-hidden rounded-full border border-white/15"
+            title="Custom colour"
+            style={{
+              background:
+                "conic-gradient(#ff4dd8,#ff5b2e,#ffb020,#3ddc84,#4aa8ff,#7c6cff,#ff4dd8)",
+            }}
+          >
+            <input
+              type="color"
+              value={accent}
+              onChange={(e) => setAppearance(kind, { accent: e.target.value, theme: w?.theme })}
+              className="absolute inset-0 cursor-pointer opacity-0"
+            />
+          </label>
+          {w?.accent && (
+            <button
+              className="btn h-6 px-2 text-[11px]"
+              onClick={() => setAppearance(kind, { accent: undefined, theme: w?.theme })}
+            >
+              Reset
+            </button>
+          )}
+        </div>
+      </Field>
+
+      <Field label="Ground" hint="Flat black or flat white tile.">
+        <div className="flex items-center gap-0.5 rounded-lg border border-white/6 bg-white/[0.03] p-0.5">
+          {(["dark", "light"] as const).map((t) => (
+            <button
+              key={t}
+              onClick={() => setAppearance(kind, { accent: w?.accent, theme: t })}
+              className={cn(
+                "h-6 rounded-md px-2.5 text-[11px] font-semibold capitalize transition-colors",
+                theme === t ? "bg-white/12 text-white" : "text-ink-500 hover:text-ink-300",
+              )}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+      </Field>
+    </>
+  );
+}
+
+/** Everything one widget exposes: shared appearance, then its own options. */
 export default function WidgetSettings({ kind }: { kind: WidgetKind }) {
+  return (
+    <>
+      <Appearance kind={kind} />
+      <div className="my-1 h-px bg-white/6" />
+      <KindSettings kind={kind} />
+    </>
+  );
+}
+
+function KindSettings({ kind }: { kind: WidgetKind }) {
   const stored = useApp((s) => s.widgets.find((w) => w.kind === kind)?.config);
   const setConfig = useApp((s) => s.setConfig);
 
@@ -199,7 +287,7 @@ export default function WidgetSettings({ kind }: { kind: WidgetKind }) {
     }
 
     default:
-      return null;
+      return <div className="pb-1 text-[11px] text-ink-600">No other options.</div>;
   }
 }
 

@@ -74,14 +74,19 @@ export function useDesktopSync() {
 
       uns.push(
         await listen<MovedPayload>(EVT.moved, (e) => {
-          const { kind, x, y, dock } = e.payload;
+          const { kind, x, y, dock, display } = e.payload;
           // the window is already there — record it so we do not move it back
           const a = applied.get(kind);
           if (a) {
             a.x = Math.round(x);
             a.y = Math.round(y);
+            a.display = display;
           }
-          useApp.getState().move(kind, x, y, dock);
+          const st = useApp.getState();
+          if (st.widgets.find((w) => w.kind === kind)?.display !== display) {
+            st.setDisplay(kind, display);
+          }
+          st.move(kind, x, y, dock);
         }),
       );
 
@@ -163,7 +168,7 @@ async function reconcile(applied: Map<WidgetKind, Applied>) {
 
     if (!prev) {
       // reserve the slot before awaiting so a queued pass cannot double-create
-      applied.set(w.kind, { x, y, size: w.size, layer: settings.layer });
+      applied.set(w.kind, { x, y, size: w.size, layer: settings.layer, display: w.display });
       await openWidgetWindow({ ...w, x: screenX, y: screenY }, settings.layer === "desktop");
       await moveWidgetWindow(w.kind, screenX, screenY);
       await applyLayer(w.kind, settings.layer);
@@ -176,10 +181,11 @@ async function reconcile(applied: Map<WidgetKind, Applied>) {
       prev.size = w.size;
       touched.push(w.kind);
     }
-    if (prev.x !== x || prev.y !== y) {
+    if (prev.x !== x || prev.y !== y || prev.display !== w.display) {
       await moveWidgetWindow(w.kind, screenX, screenY);
       prev.x = x;
       prev.y = y;
+      prev.display = w.display;
       touched.push(w.kind);
     }
     if (prev.layer !== settings.layer) {
@@ -205,6 +211,7 @@ export async function broadcast(kind: WidgetKind) {
     widget,
     settings,
     area,
+    areas,
     neighbours: widgets
       .filter((o) => o.kind !== kind && o.open && o.display === widget.display)
       .map((o) => {

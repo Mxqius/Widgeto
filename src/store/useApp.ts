@@ -85,6 +85,7 @@ interface AppState {
   cycleSize: (kind: WidgetKind) => void;
   toggleLock: (kind: WidgetKind) => void;
   setConfig: (kind: WidgetKind, patch: Record<string, unknown>) => void;
+  setAppearance: (kind: WidgetKind, patch: Pick<WidgetInstance, "accent" | "theme">) => void;
   focus: (kind: WidgetKind) => void;
   autoArrangeNow: (mode?: ArrangeMode) => void;
   redock: () => void;
@@ -202,6 +203,9 @@ export const useApp = create<AppState>()(
 
       toggleLock: (kind) =>
         set({ widgets: patch(get().widgets, kind, (w) => ({ ...w, locked: !w.locked })) }),
+
+      setAppearance: (kind, patchIn) =>
+        set({ widgets: patch(get().widgets, kind, (w) => ({ ...w, ...patchIn })) }),
 
       setConfig: (kind, patchIn) =>
         set({

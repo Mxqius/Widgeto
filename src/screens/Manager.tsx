@@ -1,14 +1,13 @@
 import { useMemo, useState } from "react";
 import { motion } from "motion/react";
 import {
-  ArrowDownUp, Check, Layers, Lock, LockOpen, Magnet, Plus, Search, Settings2,
-  SlidersHorizontal, X,
+  ArrowDownUp, Check, Layers, Lock, LockOpen, Magnet, Monitor, Plus, Search,
+  Settings2, SlidersHorizontal, X,
 } from "lucide-react";
 import WidgetSettings from "@/components/WidgetSettings";
 import { Picker, Tip } from "@/components/ui";
 import { useApp } from "@/store/useApp";
 import { WIDGETS } from "@/widgets/registry";
-import { HAS_CONFIG } from "@/widgets/config";
 import type { WidgetKind, SizeKey } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +28,8 @@ export default function Manager({ onOpenSettings }: { onOpenSettings: () => void
   const toggleLock = useApp((s) => s.toggleLock);
   const autoArrangeNow = useApp((s) => s.autoArrangeNow);
   const redock = useApp((s) => s.redock);
+  const setDisplay = useApp((s) => s.setDisplay);
+  const areas = useApp((s) => s.areas);
   const openAll = useApp((s) => s.openAll);
   const closeAll = useApp((s) => s.closeAll);
 
@@ -203,17 +204,15 @@ export default function Manager({ onOpenSettings }: { onOpenSettings: () => void
                       </div>
                     </div>
 
-                    {HAS_CONFIG.has(def.kind) && (
-                      <Tip label="Widget settings">
-                        <button
-                          className="btn size-7 shrink-0 px-0"
-                          data-selected={tuning === def.kind}
-                          onClick={() => setTuning(tuning === def.kind ? null : def.kind)}
-                        >
-                          <SlidersHorizontal size={12} />
-                        </button>
-                      </Tip>
-                    )}
+                    <Tip label="Widget settings">
+                      <button
+                        className="btn size-7 shrink-0 px-0"
+                        data-selected={tuning === def.kind}
+                        onClick={() => setTuning(tuning === def.kind ? null : def.kind)}
+                      >
+                        <SlidersHorizontal size={12} />
+                      </button>
+                    </Tip>
                   </div>
 
                   {w.open && (
@@ -235,6 +234,26 @@ export default function Manager({ onOpenSettings }: { onOpenSettings: () => void
                           </button>
                         ))}
                       </div>
+                      {areas.length > 1 && (
+                        <div className="flex items-center gap-0.5 rounded-lg border border-white/6 bg-white/[0.03] p-0.5">
+                          <Monitor size={11} className="ml-1 text-ink-500" />
+                          {areas.map((a, i) => (
+                            <button
+                              key={i}
+                              onClick={() => setDisplay(def.kind, i)}
+                              title={`Move to ${a.name || `display ${i + 1}`}`}
+                              className={cn(
+                                "h-6 w-6 rounded-md text-[10px] font-semibold transition-colors",
+                                w.display === i
+                                  ? "bg-white/12 text-white"
+                                  : "text-ink-500 hover:text-ink-300",
+                              )}
+                            >
+                              {i + 1}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                       <div className="flex-1" />
                       <Tip label={locked ? "Unlock position" : "Lock position"}>
                         <button
@@ -268,13 +287,13 @@ export default function Manager({ onOpenSettings }: { onOpenSettings: () => void
       </div>
 
       {/*
-        Always mounted and collapsed to zero width rather than swapped in and
-        out of AnimatePresence — the enter animation does not reliably fire
-        for this panel, and a plain CSS width transition always does.
+        Always mounted, collapsed to zero width when closed. Deliberately not
+        animated: AnimatePresence would not reliably fire the enter animation
+        here, and transitioning `width` both stalled and forces a layout pass
+        every frame. The panel simply appears.
       */}
       <aside
-        className="shrink-0 overflow-hidden border-l border-white/6 bg-white/[0.015]
-                   transition-[width] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]"
+        className="shrink-0 overflow-hidden border-l border-white/6 bg-white/[0.015]"
         style={{ width: tuned ? 320 : 0, borderLeftWidth: tuned ? 1 : 0 }}
         aria-hidden={!tuned}
       >
