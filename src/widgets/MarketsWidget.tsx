@@ -1,40 +1,12 @@
-import { useEffect, useState } from "react";
 import { TrendingDown, TrendingUp } from "lucide-react";
 import { Pad, Row, Stat } from "./parts";
-import { useWidgetConfig, useWidgetPrefs } from "./prefs";
-import { getMarkets, setApiBase, type Asset } from "@/lib/api";
+import { useWidgetConfig } from "./prefs";
+import { useMarkets } from "@/lib/queries";
 import type { WidgetBodyProps } from "./loader";
 
-const SAMPLE: Asset[] = [
-  { symbol: "BTC", name: "bitcoin", price: 94_210, change24h: 2.4 },
-  { symbol: "ETH", name: "ethereum", price: 3_182, change24h: -1.1 },
-  { symbol: "SOL", name: "solana", price: 188.4, change24h: 0.8 },
-];
-
 export default function MarketsWidget({ size }: WidgetBodyProps) {
-  const { apiBase } = useWidgetPrefs();
   const cfg = useWidgetConfig("markets");
-  const [rows, setRows] = useState<Asset[]>(SAMPLE);
-  const [live, setLive] = useState(false);
-
-  const symbolKey = cfg.symbols.join(",");
-  useEffect(() => {
-    let alive = true;
-    setApiBase(apiBase);
-    const load = async () => {
-      const res = await getMarkets(symbolKey.split(","));
-      if (alive && res?.assets?.length) {
-        setRows(res.assets);
-        setLive(true);
-      }
-    };
-    void load();
-    const t = setInterval(load, 60_000);
-    return () => {
-      alive = false;
-      clearInterval(t);
-    };
-  }, [symbolKey, apiBase]);
+  const { assets: rows, live } = useMarkets(cfg.symbols);
 
   const lead = rows[0];
   if (!lead) return null;

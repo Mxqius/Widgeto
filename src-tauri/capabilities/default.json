@@ -2,7 +2,10 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "Manager window plus every spawned widget window",
-  "windows": ["main", "w-*"],
+  "windows": [
+    "main",
+    "w-*"
+  ],
   "permissions": [
     "core:default",
     "core:event:allow-emit",
@@ -36,6 +39,7 @@
     "core:window:allow-current-monitor",
     "core:window:allow-primary-monitor",
     "core:window:allow-monitor-from-point",
-    "opener:allow-open-url"
+    "opener:allow-open-url",
+    "core:app:default"
   ]
 }

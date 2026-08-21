@@ -1,8 +1,7 @@
-import { useEffect, useState } from "react";
 import { Cloud, CloudRain, CloudSun, Snowflake, Sun, Zap } from "lucide-react";
 import { Muted, Pad, Say } from "./parts";
 import { useWidgetConfig, useWidgetPrefs } from "./prefs";
-import { setApiBase, getWeather, type WeatherNow } from "@/lib/api";
+import { useWeather } from "@/lib/queries";
 import type { WidgetBodyProps } from "./loader";
 
 const ICONS = {
@@ -14,45 +13,13 @@ const ICONS = {
   storm: Zap,
 };
 
-/** Shown until the API answers, and kept if it never does. */
-const SAMPLE: WeatherNow = {
-  place: "Amsterdam",
-  country: "NL",
-  tempC: 21,
-  feelsC: 20,
-  humidity: 38,
-  windKph: 11,
-  condition: "partly cloudy",
-  icon: "part",
-  forecast: [],
-};
-
 export default function WeatherWidget({ size }: WidgetBodyProps) {
-  const { temperatureUnit: unit, apiBase } = useWidgetPrefs();
+  const { temperatureUnit: unit } = useWidgetPrefs();
   const cfg = useWidgetConfig("weather");
-  const [wx, setWx] = useState<WeatherNow>(SAMPLE);
-  const [live, setLive] = useState(false);
-
-  useEffect(() => {
-    let alive = true;
-    setApiBase(apiBase);
-    const load = async () => {
-      const res = await getWeather(cfg.place);
-      if (alive && res) {
-        setWx(res);
-        setLive(true);
-      }
-    };
-    void load();
-    const t = setInterval(load, 10 * 60_000);
-    return () => {
-      alive = false;
-      clearInterval(t);
-    };
-  }, [cfg.place, apiBase]);
+  const { data: wx, live, source } = useWeather(cfg.place);
 
   const t = (c: number) => (unit === "C" ? c : Math.round((c * 9) / 5 + 32));
-  const Icon = ICONS[wx.icon] ?? CloudSun;
+  const Icon = ICONS[wx.icon as keyof typeof ICONS] ?? CloudSun;
 
   const big = size === "sm" ? 20 : size === "md" ? 25 : 31;
   const small = size === "sm" ? 14 : size === "md" ? 17 : 21;
@@ -85,9 +52,11 @@ export default function WeatherWidget({ size }: WidgetBodyProps) {
         <Say style={{ fontSize: big }}>{wx.condition.split(" ")[0]}</Say>
       </div>
 
-      {!live && (
-        <div className="dimmer mt-1 text-[9.5px] font-semibold">sample · server offline</div>
-      )}
+      {!live ? (
+        <div className="dimmer mt-1 text-[9.5px] font-semibold">sample data</div>
+      ) : source === "stale" ? (
+        <div className="dimmer mt-1 text-[9.5px] font-semibold">last known</div>
+      ) : null}
     </Pad>
   );
 }

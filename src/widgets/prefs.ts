@@ -10,14 +10,12 @@ import { configOf, type ConfigOf } from "./config";
 export interface WidgetPrefs {
   clock24h: boolean;
   temperatureUnit: "C" | "F";
-  apiBase: string;
   config: Record<string, unknown>;
 }
 
 export const DEFAULT_PREFS: WidgetPrefs = {
   clock24h: true,
   temperatureUnit: "C",
-  apiBase: "http://localhost:8787",
   config: {},
 };
 

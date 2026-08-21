@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence } from "motion/react";
 import { Tooltip } from "@base-ui/react/tooltip";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { makeQueryClient } from "@/lib/queries";
 import ManagerChrome from "@/components/ManagerChrome";
 import Manager from "@/screens/Manager";
 import Settings from "@/screens/Settings";
@@ -8,6 +10,8 @@ import { useApp } from "@/store/useApp";
 import { useDesktopSync } from "@/lib/useDesktopSync";
 import { setAlwaysOnTop } from "@/lib/tauri";
 import { isTauri } from "@/lib/utils";
+
+const queryClient = makeQueryClient();
 
 export default function ManagerApp() {
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -22,7 +26,10 @@ export default function ManagerApp() {
   useEffect(() => {
     const r = document.documentElement.style;
     r.setProperty("--accent", accent);
-    r.setProperty("--accent-soft", `color-mix(in srgb, ${accent} 18%, transparent)`);
+    r.setProperty(
+      "--accent-soft",
+      `color-mix(in srgb, ${accent} 18%, transparent)`,
+    );
   }, [accent]);
 
   useEffect(() => {
@@ -48,7 +55,8 @@ export default function ManagerApp() {
     const onKey = (e: KeyboardEvent) => {
       const mod = e.ctrlKey || e.metaKey;
       const typing =
-        e.target instanceof HTMLElement && ["INPUT", "TEXTAREA"].includes(e.target.tagName);
+        e.target instanceof HTMLElement &&
+        ["INPUT", "TEXTAREA"].includes(e.target.tagName);
 
       if (!mod || typing) return;
 
@@ -76,27 +84,29 @@ export default function ManagerApp() {
   }, [autoArrangeNow, redock, update]);
 
   return (
-    <Tooltip.Provider delay={350} closeDelay={80}>
-      <div
-        className="flex h-full w-full flex-col overflow-hidden rounded-xl"
-        style={{
-          background:
-            "radial-gradient(900px 500px at 0% -10%, #17162e 0%, transparent 55%), radial-gradient(700px 460px at 100% 0%, #0d2b33 0%, transparent 50%), #08090a",
-        }}
-      >
-        <ManagerChrome onOpenSettings={() => setSettingsOpen(true)} />
+    <QueryClientProvider client={queryClient}>
+      <Tooltip.Provider delay={350} closeDelay={80}>
+        <div
+          className="flex h-full w-full flex-col overflow-hidden rounded-xl"
+          style={{
+            background:
+              "radial-gradient(900px 500px at 0% -10%, #17162e 0%, transparent 55%), radial-gradient(700px 460px at 100% 0%, #0d2b33 0%, transparent 50%), #08090a",
+          }}
+        >
+          <ManagerChrome onOpenSettings={() => setSettingsOpen(true)} />
 
-        <main className="relative min-h-0 flex-1">
-          <Manager onOpenSettings={() => setSettingsOpen(true)} />
-          <AnimatePresence>
-            {settingsOpen && (
-              <div className="absolute inset-0 z-[700]">
-                <Settings onBack={() => setSettingsOpen(false)} />
-              </div>
-            )}
-          </AnimatePresence>
-        </main>
-      </div>
-    </Tooltip.Provider>
+          <main className="relative min-h-0 flex-1">
+            <Manager onOpenSettings={() => setSettingsOpen(true)} />
+            <AnimatePresence>
+              {settingsOpen && (
+                <div className="absolute inset-0 z-[700]">
+                  <Settings onBack={() => setSettingsOpen(false)} />
+                </div>
+              )}
+            </AnimatePresence>
+          </main>
+        </div>
+      </Tooltip.Provider>
+    </QueryClientProvider>
   );
 }

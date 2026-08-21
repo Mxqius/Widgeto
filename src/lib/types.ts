@@ -81,6 +81,4 @@ export interface Settings {
   clock24h: boolean;
   temperatureUnit: "C" | "F";
   wallpaper: string;
-  /** base URL of the local Hono service that feeds the data widgets */
-  apiBase: string;
 }

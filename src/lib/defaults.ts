@@ -26,5 +26,4 @@ export const DEFAULT_SETTINGS: Settings = {
   clock24h: true,
   temperatureUnit: "C",
   wallpaper: "aurora",
-  apiBase: "http://localhost:8787",
 };

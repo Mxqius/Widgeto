@@ -1,3 +1,6 @@
+mod cache;
+mod data;
+
 use tauri::{
     menu::{Menu, MenuItem, PredefinedMenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
@@ -32,7 +35,14 @@ fn show_manager(app: &tauri::AppHandle) {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![host_info])
+        .invoke_handler(tauri::generate_handler![
+            host_info,
+            data::weather,
+            data::markets,
+            data::quote,
+            data::whereami,
+            data::data_health
+        ])
         .setup(|app| {
             let handle = app.handle();
 

@@ -1,6 +1,20 @@
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { makeQueryClient } from "@/lib/queries";
 import { Lock, LockOpen, Maximize2, X } from "lucide-react";
-import type { DockZone, Settings, WidgetInstance, WidgetKind } from "@/lib/types";
+import type {
+  DockZone,
+  Settings,
+  WidgetInstance,
+  WidgetKind,
+} from "@/lib/types";
 import { alignSnap, resolveDock, snapToGrid } from "@/lib/layout";
 import { byKind, sizeOf } from "@/widgets/registry";
 import { widgetBody } from "@/widgets/loader";
@@ -28,8 +42,16 @@ type Rect = { x: number; y: number; w: number; h: number };
 function previewConfig(kind: WidgetKind): ConfigPayload {
   return {
     widget: {
-      kind, size: "md", x: 0, y: 0, z: 1,
-      locked: false, dock: null, alpha: 1, open: true, display: 0,
+      kind,
+      size: "md",
+      x: 0,
+      y: 0,
+      z: 1,
+      locked: false,
+      dock: null,
+      alpha: 1,
+      open: true,
+      display: 0,
     },
     settings: DEFAULT_SETTINGS,
     area: BROWSER_AREA,
@@ -37,7 +59,17 @@ function previewConfig(kind: WidgetKind): ConfigPayload {
   };
 }
 
-export default function WidgetWindow({ kind }: { kind: WidgetKind }) {
+const queryClient = makeQueryClient();
+
+export default function WidgetWindow(props: { kind: WidgetKind }) {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <WidgetWindowInner {...props} />
+    </QueryClientProvider>
+  );
+}
+
+function WidgetWindowInner({ kind }: { kind: WidgetKind }) {
   const [cfg, setCfg] = useState<ConfigPayload | null>(() =>
     isTauri() ? null : previewConfig(kind),
   );
@@ -117,7 +149,10 @@ export default function WidgetWindow({ kind }: { kind: WidgetKind }) {
       if (isTauri()) {
         const { getCurrentWindow } = await import("@tauri-apps/api/window");
         const win = getCurrentWindow();
-        const [pos, scale] = await Promise.all([win.outerPosition(), win.scaleFactor()]);
+        const [pos, scale] = await Promise.all([
+          win.outerPosition(),
+          win.scaleFactor(),
+        ]);
         drag.current.winX = pos.x / scale;
         drag.current.winY = pos.y / scale;
       }
@@ -173,7 +208,10 @@ export default function WidgetWindow({ kind }: { kind: WidgetKind }) {
           const { getCurrentWindow } = await import("@tauri-apps/api/window");
           const { LogicalPosition } = await import("@tauri-apps/api/dpi");
           await getCurrentWindow().setPosition(
-            new LogicalPosition(Math.round(drag.current.x + a.x), Math.round(drag.current.y + a.y)),
+            new LogicalPosition(
+              Math.round(drag.current.x + a.x),
+              Math.round(drag.current.y + a.y),
+            ),
           );
         });
       }
@@ -240,10 +278,9 @@ function WidgetShell({
     () => ({
       clock24h: settings.clock24h,
       temperatureUnit: settings.temperatureUnit,
-      apiBase: settings.apiBase,
       config: widget.config ?? {},
     }),
-    [settings.clock24h, settings.temperatureUnit, settings.apiBase, widget.config],
+    [settings.clock24h, settings.temperatureUnit, widget.config],
   );
 
   const circle = def.shape === "circle";
@@ -279,7 +316,9 @@ function WidgetShell({
         data-nodrag
         className={cn(
           "absolute z-20 flex items-center gap-0.5 rounded-full p-0.5 transition-all duration-150",
-          def.theme === "dark" ? "bg-white/12 text-white" : "bg-black/8 text-black",
+          def.theme === "dark"
+            ? "bg-white/12 text-white"
+            : "bg-black/8 text-black",
           circle ? "top-2 left-1/2 -translate-x-1/2" : "top-2 right-2",
           hovered && !dragging
             ? "pointer-events-auto opacity-100"
@@ -290,7 +329,10 @@ function WidgetShell({
         <Chip title="Resize" onClick={() => onAction("cycle-size")}>
           <Maximize2 size={11} />
         </Chip>
-        <Chip title={locked ? "Unlock" : "Lock"} onClick={() => onAction("lock")}>
+        <Chip
+          title={locked ? "Unlock" : "Lock"}
+          onClick={() => onAction("lock")}
+        >
           {locked ? <Lock size={11} /> : <LockOpen size={11} />}
         </Chip>
         <Chip title="Remove" onClick={() => onAction("hide")}>

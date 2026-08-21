@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { getHealth, setApiBase } from "@/lib/api";
+import { fetchHealth } from "@/lib/data";
 import { motion } from "motion/react";
 import {
   ArrowLeft, Blocks, Info, Keyboard, Magnet, Palette, RotateCcw,
@@ -272,20 +272,12 @@ export default function Settings({ onBack }: { onBack: () => void }) {
 
               {tab === "widgets" && (
                 <>
-                  <Group title="Data service">
+                  <Group title="Data">
                     <Row
-                      title="API endpoint"
-                      hint="Local Hono service that feeds Weather and Markets."
+                      title="Weather and Markets"
+                      hint="Fetched in-process by the Rust core. No server to run."
                     >
-                      <input
-                        className="field h-8 w-[230px] text-[12px]"
-                        value={s.apiBase}
-                        onChange={(e) => update({ apiBase: e.target.value })}
-                        placeholder="http://localhost:8787"
-                      />
-                    </Row>
-                    <Row title="Connection" hint="Widgets fall back to sample data when it is down.">
-                      <ApiStatus base={s.apiBase} />
+                      <DataStatus />
                     </Row>
                   </Group>
 
@@ -438,15 +430,20 @@ const SHORTCUTS = [
   { combo: "Esc", what: "Close the current overlay" },
 ];
 
-/** Pings the API so the endpoint field can be verified without leaving Settings. */
-function ApiStatus({ base }: { base: string }) {
+/** Reports the Rust cache so the data layer can be sanity-checked in place. */
+function DataStatus() {
   const [state, setState] = useState<"idle" | "checking" | "up" | "down">("idle");
+  const [cached, setCached] = useState(0);
 
   const check = async () => {
     setState("checking");
-    setApiBase(base);
-    const res = await getHealth();
-    setState(res?.ok ? "up" : "down");
+    try {
+      const res = await fetchHealth();
+      setCached(res.cached);
+      setState(res.ok ? "up" : "down");
+    } catch {
+      setState("down");
+    }
   };
 
   return (
@@ -459,11 +456,15 @@ function ApiStatus({ base }: { base: string }) {
               state === "up" ? "#3ddc84" : state === "down" ? "#ff6b6b" : "var(--color-ink-400)",
           }}
         >
-          {state === "checking" ? "checking…" : state === "up" ? "connected" : "unreachable"}
+          {state === "checking"
+            ? "checking…"
+            : state === "up"
+              ? `ready · ${cached} cached`
+              : "unavailable"}
         </span>
       )}
       <button className="btn" onClick={check}>
-        Test
+        Check
       </button>
     </div>
   );

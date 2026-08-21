@@ -13,6 +13,7 @@ sizes, docks, shows and hides them.
 | Styling   | Tailwind CSS v4 (`@theme` tokens, no config file)   |
 | Motion    | Motion 13 (`motion/react`)                          |
 | State     | Zustand + `persist`, owned by the manager window    |
+| Data      | TanStack Query over Tauri commands; fetching in Rust |
 | Bundler   | Vite 7                                              |
 
 ## Run it
@@ -22,19 +23,10 @@ npm install
 ```
 
 ```bash
-npm run server:install
-```
-
-The data service feeds Weather and Markets. Widgets fall back to sample data when it is not
-running, so this is optional:
-
-```bash
-npm run server
-```
-
-```bash
 npm run app
 ```
+
+There is no separate service to start — the data layer lives inside the Rust core.
 
 Browser-only preview of the manager (no real desktop windows, but the map, docking, arranging and
 every widget render):
@@ -93,25 +85,35 @@ Arrange / Dock / Lock plus the desktop-layer picker.
 | Notes | Text size |
 | Pet | Name and colour |
 
-## The backend
+## Data layer
 
-A small [Hono](https://hono.dev) service in `server/`, no auth, no database, no keys.
+Weather and Markets are fetched **in-process by the Rust core** and exposed as Tauri commands, so
+there is no sidecar, no port, no CORS and nothing extra to run or ship.
 
-| Route | Source |
-| ----- | ------ |
-| `GET /health` | uptime + cache size |
-| `GET /api/weather?q=Chicago` | Open-Meteo geocoding + forecast |
-| `GET /api/markets?symbols=BTC,ETH` | CoinGecko simple price |
-| `GET /api/quote` | quote of the day, deterministic per day |
-| `GET /api/icon?url=…` | favicon for a Quick Launch entry |
-| `GET /api/whereami` | coarse IP location, for "use my location" |
+| Command | Source |
+| ------- | ------ |
+| `weather(place)` | Open-Meteo geocoding + forecast |
+| `markets(symbols)` | CoinGecko simple price |
+| `quote()` | quote of the day, deterministic per day |
+| `whereami()` | coarse IP location |
+| `data_health()` | cache size, surfaced in Settings |
 
-Both upstreams are keyless. Every route goes through a TTL cache that doubles as a fallback: on an
-upstream failure the last good value is served with `x-cache: stale`, and only a cold cache errors.
-Responses always carry `x-cache: live | cache | stale`. Change the endpoint in Settings → Widgets,
-where there is also a connection test.
+Both upstreams are keyless. Every call goes through a TTL cache in `src-tauri/src/cache.rs` that
+doubles as a fallback: on an upstream failure the last good value is returned instead, and each
+response carries `source: "live" | "cache" | "stale"` plus an age, so a tile can say it is showing
+the last known value. Only a cold cache can fail, and the widget then shows sample data.
 
-## Design language
+On the client the commands are wrapped in TanStack Query (`src/lib/queries.ts`), which owns the
+refetch intervals, retries and per-window caching. **axios is deliberately absent** — with the data
+layer in-process there is no HTTP for it to do; it would only wrap `invoke` in a second cache.
+
+Live checks against the real upstreams live next to the code:
+
+```bash
+npm run test:data
+```
+
+## Design language## Design language
 
 Uniform squircle tiles on a square grid, with two circular tiles for contrast. Every tile is either
 flat near-black or flat white — no glass, no glow, no accent wash. There are no section headers or
@@ -194,13 +196,15 @@ src/
   store/useApp.ts       widgets + settings; persisted only in the manager
   components/           DesktopMap, ManagerChrome, WidgetLibrary, ui primitives
   screens/              Manager, WidgetWindow, Settings
-  lib/api.ts            client for the Hono service; every call degrades to sample data
+  lib/data.ts           typed wrappers over the Rust data commands
+  lib/queries.ts        TanStack Query hooks, sample-data fallbacks
   widgets/config.ts     per-widget settings and their defaults
   widgets/registry.ts   metadata only (no bodies) so the manager stays small
   widgets/loader.ts     one dynamic import per widget body
   widgets/              the 12 bodies + shared parts + prefs context
+src-tauri/src/data.rs   the data commands (weather, markets, quote, …)
+src-tauri/src/cache.rs  TTL cache with stale fallback
 src-tauri/              Rust shell, tray, capabilities, icons
-server/                 Hono data service (own package.json)
 ```
 
 ## Prototype notes
