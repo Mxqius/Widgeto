@@ -13,6 +13,8 @@ import {
   type NetStats,
   type SystemStats,
   type Weather,
+  fetchEvents,
+  type CalEvent,
 } from "./data";
 import { isTauri } from "./utils";
 
@@ -119,4 +121,16 @@ export function useTrail(value: number | undefined, len = 28) {
     }
   }
   return trail.current.length ? trail.current : [0];
+}
+
+/** Local .ics files change rarely; re-read them every few minutes. */
+export function useEvents(paths: string[], days: number) {
+  const key = paths.join("|");
+  const q = useQuery({
+    queryKey: ["events", key, days],
+    queryFn: () => fetchEvents(key ? key.split("|") : [], days),
+    enabled: isTauri() && paths.length > 0,
+    refetchInterval: 5 * 60_000,
+  });
+  return { events: (q.data ?? []) as CalEvent[], loading: q.isLoading };
 }

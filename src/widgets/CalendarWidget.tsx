@@ -1,11 +1,16 @@
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Pad } from "./parts";
+import { useWidgetConfig } from "./prefs";
+import { useEvents } from "@/lib/queries";
 import { useNow } from "@/lib/hooks";
 import { cn } from "@/lib/utils";
 import type { WidgetBodyProps } from "./loader";
 
 const DOW = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+
+const hhmm = (min: number) =>
+  `${String(Math.floor(min / 60)).padStart(2, "0")}:${String(min % 60).padStart(2, "0")}`;
 
 const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
 
@@ -22,6 +27,8 @@ function isoWeek(d: Date) {
  * tracks midnight rollover rather than freezing on the date it mounted.
  */
 export default function CalendarWidget({ size }: WidgetBodyProps) {
+  const cfg = useWidgetConfig("calendar");
+  const { events } = useEvents(cfg.sources, cfg.days);
   const now = useNow(60_000);
   const [offset, setOffset] = useState(0);
 
@@ -35,6 +42,16 @@ export default function CalendarWidget({ size }: WidgetBodyProps) {
       return d;
     });
   }, [today.getTime(), offset]);
+
+  const ymd = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const busyDays = useMemo(() => new Set(events.map((e) => e.date)), [events]);
+  const todayKey = ymd(today);
+  // today first, then whatever is coming up
+  const agenda = useMemo(
+    () => events.filter((e) => e.date >= todayKey),
+    [events, todayKey],
+  );
 
   const label = week[3].toLocaleDateString(undefined, { month: "long", year: "numeric" });
   const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
@@ -64,8 +81,9 @@ export default function CalendarWidget({ size }: WidgetBodyProps) {
         {week.map((d) => {
           const isToday = d.getTime() === today.getTime();
           const otherMonth = d.getMonth() !== week[3].getMonth();
+          const busy = busyDays.has(ymd(d));
           return (
-            <div key={d.toISOString()} className="flex justify-center">
+            <div key={d.toISOString()} className="relative flex justify-center">
               <span
                 className={cn(
                   "grid place-items-center rounded-full font-semibold tabular-nums",
@@ -80,26 +98,55 @@ export default function CalendarWidget({ size }: WidgetBodyProps) {
               >
                 {d.getDate()}
               </span>
+              {busy && !isToday && (
+                <span
+                  className="absolute bottom-0 size-[3px] rounded-full"
+                  style={{ background: "var(--accent)" }}
+                />
+              )}
             </div>
           );
         })}
       </div>
 
-      <div className="space-y-0.5">
-        <div className="rule h-px w-full" />
-        <div className="flex items-baseline justify-between pt-1">
-          <span className="dim text-[10px] font-semibold">
-            {now.toLocaleDateString(undefined, { weekday: "long" }).toUpperCase()}
-          </span>
-          <span className="numeral text-[12px]">W{isoWeek(now)}</span>
+      {/* real events from the user's .ics files, else the date facts */}
+      {agenda.length > 0 ? (
+        <div className="min-h-0 flex-1 space-y-0.5 overflow-hidden">
+          <div className="rule h-px w-full" />
+          {agenda.slice(0, small ? 1 : size === "md" ? 2 : 4).map((e, i) => (
+            <div key={`${e.date}-${e.summary}-${i}`} className="flex items-baseline gap-2 pt-1">
+              <span
+                className="numeral shrink-0 text-[10px]"
+                style={{ color: "var(--accent)", minWidth: 30 }}
+              >
+                {e.allDay ? "all" : hhmm(e.startMin ?? 0)}
+              </span>
+              <span className="truncate text-[11px] font-medium">{e.summary}</span>
+            </div>
+          ))}
         </div>
-        {!small && (
-          <div className="flex items-baseline justify-between">
-            <span className="dim text-[10px] font-semibold">LEFT IN MONTH</span>
-            <span className="numeral text-[12px]">{left}d</span>
+      ) : (
+        <div className="space-y-0.5">
+          <div className="rule h-px w-full" />
+          <div className="flex items-baseline justify-between pt-1">
+            <span className="dim text-[10px] font-semibold">
+              {now.toLocaleDateString(undefined, { weekday: "long" }).toUpperCase()}
+            </span>
+            <span className="numeral text-[12px]">W{isoWeek(now)}</span>
           </div>
-        )}
-      </div>
+          {!small && (
+            <div className="flex items-baseline justify-between">
+              <span className="dim text-[10px] font-semibold">
+                {cfg.sources.length ? "NO EVENTS" : "LEFT IN MONTH"}
+              </span>
+              <span className="numeral text-[12px]">
+                {cfg.sources.length ? "—" : `${left}d`}
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+
     </Pad>
   );
 }

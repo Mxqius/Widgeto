@@ -1,5 +1,6 @@
 mod cache;
 mod data;
+mod ical;
 mod system;
 
 use tauri::{
@@ -93,6 +94,7 @@ pub fn run() {
 
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             // tells a login-launched instance to stay in the tray
@@ -111,7 +113,8 @@ pub fn run() {
             system::battery_stats,
             system::media_now,
             system::media_control,
-            system::launch
+            system::launch,
+            ical::calendar_events
         ])
         .setup(|app| {
             let handle = app.handle();

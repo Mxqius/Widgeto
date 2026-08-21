@@ -100,3 +100,19 @@ export const mediaControl = (action: "play" | "pause" | "toggle" | "next" | "pre
 
 /** Opens a URL, a file, a folder or an executable. */
 export const launch = (target: string) => call<void>("launch", { target });
+
+/* -------------------------------------------------------------- calendar */
+
+export interface CalEvent {
+  summary: string;
+  location: string | null;
+  /** YYYY-MM-DD */
+  date: string;
+  startMin: number | null;
+  endMin: number | null;
+  allDay: boolean;
+  calendar: string;
+}
+
+export const fetchEvents = (paths: string[], days: number) =>
+  call<CalEvent[]>("calendar_events", { paths, days });

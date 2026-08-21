@@ -13,7 +13,7 @@ export const DEFAULT_CONFIG = {
   clock: { label: "AMS", showSeconds: true },
   weather: { place: "Amsterdam" },
   system: {},
-  calendar: {},
+  calendar: { sources: [] as string[], days: 14 },
   tasks: {},
   music: {},
   notes: { fontSize: 12 },
