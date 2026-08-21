@@ -292,3 +292,8 @@ export const useApp = create<AppState>()(
     },
   ),
 );
+
+// Dev-only handle so the store can be inspected from the console.
+if (import.meta.env.DEV) {
+  (window as unknown as { __widgeto: unknown }).__widgeto = useApp;
+}
