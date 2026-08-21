@@ -1,11 +1,13 @@
 import { Pad, Stat, TickMeter } from "./parts";
 import { useSystem, useTrail } from "@/lib/queries";
+import { useWidgetConfig } from "./prefs";
 import type { WidgetBodyProps } from "./loader";
 
 const gb = (bytes: number) => bytes / 1_000_000_000;
 
 export default function SystemWidget({ size }: WidgetBodyProps) {
-  const { data } = useSystem();
+  const cfg = useWidgetConfig("system");
+  const { data } = useSystem(cfg.refreshSec);
   const cpu = data?.cpu ?? 0;
   useTrail(cpu);
 

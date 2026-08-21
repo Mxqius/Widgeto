@@ -3,6 +3,7 @@ import { Line } from "./parts";
 import { useMedia } from "@/lib/queries";
 import { mediaControl } from "@/lib/data";
 import { pad } from "@/lib/utils";
+import { useWidgetConfig } from "./prefs";
 import type { WidgetBodyProps } from "./loader";
 
 /** Turns "Spotify.exe" / an AUMID into something worth showing. */
@@ -17,7 +18,8 @@ function appLabel(id: string | null) {
  * a browser tab, a local player — shows up here with working transport.
  */
 export default function MusicWidget({ size }: WidgetBodyProps) {
-  const { data, refetch } = useMedia();
+  const cfg = useWidgetConfig("music");
+  const { data, refetch } = useMedia(cfg.refreshSec);
   const small = size === "sm";
 
   const send = async (a: "toggle" | "next" | "prev") => {

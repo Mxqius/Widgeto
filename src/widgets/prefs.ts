@@ -10,12 +10,17 @@ import { configOf, type ConfigOf } from "./config";
 export interface WidgetPrefs {
   clock24h: boolean;
   temperatureUnit: "C" | "F";
+  powerSaver: "off" | "onBattery" | "always";
+  /** pushed by the manager so each window need not ask */
+  onBattery: boolean;
   config: Record<string, unknown>;
 }
 
 export const DEFAULT_PREFS: WidgetPrefs = {
   clock24h: true,
   temperatureUnit: "C",
+  powerSaver: "onBattery",
+  onBattery: false,
   config: {},
 };
 

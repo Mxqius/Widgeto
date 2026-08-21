@@ -85,6 +85,8 @@ export interface Settings {
   /** come up as a tray icon rather than opening the manager */
   startInTray: boolean;
   reduceMotion: boolean;
+  /** slow every poll down, always or only when unplugged */
+  powerSaver: "off" | "onBattery" | "always";
   clock24h: boolean;
   temperatureUnit: "C" | "F";
   wallpaper: string;

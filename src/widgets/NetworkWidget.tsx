@@ -1,6 +1,7 @@
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { Pad, Stat, TickMeter } from "./parts";
 import { useNet, useTrail } from "@/lib/queries";
+import { useWidgetConfig } from "./prefs";
 import type { WidgetBodyProps } from "./loader";
 
 /** Bytes per second in the largest sensible unit. */
@@ -11,7 +12,8 @@ function rate(bps: number): [string, string] {
 }
 
 export default function NetworkWidget({ size }: WidgetBodyProps) {
-  const { data } = useNet();
+  const cfg = useWidgetConfig("network");
+  const { data } = useNet(cfg.refreshSec);
   const down = data?.downBps ?? 0;
   const up = data?.upBps ?? 0;
   const trail = useTrail(down);

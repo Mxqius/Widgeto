@@ -170,6 +170,8 @@ export interface ConfigPayload {
   areas: Area[];
   /** rects of the other visible widgets on the same display, for alignment */
   neighbours: { x: number; y: number; w: number; h: number }[];
+  /** read once by the manager and pushed out, for the power saver */
+  onBattery: boolean;
 }
 
 export interface MovedPayload {

@@ -25,6 +25,7 @@ export const DEFAULT_SETTINGS: Settings = {
   launchAtLogin: false,
   startInTray: false,
   reduceMotion: false,
+  powerSaver: "onBattery",
   clock24h: true,
   temperatureUnit: "C",
   wallpaper: "aurora",

@@ -1,10 +1,12 @@
 import { Plug, Zap } from "lucide-react";
 import { Pad, Stat, TickMeter } from "./parts";
 import { useBattery } from "@/lib/queries";
+import { useWidgetConfig } from "./prefs";
 import type { WidgetBodyProps } from "./loader";
 
 export default function BatteryWidget({ size }: WidgetBodyProps) {
-  const { data } = useBattery();
+  const cfg = useWidgetConfig("battery");
+  const { data } = useBattery(cfg.refreshSec);
   const pct = data?.percent ?? 0;
   const small = size === "sm";
 

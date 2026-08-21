@@ -173,6 +173,20 @@ export default function Settings({ onBack }: { onBack: () => void }) {
                     <Row title="Show dot grid" hint="Subtle alignment grid on the desktop map.">
                       <Toggle checked={s.showGrid} onChange={(v) => update({ showGrid: v })} />
                     </Row>
+                    <Row
+                      title="Power saver"
+                      hint="Stretches every widget's refresh interval fourfold."
+                    >
+                      <Picker
+                        value={s.powerSaver}
+                        onChange={(v) => update({ powerSaver: v })}
+                        options={[
+                          { value: "onBattery", label: "On battery" },
+                          { value: "always", label: "Always" },
+                          { value: "off", label: "Off" },
+                        ]}
+                      />
+                    </Row>
                     <Row title="Reduce motion" hint="Disable springs and micro-animations.">
                       <Toggle checked={s.reduceMotion} onChange={(v) => update({ reduceMotion: v })} />
                     </Row>

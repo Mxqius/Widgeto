@@ -6,7 +6,7 @@ import type { WidgetBodyProps } from "./loader";
 
 export default function MarketsWidget({ size }: WidgetBodyProps) {
   const cfg = useWidgetConfig("markets");
-  const { assets: rows, live } = useMarkets(cfg.symbols);
+  const { assets: rows, live } = useMarkets(cfg.symbols, cfg.refreshSec);
 
   const lead = rows[0];
   if (!lead) return null;

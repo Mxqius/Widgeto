@@ -69,6 +69,7 @@ function previewConfig(kind: WidgetKind): ConfigPayload {
     area: BROWSER_AREA,
     areas: [BROWSER_AREA],
     neighbours: [],
+    onBattery: false,
   };
 }
 
@@ -266,6 +267,7 @@ function WidgetWindowInner({ kind }: { kind: WidgetKind }) {
     <WidgetShell
       widget={cfg.widget}
       settings={cfg.settings}
+      onBattery={cfg.onBattery}
       dragging={dragging}
       hovered={hovered}
       onHover={setHovered}
@@ -280,6 +282,7 @@ function WidgetWindowInner({ kind }: { kind: WidgetKind }) {
 function WidgetShell({
   widget,
   settings,
+  onBattery,
   dragging,
   hovered,
   onHover,
@@ -297,6 +300,7 @@ function WidgetShell({
   onPointerMove: (e: React.PointerEvent) => void;
   onPointerUp: () => void;
   onAction: (a: ActionPayload["action"]) => void;
+  onBattery: boolean;
 }) {
   const def = byKind(widget.kind);
   const Body = widgetBody(widget.kind);
@@ -307,9 +311,11 @@ function WidgetShell({
     () => ({
       clock24h: settings.clock24h,
       temperatureUnit: settings.temperatureUnit,
+      powerSaver: settings.powerSaver,
+      onBattery,
       config: widget.config ?? {},
     }),
-    [settings.clock24h, settings.temperatureUnit, widget.config],
+    [settings.clock24h, settings.temperatureUnit, settings.powerSaver, onBattery, widget.config],
   );
 
   const circle = def.shape === "circle";

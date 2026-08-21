@@ -16,7 +16,7 @@ const ICONS = {
 export default function WeatherWidget({ size }: WidgetBodyProps) {
   const { temperatureUnit: unit } = useWidgetPrefs();
   const cfg = useWidgetConfig("weather");
-  const { data: wx, live, source } = useWeather(cfg.place);
+  const { data: wx, live, source } = useWeather(cfg.place, cfg.refreshSec);
 
   const t = (c: number) => (unit === "C" ? c : Math.round((c * 9) / 5 + 32));
   const Icon = ICONS[wx.icon as keyof typeof ICONS] ?? CloudSun;

@@ -1,4 +1,5 @@
-import { useRef } from "react";
+import { useContext, useRef } from "react";
+import { PrefsContext } from "@/widgets/prefs";
 import { QueryClient, useQuery } from "@tanstack/react-query";
 import {
   fetchBattery,
@@ -58,12 +59,13 @@ export const SAMPLE_ASSETS: Asset[] = [
   { symbol: "SOL", name: "solana", price: 188.4, change24h: 0.8 },
 ];
 
-export function useWeather(place: string) {
+export function useWeather(place: string, sec = 600) {
+  const slow = useSlowdown();
   const q = useQuery({
     queryKey: ["weather", place],
     queryFn: () => fetchWeather(place),
     enabled: isTauri(),
-    refetchInterval: 10 * 60_000,
+    refetchInterval: sec * 1000 * slow,
   });
   return {
     data: q.data ?? SAMPLE_WEATHER,
@@ -73,13 +75,14 @@ export function useWeather(place: string) {
   };
 }
 
-export function useMarkets(symbols: string[]) {
+export function useMarkets(symbols: string[], sec = 60) {
+  const slow = useSlowdown();
   const key = symbols.join(",");
   const q = useQuery({
     queryKey: ["markets", key],
     queryFn: () => fetchMarkets(key.split(",")),
     enabled: isTauri(),
-    refetchInterval: 60_000,
+    refetchInterval: sec * 1000 * slow,
   });
   return {
     assets: q.data?.assets?.length ? q.data.assets : SAMPLE_ASSETS,
@@ -91,22 +94,37 @@ export function useMarkets(symbols: string[]) {
 
 /* --------------------------------------------------- live machine readings */
 
+/**
+ * How much to stretch every interval.
+ *
+ * The battery state arrives with the widget's config rather than being polled
+ * here: this hook runs in all thirteen windows, and having each of them ask
+ * the battery how it is doing would burn more power than the feature saves.
+ */
+export function useSlowdown(): number {
+  const { powerSaver, onBattery } = useContext(PrefsContext);
+  if (powerSaver === "always") return 4;
+  if (powerSaver === "onBattery" && onBattery) return 4;
+  return 1;
+}
+
 /** Local probes are cheap and want to look live, so they poll on a short beat. */
-function useLocal<T>(key: string, fn: () => Promise<T>, ms: number) {
+function useLocal<T>(key: string, fn: () => Promise<T>, seconds: number) {
+  const slow = useSlowdown();
   return useQuery({
     queryKey: [key],
     queryFn: fn,
     enabled: isTauri(),
-    refetchInterval: ms,
+    refetchInterval: Math.max(500, seconds * 1000 * slow),
     staleTime: 0,
     retry: 0,
   });
 }
 
-export const useSystem = () => useLocal<SystemStats>("system", fetchSystem, 2000);
-export const useNet = () => useLocal<NetStats>("net", fetchNet, 1500);
-export const useBattery = () => useLocal<BatteryStats>("battery", fetchBattery, 20_000);
-export const useMedia = () => useLocal<MediaNow>("media", fetchMedia, 2000);
+export const useSystem = (sec = 2) => useLocal<SystemStats>("system", fetchSystem, sec);
+export const useNet = (sec = 2) => useLocal<NetStats>("net", fetchNet, sec);
+export const useBattery = (sec = 20) => useLocal<BatteryStats>("battery", fetchBattery, sec);
+export const useMedia = (sec = 2) => useLocal<MediaNow>("media", fetchMedia, sec);
 
 /**
  * Keeps the last N readings so a widget can draw a trend. Query results are

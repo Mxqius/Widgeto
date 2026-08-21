@@ -18,6 +18,7 @@ import {
   type MovedPayload,
 } from "./desktop";
 import { isTauri } from "./utils";
+import { fetchBattery } from "./data";
 
 /** Monitor layout rarely changes; polling often just burns IPC. */
 const MONITOR_POLL_MS = 30_000;
@@ -131,6 +132,24 @@ export function useDesktopSync() {
     void pass();
   }, [signature]);
 
+  /* ------------------------------- one battery read for the whole app -- */
+  const powerSaver = useApp((s) => s.settings.powerSaver);
+  useEffect(() => {
+    let alive = true;
+    const read = async () => {
+      const before = batteryState.onBattery;
+      await refreshBatteryState(powerSaver === "onBattery");
+      // only re-push when the answer actually flipped
+      if (alive && before !== batteryState.onBattery) void broadcastAll();
+    };
+    void read();
+    const t = setInterval(read, 60_000);
+    return () => {
+      alive = false;
+      clearInterval(t);
+    };
+  }, [powerSaver]);
+
   /* ----------------- shared appearance settings -> every open widget --- */
   const appearance = useApp((s) => s.settings);
   useEffect(() => {
@@ -212,6 +231,7 @@ export async function broadcast(kind: WidgetKind) {
     settings,
     area,
     areas,
+    onBattery: batteryState.onBattery,
     neighbours: widgets
       .filter((o) => o.kind !== kind && o.open && o.display === widget.display)
       .map((o) => {
@@ -232,4 +252,23 @@ export async function broadcast(kind: WidgetKind) {
 export async function broadcastAll() {
   const open = useApp.getState().widgets.filter((w) => w.open);
   await Promise.all(open.map((w) => broadcast(w.kind)));
+}
+
+/**
+ * One battery reading for the whole app, refreshed slowly and only when the
+ * power saver is actually set to care about it.
+ */
+export const batteryState = { onBattery: false };
+
+export async function refreshBatteryState(enabled: boolean) {
+  if (!enabled || !isTauri()) {
+    batteryState.onBattery = false;
+    return;
+  }
+  try {
+    const b = await fetchBattery();
+    batteryState.onBattery = b.present && !b.charging;
+  } catch {
+    batteryState.onBattery = false;
+  }
 }

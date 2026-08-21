@@ -11,14 +11,14 @@ export interface QuickLink {
  */
 export const DEFAULT_CONFIG = {
   clock: { label: "AMS", showSeconds: true },
-  weather: { place: "Amsterdam" },
-  system: {},
+  weather: { place: "Amsterdam", refreshSec: 600 },
+  system: { refreshSec: 2 },
   calendar: { sources: [] as string[], days: 14 },
   tasks: {},
-  music: {},
+  music: { refreshSec: 2 },
   notes: { fontSize: 12 },
   pomodoro: { focusMin: 25, shortMin: 5, longMin: 15 },
-  markets: { symbols: ["BTC", "ETH", "SOL"] as string[] },
+  markets: { symbols: ["BTC", "ETH", "SOL"] as string[], refreshSec: 60 },
   launcher: {
     links: [
       { name: "GitHub", url: "https://github.com" },
@@ -29,8 +29,8 @@ export const DEFAULT_CONFIG = {
       { name: "Excalidraw", url: "https://excalidraw.com" },
     ] as QuickLink[],
   },
-  network: {},
-  battery: {},
+  network: { refreshSec: 2 },
+  battery: { refreshSec: 20 },
   pet: { name: "Mochi", hue: 320, species: "cat" as "cat" | "bun" | "blob" | "fox" },
 } satisfies Record<WidgetKind, object>;
 
@@ -48,3 +48,13 @@ export function configOf<K extends WidgetKind>(
 export const HAS_CONFIG = new Set<WidgetKind>([
   "clock", "weather", "notes", "pomodoro", "markets", "launcher", "pet",
 ]);
+
+/** Kinds that poll for data and therefore expose a refresh interval. */
+export const POLLING: Partial<Record<WidgetKind, { min: number; max: number }>> = {
+  system: { min: 1, max: 60 },
+  network: { min: 1, max: 60 },
+  battery: { min: 5, max: 300 },
+  music: { min: 1, max: 30 },
+  weather: { min: 60, max: 3600 },
+  markets: { min: 15, max: 900 },
+};
