@@ -155,6 +155,8 @@ export const EVT = {
   action: "widget:action",
   /** widget window -> manager: I am up, send me my config */
   hello: "widget:hello",
+  /** widget window -> manager: persist this change to my own settings */
+  config_set: "widget:config",
 } as const;
 
 /**
@@ -208,4 +210,9 @@ export function areaAt(areas: Area[], x: number, y: number): number {
 export interface ActionPayload {
   kind: WidgetKind;
   action: "hide" | "cycle-size" | "lock";
+}
+
+export interface ConfigSetPayload {
+  kind: WidgetKind;
+  patch: Record<string, unknown>;
 }

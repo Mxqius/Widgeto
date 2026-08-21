@@ -4,7 +4,8 @@
   "description": "Manager window plus every spawned widget window",
   "windows": [
     "main",
-    "w-*"
+    "w-*",
+    "capture"
   ],
   "permissions": [
     "core:default",
@@ -44,6 +45,10 @@
     "autostart:allow-enable",
     "autostart:allow-disable",
     "autostart:allow-is-enabled",
-    "dialog:allow-open"
+    "dialog:allow-open",
+    "global-shortcut:allow-register",
+    "global-shortcut:allow-unregister",
+    "global-shortcut:allow-is-registered",
+    "global-shortcut:allow-unregister-all"
   ]
 }

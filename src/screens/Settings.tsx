@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { fetchHealth } from "@/lib/data";
 import { isAutostartEnabled, setAutostart, setStartInTray } from "@/lib/startup";
+import { bindCaptureHotkey } from "@/lib/capture";
 import { motion } from "motion/react";
 import {
   ArrowLeft, Blocks, Info, Keyboard, Magnet, Palette, RotateCcw,
@@ -366,6 +367,15 @@ export default function Settings({ onBack }: { onBack: () => void }) {
                     </Row>
                   </Group>
 
+                  <Group title="Quick capture">
+                    <Row
+                      title="Capture hotkey"
+                      hint="Opens a one-line bar that appends to your Notes widget."
+                    >
+                      <HotkeyField />
+                    </Row>
+                  </Group>
+
                   <Group title="Manager window">
                     <Row title="Always on top" hint="Keep this manager above other windows.">
                       <Toggle
@@ -532,5 +542,49 @@ function AutostartToggle() {
         setBusy(false);
       }}
     />
+  );
+}
+
+/**
+ * The combination is only committed once it actually binds — another app may
+ * already own it, and silently keeping a dead shortcut in settings would be
+ * worse than saying so.
+ */
+function HotkeyField() {
+  const saved = useApp((st) => st.settings.captureHotkey);
+  const update = useApp((st) => st.update);
+  const [draft, setDraft] = useState(saved);
+  const [state, setState] = useState<"idle" | "ok" | "taken">("idle");
+
+  const apply = async (value: string) => {
+    const ok = await bindCaptureHotkey(value);
+    setState(value.trim() === "" ? "idle" : ok ? "ok" : "taken");
+    if (ok || value.trim() === "") update({ captureHotkey: value });
+  };
+
+  return (
+    <div className="flex items-center gap-2">
+      {state === "taken" && (
+        <span className="text-[11px] font-semibold text-red-300">in use</span>
+      )}
+      {state === "ok" && (
+        <span className="text-[11px] font-semibold" style={{ color: "#3ddc84" }}>
+          bound
+        </span>
+      )}
+      <input
+        className="field h-8 w-[190px] font-mono text-[12px]"
+        value={draft}
+        placeholder="CommandOrControl+Shift+N"
+        onChange={(e) => {
+          setDraft(e.target.value);
+          setState("idle");
+        }}
+        onBlur={() => void apply(draft)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") void apply(draft);
+        }}
+      />
+    </div>
   );
 }

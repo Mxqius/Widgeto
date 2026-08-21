@@ -1,5 +1,10 @@
 import type { WidgetKind } from "@/lib/types";
 
+export interface Note {
+  title: string;
+  body: string;
+}
+
 export interface QuickLink {
   name: string;
   url: string;
@@ -16,7 +21,14 @@ export const DEFAULT_CONFIG = {
   calendar: { sources: [] as string[], days: 14 },
   tasks: {},
   music: { refreshSec: 2 },
-  notes: { fontSize: 12 },
+  notes: {
+    fontSize: 12,
+    /** the note the widget is currently showing */
+    active: 0,
+    notes: [
+      { title: "Scratch", body: "- [ ] try the capture hotkey\n- [x] pet the cat" },
+    ] as Note[],
+  },
   pomodoro: { focusMin: 25, shortMin: 5, longMin: 15 },
   markets: { symbols: ["BTC", "ETH", "SOL"] as string[], refreshSec: 60 },
   launcher: {

@@ -13,9 +13,14 @@ import { WIDGET_KINDS } from "@/widgets/registry";
  * the difference between twelve full app copies and twelve small ones.
  */
 const ManagerApp = lazy(() => import("./ManagerApp"));
+const CaptureWindow = lazy(() => import("./screens/CaptureWindow"));
 const WidgetWindow = lazy(() => import("./screens/WidgetWindow"));
 
 export default function App() {
+  const capture = useMemo(
+    () => new URLSearchParams(window.location.search).has("capture"),
+    [],
+  );
   const kind = useMemo(() => {
     const w = new URLSearchParams(window.location.search).get("w");
     return w && (WIDGET_KINDS as string[]).includes(w) ? (w as WidgetKind) : null;
@@ -23,7 +28,7 @@ export default function App() {
 
   return (
     <Suspense fallback={null}>
-      {kind ? <WidgetWindow kind={kind} /> : <ManagerApp />}
+      {capture ? <CaptureWindow /> : kind ? <WidgetWindow kind={kind} /> : <ManagerApp />}
     </Suspense>
   );
 }

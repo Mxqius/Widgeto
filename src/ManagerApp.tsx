@@ -9,6 +9,7 @@ import Settings from "@/screens/Settings";
 import { useApp } from "@/store/useApp";
 import { useDesktopSync } from "@/lib/useDesktopSync";
 import { setAlwaysOnTop } from "@/lib/tauri";
+import { bindCaptureHotkey } from "@/lib/capture";
 import { isTauri } from "@/lib/utils";
 
 const queryClient = makeQueryClient();
@@ -35,6 +36,12 @@ export default function ManagerApp() {
   useEffect(() => {
     if (useApp.getState().settings.managerAlwaysOnTop) setAlwaysOnTop(true);
   }, []);
+
+  // the capture hotkey lives with the manager, which is always running
+  const captureHotkey = useApp((s) => s.settings.captureHotkey);
+  useEffect(() => {
+    void bindCaptureHotkey(captureHotkey);
+  }, [captureHotkey]);
 
   // tray menu -> show/hide every widget
   useEffect(() => {

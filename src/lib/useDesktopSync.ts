@@ -15,6 +15,7 @@ import {
   type ActionPayload,
   type Applied,
   type ConfigPayload,
+  type ConfigSetPayload,
   type MovedPayload,
 } from "./desktop";
 import { isTauri } from "./utils";
@@ -88,6 +89,13 @@ export function useDesktopSync() {
             st.setDisplay(kind, display);
           }
           st.move(kind, x, y, dock);
+        }),
+      );
+
+      uns.push(
+        await listen<ConfigSetPayload>(EVT.config_set, (e) => {
+          const { kind, patch } = e.payload;
+          useApp.getState().setConfig(kind, patch);
         }),
       );
 

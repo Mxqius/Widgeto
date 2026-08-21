@@ -84,6 +84,8 @@ export interface Settings {
   launchAtLogin: boolean;
   /** come up as a tray icon rather than opening the manager */
   startInTray: boolean;
+  /** global shortcut that opens quick capture; empty disables it */
+  captureHotkey: string;
   reduceMotion: boolean;
   /** slow every poll down, always or only when unplugged */
   powerSaver: "off" | "onBattery" | "always";

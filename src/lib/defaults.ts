@@ -24,6 +24,7 @@ export const DEFAULT_SETTINGS: Settings = {
   managerAlwaysOnTop: false,
   launchAtLogin: false,
   startInTray: false,
+  captureHotkey: "CommandOrControl+Shift+N",
   reduceMotion: false,
   powerSaver: "onBattery",
   clock24h: true,
