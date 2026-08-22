@@ -61,7 +61,7 @@ function Appearance({ kind }: { kind: WidgetKind }) {
               onClick={() => setAppearance(kind, { accent: c, theme: w?.theme })}
               title={c}
               className={cn(
-                "size-[22px] rounded-full transition-transform hover:scale-110",
+                "size-5.5 rounded-full transition-transform hover:scale-110",
                 accent.toLowerCase() === c.toLowerCase() &&
                   "ring-2 ring-white/70 ring-offset-2 ring-offset-ink-900",
               )}
@@ -69,7 +69,7 @@ function Appearance({ kind }: { kind: WidgetKind }) {
             />
           ))}
           <label
-            className="relative size-[22px] cursor-pointer overflow-hidden rounded-full border border-white/15"
+            className="relative size-5.5 cursor-pointer overflow-hidden rounded-full border border-white/15"
             title="Custom colour"
             style={{
               background:
@@ -95,7 +95,7 @@ function Appearance({ kind }: { kind: WidgetKind }) {
       </Field>
 
       <Field label="Ground" hint="Flat black or flat white tile.">
-        <div className="flex items-center gap-0.5 rounded-lg border border-white/6 bg-white/[0.03] p-0.5">
+        <div className="flex items-center gap-0.5 rounded-lg border border-white/6 bg-white/3 p-0.5">
           {(["dark", "light"] as const).map((t) => (
             <button
               key={t}
@@ -346,7 +346,7 @@ function LauncherLinks({ kind }: { kind: WidgetKind }) {
         {c.links.map((l, i) => (
           <div
             key={`${l.url}-${i}`}
-            className="flex items-center gap-2 rounded-lg border border-white/6 bg-white/[0.02] px-2 py-1.5"
+            className="flex items-center gap-2 rounded-lg border border-white/6 bg-white/2 px-2 py-1.5"
           >
             <span className="w-24 shrink-0 truncate text-[11.5px] font-medium text-ink-100">
               {l.name}
@@ -425,7 +425,7 @@ function CalendarSources({ kind }: { kind: WidgetKind }) {
           {c.sources.map((path) => (
             <div
               key={path}
-              className="flex items-center gap-2 rounded-lg border border-white/6 bg-white/[0.02] px-2 py-1.5"
+              className="flex items-center gap-2 rounded-lg border border-white/6 bg-white/2 px-2 py-1.5"
             >
               <span className="min-w-0 flex-1 truncate text-[11px] text-ink-300" title={path}>
                 {path.split(/[\/]/).pop()}

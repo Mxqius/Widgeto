@@ -226,7 +226,7 @@ export function Group({ title, children }: { title: string; children: ReactNode 
   return (
     <section className="mb-7">
       <h3 className="label-xs mb-2 px-1">{title}</h3>
-      <div className="surface-flat divide-y divide-white/[0.05] overflow-hidden rounded-2xl">
+      <div className="surface-flat divide-y divide-white/5 overflow-hidden rounded-2xl">
         {children}
       </div>
     </section>

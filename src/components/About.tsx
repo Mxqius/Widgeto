@@ -130,7 +130,7 @@ export default function About() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-px border-t border-white/6 bg-white/[0.04]">
+        <div className="grid grid-cols-2 gap-px border-t border-white/6 bg-white/4">
           <div className="bg-ink-900 px-3 py-2.5">
             <div className="label-xs">Active widgets</div>
             <div className="mt-0.5 text-[12px] text-ink-200">

@@ -49,7 +49,7 @@ export default function Settings({ onBack }: { onBack: () => void }) {
       className="flex h-full w-full overflow-hidden bg-ink-950/92 backdrop-blur-2xl"
     >
       {/* ---------------------------------------------------------- sidebar */}
-      <aside className="flex w-[218px] shrink-0 flex-col border-r border-white/6 p-3">
+      <aside className="flex w-54.5 shrink-0 flex-col border-r border-white/6 p-3">
         <button onClick={onBack} className="btn mb-4 justify-start gap-2 px-2">
           <ArrowLeft size={14} /> Back to board
         </button>
@@ -109,7 +109,7 @@ export default function Settings({ onBack }: { onBack: () => void }) {
                             key={c}
                             onClick={() => update({ accent: c })}
                             className={cn(
-                              "size-[22px] rounded-full transition-transform hover:scale-110",
+                              "size-5.5 rounded-full transition-transform hover:scale-110",
                               s.accent === c && "ring-2 ring-white/70 ring-offset-2 ring-offset-ink-850",
                             )}
                             style={{ background: c }}
@@ -133,7 +133,7 @@ export default function Settings({ onBack }: { onBack: () => void }) {
                       </div>
                     </Row>
                     <Row title="Background blur" hint="Only applies when tiles are translucent.">
-                      <div className="w-[190px]">
+                      <div className="w-47.5">
                         <Range
                           min={0}
                           max={48}
@@ -144,7 +144,7 @@ export default function Settings({ onBack }: { onBack: () => void }) {
                       </div>
                     </Row>
                     <Row title="Corner radius">
-                      <div className="w-[190px]">
+                      <div className="w-47.5">
                         <Range
                           min={8}
                           max={48}
@@ -200,7 +200,7 @@ export default function Settings({ onBack }: { onBack: () => void }) {
                       <Toggle checked={s.autoDock} onChange={(v) => update({ autoDock: v })} />
                     </Row>
                     <Row title="Dock pull distance" hint="How close a widget must get before it is captured.">
-                      <div className="w-[190px]">
+                      <div className="w-47.5">
                         <Range
                           min={16}
                           max={140}
@@ -211,7 +211,7 @@ export default function Settings({ onBack }: { onBack: () => void }) {
                       </div>
                     </Row>
                     <Row title="Screen margin" hint="Gap kept between docked widgets and the edge.">
-                      <div className="w-[190px]">
+                      <div className="w-47.5">
                         <Range
                           min={0}
                           max={80}
@@ -231,7 +231,7 @@ export default function Settings({ onBack }: { onBack: () => void }) {
                       <Toggle checked={s.snapToGrid} onChange={(v) => update({ snapToGrid: v })} />
                     </Row>
                     <Row title="Grid size">
-                      <div className="w-[190px]">
+                      <div className="w-47.5">
                         <Range
                           min={2}
                           max={40}
@@ -609,7 +609,7 @@ function HotkeyField() {
         </span>
       )}
       <input
-        className="field h-8 w-[190px] font-mono text-[12px]"
+        className="field h-8 w-47.5 font-mono text-[12px]"
         value={draft}
         placeholder="CommandOrControl+Shift+N"
         onChange={(e) => {

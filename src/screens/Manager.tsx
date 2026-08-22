@@ -113,13 +113,13 @@ export default function Manager({ onOpenSettings }: { onOpenSettings: () => void
         </div>
 
         {/* ------------------------------------------------------ profiles */}
-        <div className="border-y border-white/6 bg-white/[0.015] px-6 py-2.5">
+        <div className="border-y border-white/6 bg-white/1.5 px-6 py-2.5">
           <ProfileBar />
         </div>
 
         {/* ------------------------------------------------------- filters */}
         <div className="flex items-center gap-2 px-6 pt-3 pb-3">
-          <div className="flex h-8 w-full max-w-[280px] items-center gap-2 rounded-lg border border-white/6 bg-white/[0.03] px-2.5">
+          <div className="flex h-8 w-full max-w-70 items-center gap-2 rounded-lg border border-white/6 bg-white/3 px-2.5">
             <Search size={13} className="text-ink-500" />
             <input
               value={q}
@@ -129,7 +129,7 @@ export default function Manager({ onOpenSettings }: { onOpenSettings: () => void
             />
           </div>
           {!q && (
-            <div className="flex items-center gap-0.5 rounded-lg border border-white/6 bg-white/[0.03] p-0.5">
+            <div className="flex items-center gap-0.5 rounded-lg border border-white/6 bg-white/3 p-0.5">
               {(["all", "active"] as const).map((t) => (
                 <button
                   key={t}
@@ -223,7 +223,7 @@ export default function Manager({ onOpenSettings }: { onOpenSettings: () => void
 
                   {w.open && (
                     <div className="flex items-center gap-1">
-                      <div className="flex items-center gap-0.5 rounded-lg border border-white/6 bg-white/[0.03] p-0.5">
+                      <div className="flex items-center gap-0.5 rounded-lg border border-white/6 bg-white/3 p-0.5">
                         {SIZES.map((sz) => (
                           <button
                             key={sz}
@@ -241,7 +241,7 @@ export default function Manager({ onOpenSettings }: { onOpenSettings: () => void
                         ))}
                       </div>
                       {areas.length > 1 && (
-                        <div className="flex items-center gap-0.5 rounded-lg border border-white/6 bg-white/[0.03] p-0.5">
+                        <div className="flex items-center gap-0.5 rounded-lg border border-white/6 bg-white/3 p-0.5">
                           <Monitor size={11} className="ml-1 text-ink-500" />
                           {areas.map((a, i) => (
                             <button
@@ -299,7 +299,7 @@ export default function Manager({ onOpenSettings }: { onOpenSettings: () => void
         every frame. The panel simply appears.
       */}
       <aside
-        className="shrink-0 overflow-hidden border-l border-white/6 bg-white/[0.015]"
+        className="shrink-0 overflow-hidden border-l border-white/6 bg-white/1.5"
         style={{ width: tuned ? 320 : 0, borderLeftWidth: tuned ? 1 : 0 }}
         aria-hidden={!tuned}
       >

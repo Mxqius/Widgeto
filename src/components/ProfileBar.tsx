@@ -63,8 +63,8 @@ export default function ProfileBar() {
             className={cn(
               "group flex items-center rounded-lg border transition-colors",
               on
-                ? "border-transparent bg-[var(--accent-soft)]"
-                : "border-white/6 bg-white/[0.03] hover:bg-white/[0.06]",
+                ? "border-transparent bg-(--accent-soft)"
+                : "border-white/6 bg-white/3 hover:bg-white/6",
             )}
           >
             <button
