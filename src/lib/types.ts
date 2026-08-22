@@ -92,4 +92,8 @@ export interface Settings {
   clock24h: boolean;
   temperatureUnit: "C" | "F";
   wallpaper: string;
+  /** check GitHub Releases for a newer version shortly after startup */
+  autoUpdateEnabled: boolean;
+  /** version the user chose to skip; suppresses the background prompt for it */
+  skippedUpdateVersion: string | null;
 }

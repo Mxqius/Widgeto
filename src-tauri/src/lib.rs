@@ -101,6 +101,8 @@ pub fn run() {
             // tells a login-launched instance to stay in the tray
             Some(vec!["--startup"]),
         ))
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .invoke_handler(tauri::generate_handler![
             host_info,
             set_startup_prefs,

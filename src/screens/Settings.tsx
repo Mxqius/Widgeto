@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { useApp, DEFAULT_SETTINGS } from "@/store/useApp";
 import { Group, Picker, Range, Row, Segmented, Toggle } from "@/components/ui";
-import About from "@/components/About";
+import About, { useBuild } from "@/components/About";
 import type { ArrangeMode } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { setAlwaysOnTop } from "@/lib/tauri";
@@ -82,15 +82,12 @@ export default function Settings({ onBack }: { onBack: () => void }) {
         </nav>
 
         <div className="flex-1" />
-        <div className="rounded-xl border border-white/6 bg-white/[0.02] p-3">
-          <div className="text-[12px] font-medium text-ink-200">Widgeto</div>
-          <div className="mt-0.5 text-[11px] text-ink-500">v0.1.0 · Tauri 2 prototype</div>
-        </div>
+        <SidebarVersion />
       </aside>
 
       {/* ----------------------------------------------------------- panel */}
       <div className="flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-[620px] px-7 py-8">
+        <div className="mx-auto max-w-155 px-7 py-8">
           <motion.div
             key={tab}
             initial={{ opacity: 0, y: 8 }}
@@ -368,6 +365,21 @@ export default function Settings({ onBack }: { onBack: () => void }) {
                     </Row>
                   </Group>
 
+                  <Group title="Updates">
+                    <Row
+                      title="Check for updates automatically"
+                      hint="Looks for a new version shortly after Widgeto starts."
+                    >
+                      <Toggle
+                        checked={s.autoUpdateEnabled}
+                        onChange={(v) => update({ autoUpdateEnabled: v })}
+                      />
+                    </Row>
+                    <Row title="Check for updates now">
+                      <UpdateStatus />
+                    </Row>
+                  </Group>
+
                   <Group title="Quick capture">
                     <Row
                       title="Capture hotkey"
@@ -481,6 +493,59 @@ function DataStatus() {
         </span>
       )}
       <button className="btn" onClick={check}>
+        Check
+      </button>
+    </div>
+  );
+}
+
+/** Live build info in place of a string that would go stale after an update. */
+function SidebarVersion() {
+  const b = useBuild();
+  return (
+    <div className="rounded-xl border border-white/6 bg-white/2 p-3">
+      <div className="text-[12px] font-medium text-ink-200">Widgeto</div>
+      <div className="mt-0.5 text-[11px] text-ink-500">v{b.version} · Tauri {b.tauriVersion}</div>
+    </div>
+  );
+}
+
+/** Manual "check now", separate from the silent check that runs at startup. */
+function UpdateStatus() {
+  const pendingUpdate = useApp((st) => st.pendingUpdate);
+  const status = useApp((st) => st.updateCheckStatus);
+  const checkForUpdates = useApp((st) => st.checkForUpdates);
+
+  const label =
+    pendingUpdate
+      ? `update available · ${pendingUpdate.version}`
+      : status === "checking"
+        ? "checking…"
+        : status === "upToDate"
+          ? "up to date"
+          : status === "error"
+            ? "couldn't check"
+            : null;
+
+  return (
+    <div className="flex items-center gap-2">
+      {label && (
+        <span
+          className="text-[11.5px] font-semibold"
+          style={{
+            color: pendingUpdate
+              ? "var(--accent)"
+              : status === "upToDate"
+                ? "#3ddc84"
+                : status === "error"
+                  ? "#ff6b6b"
+                  : "var(--color-ink-400)",
+          }}
+        >
+          {label}
+        </span>
+      )}
+      <button className="btn" onClick={() => void checkForUpdates({ manual: true })}>
         Check
       </button>
     </div>

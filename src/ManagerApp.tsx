@@ -6,6 +6,7 @@ import { makeQueryClient } from "@/lib/queries";
 import ManagerChrome from "@/components/ManagerChrome";
 import Manager from "@/screens/Manager";
 import Settings from "@/screens/Settings";
+import UpdateDialog from "@/components/UpdateDialog";
 import { useApp } from "@/store/useApp";
 import { useDesktopSync } from "@/lib/useDesktopSync";
 import { setAlwaysOnTop } from "@/lib/tauri";
@@ -35,6 +36,14 @@ export default function ManagerApp() {
 
   useEffect(() => {
     if (useApp.getState().settings.managerAlwaysOnTop) setAlwaysOnTop(true);
+  }, []);
+
+  // give startup work (tray, desktop sync, hotkeys) a head start before the
+  // update check adds its own network round trip
+  useEffect(() => {
+    if (!isTauri() || !useApp.getState().settings.autoUpdateEnabled) return;
+    const t = setTimeout(() => void useApp.getState().checkForUpdates(), 4000);
+    return () => clearTimeout(t);
   }, []);
 
   // the capture hotkey lives with the manager, which is always running
@@ -106,13 +115,14 @@ export default function ManagerApp() {
             <Manager onOpenSettings={() => setSettingsOpen(true)} />
             <AnimatePresence>
               {settingsOpen && (
-                <div className="absolute inset-0 z-[700]">
+                <div className="absolute inset-0 z-700">
                   <Settings onBack={() => setSettingsOpen(false)} />
                 </div>
               )}
             </AnimatePresence>
           </main>
         </div>
+        <UpdateDialog />
       </Tooltip.Provider>
     </QueryClientProvider>
   );

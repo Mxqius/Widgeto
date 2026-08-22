@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import type { Update } from "@tauri-apps/plugin-updater";
 import type {
   ArrangeMode,
   DockZone,
@@ -11,7 +12,7 @@ import type {
 import { arrange, dockPosition } from "@/lib/layout";
 import { BROWSER_AREA, type Area } from "@/lib/desktop";
 import { WIDGET_KINDS, sizeOf } from "@/widgets/registry";
-import { clamp, uid } from "@/lib/utils";
+import { clamp, isTauri, uid } from "@/lib/utils";
 import { BUILTIN_PROFILES, snapshot, type Profile } from "@/lib/profiles";
 import { DEFAULT_SETTINGS } from "@/lib/defaults";
 
@@ -97,6 +98,14 @@ interface AppState {
   openAll: () => void;
   update: (patch: Partial<Settings>) => void;
 
+  /** the update found by the last check, if any; drives the update dialog */
+  pendingUpdate: Update | null;
+  updateCheckStatus: "idle" | "checking" | "upToDate" | "error";
+  checkForUpdates: (opts?: { manual?: boolean }) => Promise<void>;
+  installPendingUpdate: (onProgress?: (pct: number) => void) => Promise<void>;
+  dismissUpdateDialog: () => void;
+  skipUpdateVersion: () => void;
+
   applyProfile: (id: string) => void;
   saveProfile: (name: string) => string;
   updateProfile: (id: string) => void;
@@ -129,6 +138,8 @@ export const useApp = create<AppState>()(
       zTop: WIDGET_KINDS.length,
       profiles: BUILTIN_PROFILES,
       activeProfile: null,
+      pendingUpdate: null,
+      updateCheckStatus: "idle",
 
       setAreas: (areas) => {
         const { areas: prev, widgets, settings } = get();
@@ -277,6 +288,59 @@ export const useApp = create<AppState>()(
       openAll: () => set({ widgets: get().widgets.map((w) => (w.open ? w : { ...w, open: true })) }),
 
       update: (patchIn) => set({ settings: { ...get().settings, ...patchIn } }),
+
+      /* -------------------------------------------------------- updater -- */
+
+      checkForUpdates: async (opts) => {
+        if (!isTauri()) return;
+        set({ updateCheckStatus: "checking" });
+        try {
+          const { check } = await import("@tauri-apps/plugin-updater");
+          const found = await check();
+          if (!found) {
+            set({ updateCheckStatus: "upToDate", pendingUpdate: null });
+            return;
+          }
+          // an unattended check respects a version the user already skipped;
+          // a manual "check now" always surfaces it
+          if (!opts?.manual && found.version === get().settings.skippedUpdateVersion) {
+            set({ updateCheckStatus: "upToDate" });
+            return;
+          }
+          set({ updateCheckStatus: "idle", pendingUpdate: found });
+        } catch {
+          set({ updateCheckStatus: "error" });
+        }
+      },
+
+      installPendingUpdate: async (onProgress) => {
+        const found = get().pendingUpdate;
+        if (!found) return;
+        let total = 0;
+        let downloaded = 0;
+        await found.downloadAndInstall((event) => {
+          if (event.event === "Started") total = event.data.contentLength ?? 0;
+          if (event.event === "Progress") {
+            downloaded += event.data.chunkLength;
+            if (onProgress && total) onProgress(Math.min(100, Math.round((downloaded / total) * 100)));
+          }
+          if (event.event === "Finished") onProgress?.(100);
+        });
+        const { relaunch } = await import("@tauri-apps/plugin-process");
+        await relaunch();
+      },
+
+      dismissUpdateDialog: () => set({ pendingUpdate: null }),
+
+      skipUpdateVersion: () => {
+        const found = get().pendingUpdate;
+        set({
+          pendingUpdate: null,
+          settings: found
+            ? { ...get().settings, skippedUpdateVersion: found.version }
+            : get().settings,
+        });
+      },
 
       /* ------------------------------------------------------- profiles -- */
 

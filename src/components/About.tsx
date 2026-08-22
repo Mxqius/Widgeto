@@ -20,7 +20,7 @@ const UNKNOWN = "—";
  * Read at runtime rather than typed into this file, so a version bump can
  * never leave a stale number behind in the UI.
  */
-function useBuild(): Build {
+export function useBuild(): Build {
   const [b, setB] = useState<Build>({
     name: "Widgeto",
     version: UNKNOWN,

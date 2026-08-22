@@ -50,7 +50,10 @@
     "global-shortcut:allow-unregister",
     "global-shortcut:allow-is-registered",
     "global-shortcut:allow-unregister-all",
-    "opener:allow-open-path",
+    {
+      "identifier": "opener:allow-open-path",
+      "allow": [{ "path": "$APPCONFIG" }, { "path": "$APPCONFIG/**" }]
+    },
     "core:app:allow-version",
     "core:app:allow-name",
     "core:app:allow-identifier",

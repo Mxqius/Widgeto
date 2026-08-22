@@ -30,4 +30,6 @@ export const DEFAULT_SETTINGS: Settings = {
   clock24h: true,
   temperatureUnit: "C",
   wallpaper: "aurora",
+  autoUpdateEnabled: true,
+  skippedUpdateVersion: null,
 };
