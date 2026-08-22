@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import { Check, Copy, FolderOpen, Heart, RefreshCw } from "lucide-react";
+import { Check, Copy, FolderOpen, Github, Globe, Heart, RefreshCw, Send } from "lucide-react";
 import { useApp } from "@/store/useApp";
 import { WIDGETS } from "@/widgets/registry";
 import { isTauri } from "@/lib/utils";
 
-interface Build {
+export interface Build {
   name: string;
   version: string;
   identifier: string;
@@ -99,8 +99,8 @@ export default function About() {
       const { appConfigDir } = await import("@tauri-apps/api/path");
       const { openPath } = await import("@tauri-apps/plugin-opener");
       await openPath(await appConfigDir());
-    } catch {
-      /* nothing to open outside the desktop app */
+    } catch (err) {
+      console.error("Failed to open app data folder", err);
     }
   };
 
@@ -157,6 +157,32 @@ export default function About() {
         </p>
       </div>
 
+      {/* --------------------------------------------------------- connect */}
+      <div className="surface-flat rounded-2xl p-4">
+        <h4 className="label-xs mb-2.5">Connect</h4>
+        <div className="flex flex-wrap gap-1.5">
+          <a
+            className="btn"
+            href="https://t.me/your_telegram_here"
+            target="_blank"
+            rel="noreferrer"
+          >
+            <Send size={13} /> Telegram
+          </a>
+          <a
+            className="btn"
+            href="https://github.com/your_github_here"
+            target="_blank"
+            rel="noreferrer"
+          >
+            <Github size={13} /> GitHub
+          </a>
+          <a className="btn" href="https://your-website.example" target="_blank" rel="noreferrer">
+            <Globe size={13} /> Website
+          </a>
+        </div>
+      </div>
+
       {/* -------------------------------------------------------- support */}
       <div className="surface-flat rounded-2xl p-4">
         <h4 className="label-xs mb-2.5">Support</h4>
@@ -185,6 +211,7 @@ export default function About() {
         <p className="flex items-center justify-center gap-1.5 text-[11px] text-ink-600">
           Made with <Heart size={11} style={{ color: "var(--accent)" }} /> for a tidier desktop
         </p>
+        <p className="text-[10.5px] text-ink-700">Developed by MXQIUS</p>
         <p className="text-[10.5px] text-ink-700">© {YEAR} Widgeto. All rights reserved.</p>
       </div>
     </div>

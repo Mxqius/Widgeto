@@ -3,6 +3,16 @@
   "description": "Desktop widgets, always on your screen",
   "private": true,
   "version": "0.1.0",
+  "license": "MIT",
+  "author": "MXQIUS",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mxqius/widgeto.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mxqius/widgeto/issues"
+  },
+  "homepage": "https://github.com/mxqius/widgeto#readme",
   "type": "module",
   "scripts": {
     "dev": "vite",

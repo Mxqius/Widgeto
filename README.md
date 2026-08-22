@@ -1,22 +1,40 @@
+<p align="right"><a href="README.fa.md">فارسی</a> · <strong>English</strong></p>
+
 # Widgeto
+
+[![License: MIT](https://img.shields.io/badge/license-MIT-3ddc84.svg)](LICENSE)
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-4aa8ff.svg)](#download)
+[![Built with Tauri](https://img.shields.io/badge/built%20with-Tauri%202-ff4dd8.svg)](https://tauri.app)
 
 Desktop widgets that live **on your desktop**, not inside an app window. Each widget is its own
 frameless, transparent, always-on-desktop OS window. The main app window is a manager: it places,
 sizes, docks, shows and hides them.
 
-## Stack
+<!--
+  Add a screenshot or short GIF here before publishing, e.g.:
+  ![Widgeto on a desktop](docs/screenshot.png)
+-->
 
-| Layer     | Choice                                              |
-| --------- | --------------------------------------------------- |
-| Shell     | Tauri 2 (Rust), one webview window per widget       |
-| UI        | React 19 + [Base UI](https://base-ui.com) primitives |
-| Styling   | Tailwind CSS v4 (`@theme` tokens, no config file)   |
-| Motion    | Motion 13 (`motion/react`)                          |
-| State     | Zustand + `persist`, owned by the manager window    |
-| Data      | TanStack Query over Tauri commands; fetching in Rust |
-| Bundler   | Vite 7                                              |
+## Features
 
-## Run it
+- **12 real widgets** — Clock, Weather, System, Calendar, Tasks, Now Playing, Notes, Focus Timer,
+  Markets, Quick Launch, Network, Power, and a small animated Pet
+- **No widget is faked** — system, network and battery read the real machine; weather and markets
+  come from live public data; Notes, Tasks and Calendar are real and local
+- **Auto-dock, alignment guides and four auto-arrange modes** (grid, columns, cascade, ring)
+- **Multi-monitor aware** — every display's work area is tracked independently
+- **Lives in the tray** — closing the manager parks it there; the widgets stay on the desktop
+- **A global capture hotkey**, per-widget settings, profiles, and a keyboard-first manager
+- **Built-in auto-updates** you can turn off — see [Updating](#updating)
+
+## Download
+
+Grab the latest installer for your platform from the
+**[Releases page](https://github.com/mxqius/widgeto/releases)**.
+
+> The project is not published there yet — this link will work once the first release goes out.
+
+## Run it from source
 
 ```bash
 npm install
@@ -38,6 +56,14 @@ npm run dev
 > The dev server uses **port 3420**. Ports 1420 and 5273 fall inside Windows' excluded port ranges
 > on this machine, so Tauri's default was moved. Change it in `vite.config.ts` and
 > `src-tauri/tauri.conf.json` together.
+
+## Updating
+
+Widgeto checks GitHub Releases for a newer version shortly after it starts, using Tauri's signed
+updater — no telemetry, just a version check against this repo. When one is found you get a choice:
+**Download & Install**, **Remind me later** (asks again next launch), or **Skip this version**.
+Automatic checking can be turned off entirely in **Settings → Desktop & window → Updates**, which
+also has a manual "Check for updates now" button.
 
 ## How it fits together
 
@@ -107,7 +133,9 @@ sidecar, no port, no CORS and nothing extra to run or ship.
 **No widget is faked.** System, Network and Power read the real machine; Now Playing follows the
 actual media session and its transport buttons drive it; Clock, Calendar, Tasks, Notes and Focus
 Timer are real locally; Weather and Markets come from live upstreams. Quick Launch opens real
-sites, files and applications.
+sites, files and applications. The only exception: running the browser-only preview (`npm run dev`,
+no Tauri commands available) or a cold cache with an unreachable upstream falls back to a clearly
+labelled "sample data" tile instead of failing outright.
 
 Both upstreams are keyless. Every call goes through a TTL cache in `src-tauri/src/cache.rs` that
 doubles as a fallback: on an upstream failure the last good value is returned instead, and each
@@ -130,7 +158,7 @@ The machine probes are covered too, and those need no network:
 cd src-tauri && cargo test
 ```
 
-## Design language## Design language
+## Design language
 
 Uniform squircle tiles on a square grid, with two circular tiles for contrast. Every tile is either
 flat near-black or flat white — no glass, no glow, no accent wash. There are no section headers or
@@ -201,7 +229,7 @@ manager gets a tab per display.
 
 Appearance (accent, tile opacity, blur, radius, wallpaper) · Layout & docking (pull distance,
 margins, snapping, arrange mode, spacing) · Widgets (formats, instances) · Desktop & window (layer,
-show/hide all, manager always-on-top, reset) · Shortcuts · About.
+show/hide all, updates, manager always-on-top, reset) · Shortcuts · About.
 
 ## Source layout
 
@@ -211,34 +239,51 @@ src/
   lib/defaults.ts       default settings, dependency-free so widget windows can read them
   lib/desktop.ts        monitors, widget-window lifecycle, the event contract
   lib/useDesktopSync.ts reconciles OS windows against the store, one pass at a time
-  store/useApp.ts       widgets + settings; persisted only in the manager
-  components/           DesktopMap, ManagerChrome, WidgetLibrary, ui primitives
-  screens/              Manager, WidgetWindow, Settings
-  lib/data.ts           typed wrappers over the Rust data commands
-  lib/queries.ts        TanStack Query hooks, sample-data fallbacks
-  widgets/config.ts     per-widget settings and their defaults
-  widgets/registry.ts   metadata only (no bodies) so the manager stays small
-  widgets/loader.ts     one dynamic import per widget body
-  widgets/              the 12 bodies + shared parts + prefs context
-src-tauri/src/data.rs   network data commands (weather, markets, quote, …)
-src-tauri/src/system.rs local machine: cpu, memory, disk, network, battery,
-                        media session, and launching things
-src-tauri/src/cache.rs  TTL cache with stale fallback
-src-tauri/              Rust shell, tray, capabilities, icons
+  store/useApp.ts       widgets + settings + update state; persisted only in the manager
+  components/           DesktopMap, ManagerChrome, WidgetLibrary, UpdateDialog, ui primitives
+  screens/               Manager, WidgetWindow, Settings
+  lib/data.ts            typed wrappers over the Rust data commands
+  lib/queries.ts         TanStack Query hooks, sample-data fallbacks
+  widgets/config.ts      per-widget settings and their defaults
+  widgets/registry.ts    metadata only (no bodies) so the manager stays small
+  widgets/loader.ts      one dynamic import per widget body
+  widgets/               the 12 bodies + shared parts + prefs context
+src-tauri/src/data.rs    network data commands (weather, markets, quote, …)
+src-tauri/src/system.rs  local machine: cpu, memory, disk, network, battery,
+                         media session, and launching things
+src-tauri/src/cache.rs   TTL cache with stale fallback
+src-tauri/               Rust shell, tray, updater, capabilities, icons
 ```
 
-## Prototype notes
+## Performance notes
 
-Widget data is simulated — series wander plausibly rather than jumping. `host_info` in
-`src-tauri/src/lib.rs` is the seam where real system telemetry would enter.
+**Memory is dominated by process count, not by code.** Each widget is its own WebView2 renderer and
+each renderer costs roughly 80 MB no matter how little it runs, so twelve widgets sit near 1 GB.
+`--process-per-site` (set in `src-tauri/src/lib.rs`) hosts every same-origin window in one Chromium
+renderer instead of one per window, which is by far the biggest lever available without changing
+the architecture — it takes the app from roughly 1.5 GB to under 600 MB. The trade is isolation: one
+renderer means a crash takes every widget with it rather than one tile, which is an acceptable trade
+for a read-mostly widget board.
 
 Window movement is driven from the frontend via `setPosition`, which is what makes snapping and
 docking possible (a native drag would give up that control). On a slower machine a fast drag may
 show slight lag behind the cursor.
 
-**Memory is dominated by process count, not by code.** Each widget is its own WebView2 renderer and
-each renderer costs roughly 80 MB no matter how little it runs, so twelve widgets sit near 1 GB.
-Code-splitting cut the JS a widget window parses by ~76% (1539 KB to ~370 KB) and solid tiles cut
-GPU memory, which together took the whole process tree from ~1676 MB to ~1479 MB — but the only
-large lever left is fewer windows. A single fullscreen transparent overlay hosting every widget
-would be roughly one renderer instead of twelve, at the cost of hit-testing for click-through.
+## Contributing
+
+Issues and pull requests are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) for how to get set up
+and what makes a good PR. Found a bug? [Open an issue](https://github.com/mxqius/widgeto/issues).
+
+## License
+
+MIT — see [LICENSE](LICENSE).
+
+---
+
+<p align="center">
+  <a href="https://t.me/your_telegram_here">Telegram</a> ·
+  <a href="https://github.com/your_github_here">GitHub</a> ·
+  <a href="https://your-website.example">Website</a>
+  <br>
+  Made by <strong>MXQIUS</strong>
+</p>
