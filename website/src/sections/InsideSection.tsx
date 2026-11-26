@@ -32,17 +32,6 @@ function Bar({ label, mb, max, color, delay }: { label: string; mb: number; max:
   );
 }
 
-const TREE = `main window          ─ the manager: owns all state
-  └── DesktopMap     ─ live map of each monitor
-  └── useDesktopSync ─ reconciles OS windows
-
-w-<kind> windows     ─ one per visible widget
-                       frameless · transparent
-                       skipTaskbar · alwaysOnBottom
-
-island               ─ the Dynamic Island
-capture              ─ the quick-capture bar`;
-
 export function InsideSection() {
   return (
     <section id="inside" className="relative py-28 sm:py-36">
@@ -61,32 +50,22 @@ export function InsideSection() {
           windows are read-only replicas that report back only what you did.
         </SectionHead>
 
-        <div className="mt-14 grid gap-4 lg:grid-cols-2">
-          <Reveal className="card overflow-hidden p-0">
-            <div className="flex items-center gap-1.5 border-b border-white/[0.07] px-5 py-3.5">
-              <span className="size-2.5 rounded-full bg-white/15" />
-              <span className="size-2.5 rounded-full bg-white/15" />
-              <span className="size-2.5 rounded-full bg-white/15" />
-              <span className="ml-3 font-mono text-[12px] text-ink-400">how it fits together</span>
-            </div>
-            <pre className="overflow-x-auto p-6 font-mono text-[12.5px] leading-[1.75] text-ink-200">{TREE}</pre>
-          </Reveal>
-
-          <Reveal delay={0.08} className="card p-7">
-            <h3 className="text-[16px] font-semibold">Low-memory mode</h3>
+        <Reveal className="card mt-14 grid gap-8 p-7 sm:p-9 lg:grid-cols-[1fr_1.2fr] lg:items-center">
+          <div>
+            <h3 className="text-[18px] font-semibold">Low-memory mode</h3>
             <p className="mt-2 text-[14.5px] leading-relaxed text-ink-300">
               Drops the tile blur, stretches every poll, and hands compositing back to the CPU. Measured with all thirteen
-              widgets on the desktop and the manager parked in the tray:
+              widgets on the desktop and the manager parked in the tray.
             </p>
-            <div className="mt-7 space-y-5">
-              <Bar label="Default" mb={342} max={360} color="linear-gradient(90deg,#4a4d55,#9598a1)" delay={0} />
-              <Bar label="Low-memory mode" mb={255} max={360} color="linear-gradient(90deg,#7c5cff,#ff4dd8)" delay={0.15} />
-            </div>
-            <p className="mt-6 text-[13px] leading-relaxed text-ink-400">
+            <p className="mt-4 text-[13px] leading-relaxed text-ink-400">
               Committed private bytes. Thirteen widget windows cost about 57 MB together — roughly 4 MB each.
             </p>
-          </Reveal>
-        </div>
+          </div>
+          <div className="space-y-5">
+            <Bar label="Default" mb={342} max={360} color="linear-gradient(90deg,#4a4d55,#9598a1)" delay={0} />
+            <Bar label="Low-memory mode" mb={255} max={360} color="linear-gradient(90deg,#7c5cff,#ff4dd8)" delay={0.15} />
+          </div>
+        </Reveal>
 
         <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {FACTS.map(({ icon: Icon, title, text }, i) => (
