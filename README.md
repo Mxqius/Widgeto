@@ -52,9 +52,10 @@ every widget render):
 npm run dev
 ```
 
-> The dev server uses **port 3420**. Ports 1420 and 5273 fall inside Windows' excluded port ranges
-> on this machine, so Tauri's default was moved. Change it in `vite.config.ts` and
-> `src-tauri/tauri.conf.json` together.
+> The dev server uses **port 7420**. Windows reserves shifting blocks of ports for Hyper-V and
+> WSL (`netsh interface ipv4 show excludedportrange protocol=tcp` lists them), and Tauri's default
+> 1420 — and later 3420 — fell inside them, so the port was moved clear of the usual ranges. Change
+> it in `vite.config.ts` and `src-tauri/tauri.conf.json` together.
 
 ## Updating
 

@@ -64,10 +64,10 @@ export default defineConfig({
   resolve: { alias: { "@": at("./src") } },
   clearScreen: false,
   server: {
-    port: 3420,
+    port: 7420,
     strictPort: true,
     host: host || false,
-    hmr: host ? { protocol: "ws", host, port: 3421 } : undefined,
+    hmr: host ? { protocol: "ws", host, port: 7421 } : undefined,
     watch: { ignored: ["**/src-tauri/**"] },
   },
   envPrefix: ["VITE_", "TAURI_ENV_*"],

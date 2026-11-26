@@ -5,7 +5,7 @@
   "identifier": "com.widgeto.app",
   "build": {
     "beforeDevCommand": "npm run dev",
-    "devUrl": "http://localhost:3420",
+    "devUrl": "http://localhost:7420",
     "beforeBuildCommand": "npm run build",
     "frontendDist": "../dist"
   },
