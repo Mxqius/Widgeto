@@ -62,8 +62,53 @@ npm run dev
 Widgeto checks GitHub Releases for a newer version shortly after it starts, using Tauri's signed
 updater — no telemetry, just a version check against this repo. When one is found you get a choice:
 **Download & Install**, **Remind me later** (asks again next launch), or **Skip this version**.
-Automatic checking can be turned off entirely in **Settings → Desktop & window → Updates**, which
+Automatic checking can be turned off entirely in **Settings → Desktop & system → Updates**, which
 also has a manual "Check for updates now" button.
+
+## Project layout
+
+```
+src/
+├── app/
+│   ├── manager/   ← index.html    the manager window: store, board, settings
+│   ├── widget/    ← widget.html   one widget, alone in its own desktop window
+│   └── capture/   ← capture.html  the quick-capture bar
+└── shared/                        types, IPC, layout maths, tokens
+```
+
+Three HTML entries, one per window kind, and a hard rule between them: `app/*` may import
+`shared/**` and nothing else of `app/*`. That boundary is not a convention — `npm run build` runs
+`scripts/check-boundaries.mjs` first, which walks the static import graph from each entry (and from
+each widget body, since those are lazily loaded and so invisible to an entry walk) and fails if
+anything reaches a package it has no business loading.
+
+The point is memory. A widget window is one of thirteen frames sharing a single renderer, so
+anything it loads it loads thirteen times. Keeping the animation library, Base UI, the store and
+tailwind-merge out of that graph is worth more than any amount of tidiness, and the guard is what
+keeps them out once they are out.
+
+```bash
+npm run bundle-report   # what each window kind actually downloads and parses
+```
+
+## Low-memory mode
+
+**Settings → Appearance → Performance.** Off by default; the native half needs a restart.
+
+It drops the tile blur, stretches every poll further, and hands compositing back to the CPU. On the
+development machine, with all thirteen widgets on the desktop and the manager parked in the tray:
+
+| | committed (private bytes) |
+|---|---|
+| default | ~342 MB |
+| Low-memory mode | ~255 MB |
+
+Worth knowing where that comes from, because it is not where you would guess. Measured on the same
+box, the thirteen widget frames together cost about **57 MB** — roughly 4 MB each — on top of a
+**~498 MB floor** that WebView2 charges for the browser, GPU, network and storage processes before a
+single widget exists. Shrinking what each widget window downloads is worth doing for startup time
+and for CPU, but it cannot move a number that is dominated by fixed runtime overhead. Turning off
+GPU compositing can, because the GPU process alone is ~106 MB of that floor.
 
 ## How it fits together
 
@@ -72,7 +117,7 @@ main window            ─ the manager: owns all state, persists it
   └── DesktopMap       ─ scaled live map of the monitor work area
   └── useDesktopSync   ─ reconciles OS windows against the store
 
-w-<kind> windows       ─ one per visible widget, index.html?w=<kind>
+w-<kind> windows       ─ one per visible widget, widget.html?w=<kind>
                          frameless · transparent · skipTaskbar · alwaysOnBottom
 ```
 
@@ -142,8 +187,9 @@ doubles as a fallback: on an upstream failure the last good value is returned in
 response carries `source: "live" | "cache" | "stale"` plus an age, so a tile can say it is showing
 the last known value. Only a cold cache can fail, and the widget then shows sample data.
 
-On the client the commands are wrapped in TanStack Query (`src/lib/queries.ts`), which owns the
-refetch intervals, retries and per-window caching. **axios is deliberately absent** — with the data
+On the client the commands are wrapped in TanStack Query (`src/app/widget/data/`), which owns the
+refetch intervals, retries and per-window caching. It is loaded on demand: the six widgets that
+never fetch anything never pull the query client into their window at all. **axios is deliberately absent** — with the data
 layer in-process there is no HTTP for it to do; it would only wrap `invoke` in a second cache.
 
 Live checks against the real upstreams live next to the code:
@@ -165,12 +211,13 @@ flat near-black or flat white — no glass, no glow, no accent wash. There are n
 uppercase labels: hierarchy comes from type size and weight, so the content *is* the widget. A
 single magenta accent appears sparingly (meter tip, selected day, progress fill).
 
-Recurring elements live in `src/widgets/parts.tsx`: `Say`/`Muted` for the mixed-weight typographic
+Recurring elements live in `src/app/widget/ui/`: `Say`/`Muted` for the mixed-weight typographic
 sentences, `TickMeter` for tick-mark meters, `Line` for hairline scrubbers, `Stat` for big numerals
-and `Row`/`Swatch` for thumbnail lists.
+and `ListRow`/`Swatch` for thumbnail lists.
 
-Tiles are solid by default. Dropping `backdrop-filter` from twelve always-on windows is also worth
-about 26 MB of GPU memory; turn tile opacity below 100% in Settings and the blur comes back.
+Tiles are solid by default. Dropping `backdrop-filter` from thirteen always-on windows is also
+worth real GPU memory; turn tile opacity below 100% in Settings and the blur comes back, and
+Low-memory mode takes it away again.
 
 ## The 12 widgets
 
@@ -185,7 +232,7 @@ a while alone — waking the moment you touch it again.
 **One of each — widgets cannot be duplicated.** `kind` is the identity, the store holds exactly one
 entry per kind, and adding or removing just flips its `open` flag, so a widget keeps its position
 and size while hidden. Three uniform square sizes (176 / 216 / 264 px) and a `theme` + `shape` per
-kind are declared in `src/widgets/registry.ts`. Notes and Tasks keep their content.
+kind are declared in `src/shared/widgets/kinds.ts`. Notes and Tasks keep their content.
 
 ## Placement features
 
