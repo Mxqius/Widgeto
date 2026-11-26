@@ -246,13 +246,10 @@ pub struct MediaNow {
 /// Reads whatever is currently playing from the Windows media session, so the
 /// tile follows Spotify, a browser tab, or any other SMTC-aware player.
 #[cfg(windows)]
-#[tauri::command]
-pub fn media_now() -> Result<MediaNow, String> {
+fn media_now_blocking() -> Result<MediaNow, String> {
     use windows::Media::Control::GlobalSystemMediaTransportControlsSessionPlaybackStatus as Status;
 
-    let mgr = media_manager()?;
-
-    let Ok(session) = mgr.GetCurrentSession() else {
+    let Some(session) = active_session()? else {
         return Ok(MediaNow::default());
     };
 
@@ -289,17 +286,14 @@ pub fn media_now() -> Result<MediaNow, String> {
 }
 
 #[cfg(not(windows))]
-#[tauri::command]
-pub fn media_now() -> Result<MediaNow, String> {
+fn media_now_blocking() -> Result<MediaNow, String> {
     Ok(MediaNow::default())
 }
 
 /// Transport control for the active session: "play", "pause", "next", "prev".
 #[cfg(windows)]
-#[tauri::command]
-pub fn media_control(action: String) -> Result<(), String> {
-    let mgr = media_manager()?;
-    let session = mgr.GetCurrentSession().map_err(|e| e.to_string())?;
+fn media_control_blocking(action: String) -> Result<(), String> {
+    let session = active_session()?.ok_or("nothing is playing")?;
 
     let op = match action.as_str() {
         "play" => session.TryPlayAsync(),
@@ -316,8 +310,7 @@ pub fn media_control(action: String) -> Result<(), String> {
 }
 
 #[cfg(not(windows))]
-#[tauri::command]
-pub fn media_control(_action: String) -> Result<(), String> {
+fn media_control_blocking(_action: String) -> Result<(), String> {
     Err("media control is Windows-only for now".into())
 }
 
@@ -327,16 +320,18 @@ pub fn media_control(_action: String) -> Result<(), String> {
 /// does not publish one. Keyed on title and artist, so polling it is free
 /// until the track actually changes.
 #[cfg(windows)]
-#[tauri::command]
-pub fn media_art() -> Result<Option<String>, String> {
+fn media_art_blocking() -> Result<Option<String>, String> {
     use windows::core::Interface;
-    use windows::Storage::Streams::{DataReader, IInputStream};
+    use windows::Storage::Streams::{DataReader, IInputStream, InputStreamOptions};
 
-    static LAST: OnceLock<Mutex<Option<(String, Option<String>)>>> = OnceLock::new();
+    // Only a cover that was actually found is remembered. Many players —
+    // Telegram among them — publish the title first and the cover a moment
+    // later, so "no cover yet" must stay retryable rather than stick for the
+    // rest of the track.
+    static LAST: OnceLock<Mutex<Option<(String, String)>>> = OnceLock::new();
     let last = LAST.get_or_init(|| Mutex::new(None));
 
-    let mgr = media_manager()?;
-    let Ok(session) = mgr.GetCurrentSession() else {
+    let Some(session) = active_session()? else {
         return Ok(None);
     };
     let props = session
@@ -345,52 +340,118 @@ pub fn media_art() -> Result<Option<String>, String> {
         .and_then(|op| pollster::block_on(op).map_err(|e| e.to_string()))?;
 
     let key = format!(
-        "{}\u{1f}{}",
+        "{}\u{1f}{}\u{1f}{}",
+        session.SourceAppUserModelId().map(|s| s.to_string()).unwrap_or_default(),
         props.Title().map(|s| s.to_string()).unwrap_or_default(),
         props.Artist().map(|s| s.to_string()).unwrap_or_default()
     );
     if let Ok(guard) = last.lock() {
         if let Some((k, art)) = guard.as_ref() {
             if *k == key {
-                return Ok(art.clone());
+                return Ok(Some(art.clone()));
             }
         }
     }
+
+    /// a cover is tens of kilobytes; anything past this is not one
+    const MAX: usize = 4 * 1024 * 1024;
+    const CHUNK: u32 = 64 * 1024;
 
     let read = || -> windows::core::Result<Option<String>> {
         let Ok(thumb) = props.Thumbnail() else {
             return Ok(None);
         };
         let stream = pollster::block_on(thumb.OpenReadAsync()?)?;
-        let size = stream.Size()?;
-        // a cover is tens of kilobytes; anything past this is not one
-        if size == 0 || size > 4 * 1024 * 1024 {
-            return Ok(None);
-        }
-        let mime = stream
-            .ContentType()
-            .map(|s| s.to_string())
-            .ok()
-            .filter(|s| s.starts_with("image/"))
-            .unwrap_or_else(|| "image/png".into());
+        let declared = stream.ContentType().map(|s| s.to_string()).unwrap_or_default();
+
+        // Read in chunks until the stream runs dry instead of trusting
+        // `Size()`: some apps hand over a stream that reports 0.
         let input: IInputStream = stream.cast()?;
         let reader = DataReader::CreateDataReader(&input)?;
-        let n = pollster::block_on(reader.LoadAsync(size as u32)?)?;
-        let mut buf = vec![0u8; n as usize];
-        reader.ReadBytes(&mut buf)?;
-        Ok(Some(format!("data:{mime};base64,{}", base64(&buf))))
+        reader.SetInputStreamOptions(InputStreamOptions::Partial)?;
+        let mut buf: Vec<u8> = Vec::new();
+        loop {
+            let n = pollster::block_on(reader.LoadAsync(CHUNK)?)? as usize;
+            if n == 0 {
+                break;
+            }
+            let start = buf.len();
+            buf.resize(start + n, 0);
+            reader.ReadBytes(&mut buf[start..])?;
+            if buf.len() > MAX {
+                return Ok(None);
+            }
+        }
+
+        Ok(image_mime(&buf, &declared).map(|mime| format!("data:{mime};base64,{}", base64(&buf))))
     };
     let art = read().unwrap_or(None);
 
-    if let Ok(mut guard) = last.lock() {
-        *guard = Some((key, art.clone()));
+    if let Some(a) = &art {
+        if let Ok(mut guard) = last.lock() {
+            *guard = Some((key, a.clone()));
+        }
     }
     Ok(art)
 }
 
+/// What the bytes actually are, by their magic number; the declared content
+/// type is often empty or generic. `None` when it is not an image at all.
+#[cfg(windows)]
+fn image_mime(b: &[u8], declared: &str) -> Option<String> {
+    let sniffed = if b.starts_with(&[0xFF, 0xD8, 0xFF]) {
+        "image/jpeg"
+    } else if b.starts_with(b"\x89PNG") {
+        "image/png"
+    } else if b.starts_with(b"GIF8") {
+        "image/gif"
+    } else if b.len() > 12 && &b[0..4] == b"RIFF" && &b[8..12] == b"WEBP" {
+        "image/webp"
+    } else if b.starts_with(b"BM") {
+        "image/bmp"
+    } else if declared.starts_with("image/") && !b.is_empty() {
+        return Some(declared.to_string());
+    } else {
+        return None;
+    };
+    Some(sniffed.to_string())
+}
+
+/// The session worth showing. Windows' "current" session is simply the one
+/// that last grabbed focus, which is often an idle browser tab while music
+/// plays somewhere else — so a session that is actually playing wins, with
+/// the current one preferred among those.
+#[cfg(windows)]
+fn active_session(
+) -> Result<Option<windows::Media::Control::GlobalSystemMediaTransportControlsSession>, String> {
+    use windows::Media::Control::GlobalSystemMediaTransportControlsSessionPlaybackStatus as Status;
+
+    let mgr = media_manager()?;
+    let current = mgr.GetCurrentSession().ok();
+    let playing = |s: &windows::Media::Control::GlobalSystemMediaTransportControlsSession| {
+        s.GetPlaybackInfo()
+            .and_then(|i| i.PlaybackStatus())
+            .map(|st| st == Status::Playing)
+            .unwrap_or(false)
+    };
+
+    if let Some(c) = &current {
+        if playing(c) {
+            return Ok(current);
+        }
+    }
+    if let Ok(all) = mgr.GetSessions() {
+        for s in &all {
+            if playing(&s) {
+                return Ok(Some(s));
+            }
+        }
+    }
+    Ok(current)
+}
+
 #[cfg(not(windows))]
-#[tauri::command]
-pub fn media_art() -> Result<Option<String>, String> {
+fn media_art_blocking() -> Result<Option<String>, String> {
     Ok(None)
 }
 
@@ -409,6 +470,37 @@ fn base64(bytes: &[u8]) -> String {
         out.push(if c.len() > 2 { T[n as usize & 63] as char } else { '=' });
     }
     out
+}
+
+/* ------------------------------------------------- media, off the main thread */
+
+// Tauri runs a plain `fn` command on the main thread. The media commands block
+// on WinRT async operations, and some of those — reading a cover's stream in
+// particular — complete through that same thread's message loop, so blocking
+// it there deadlocks the whole app. These run them on the blocking pool.
+
+async fn off_main<T: Send + 'static>(
+    f: impl FnOnce() -> Result<T, String> + Send + 'static,
+) -> Result<T, String> {
+    tauri::async_runtime::spawn_blocking(f)
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+pub async fn media_now() -> Result<MediaNow, String> {
+    off_main(media_now_blocking).await
+}
+
+/// Transport control for the active session: "play", "pause", "toggle", "next", "prev".
+#[tauri::command]
+pub async fn media_control(action: String) -> Result<(), String> {
+    off_main(move || media_control_blocking(action)).await
+}
+
+#[tauri::command]
+pub async fn media_art() -> Result<Option<String>, String> {
+    off_main(media_art_blocking).await
 }
 
 /* ------------------------------------------------------------------ launch */

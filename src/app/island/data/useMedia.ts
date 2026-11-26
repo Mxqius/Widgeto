@@ -44,8 +44,10 @@ export function useIslandMedia(): Track {
       const tint = src ? await vividColour(src) : null;
       if (!alive) return;
       setArt({ key, src, tint });
-      // players often publish the new cover a moment after the new title
-      if (!src && ++tries < 3) t = setTimeout(load, 1500);
+      // Players often publish the cover a moment — sometimes seconds — after
+      // the title, so keep asking for a while. The native side only caches a
+      // cover it actually found, so each retry is a real read.
+      if (!src && ++tries < 10) t = setTimeout(load, 2000);
     };
     void load();
     return () => {
