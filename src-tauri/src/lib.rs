@@ -1,6 +1,7 @@
 mod cache;
 mod data;
 mod ical;
+mod audio;
 mod island;
 mod system;
 
@@ -177,6 +178,10 @@ pub fn run() {
             system::media_now,
             system::media_control,
             system::media_art,
+            audio::volume_get,
+            audio::volume_set,
+            audio::volume_mute,
+            system::media_seek,
             island::island_ready,
             island::island_hit,
             system::launch,

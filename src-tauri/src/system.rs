@@ -241,6 +241,22 @@ pub struct MediaNow {
     position_sec: Option<u64>,
     #[serde(rename = "durationSec")]
     duration_sec: Option<u64>,
+    /// `None` when the player does not report it
+    shuffle: Option<bool>,
+    /// "none" | "track" | "list"
+    repeat: Option<&'static str>,
+    /// What the player lets us do. `None` means it did not say, so the button
+    /// stays available rather than being greyed out for no reason.
+    #[serde(rename = "canSeek")]
+    can_seek: Option<bool>,
+    #[serde(rename = "canShuffle")]
+    can_shuffle: Option<bool>,
+    #[serde(rename = "canRepeat")]
+    can_repeat: Option<bool>,
+    #[serde(rename = "canNext")]
+    can_next: Option<bool>,
+    #[serde(rename = "canPrev")]
+    can_prev: Option<bool>,
 }
 
 /// Reads whatever is currently playing from the Windows media session, so the
@@ -256,7 +272,25 @@ fn media_now_blocking() -> Result<MediaNow, String> {
     let mut out = MediaNow::default();
 
     if let Ok(info) = session.GetPlaybackInfo() {
+        use windows::Media::MediaPlaybackAutoRepeatMode as Repeat;
         out.playing = matches!(info.PlaybackStatus(), Ok(Status::Playing));
+        out.shuffle = info.IsShuffleActive().and_then(|r| r.Value()).ok();
+        out.repeat = info
+            .AutoRepeatMode()
+            .and_then(|r| r.Value())
+            .ok()
+            .map(|m| match m {
+                Repeat::Track => "track",
+                Repeat::List => "list",
+                _ => "none",
+            });
+        if let Ok(c) = info.Controls() {
+            out.can_seek = c.IsPlaybackPositionEnabled().ok();
+            out.can_shuffle = c.IsShuffleEnabled().ok();
+            out.can_repeat = c.IsRepeatEnabled().ok();
+            out.can_next = c.IsNextEnabled().ok();
+            out.can_prev = c.IsPreviousEnabled().ok();
+        }
     }
     let props = session
         .TryGetMediaPropertiesAsync()
@@ -296,6 +330,29 @@ fn media_control_blocking(action: String) -> Result<(), String> {
     let session = active_session()?.ok_or("nothing is playing")?;
 
     let op = match action.as_str() {
+        "shuffle" => {
+            let on = session
+                .GetPlaybackInfo()
+                .and_then(|i| i.IsShuffleActive())
+                .and_then(|r| r.Value())
+                .unwrap_or(false);
+            session.TryChangeShuffleActiveAsync(!on)
+        }
+        "repeat" => {
+            use windows::Media::MediaPlaybackAutoRepeatMode as Repeat;
+            let now = session
+                .GetPlaybackInfo()
+                .and_then(|i| i.AutoRepeatMode())
+                .and_then(|r| r.Value())
+                .unwrap_or(Repeat::None);
+            // off -> whole list -> this track -> off, the order players use
+            let next = match now {
+                Repeat::List => Repeat::Track,
+                Repeat::Track => Repeat::None,
+                _ => Repeat::List,
+            };
+            session.TryChangeAutoRepeatModeAsync(next)
+        }
         "play" => session.TryPlayAsync(),
         "pause" => session.TryPauseAsync(),
         "toggle" => session.TryTogglePlayPauseAsync(),
@@ -501,6 +558,28 @@ pub async fn media_control(action: String) -> Result<(), String> {
 #[tauri::command]
 pub async fn media_art() -> Result<Option<String>, String> {
     off_main(media_art_blocking).await
+}
+
+/// Jump the playhead to `seconds` into the track.
+#[tauri::command]
+pub async fn media_seek(seconds: f64) -> Result<(), String> {
+    off_main(move || media_seek_blocking(seconds)).await
+}
+
+#[cfg(windows)]
+fn media_seek_blocking(seconds: f64) -> Result<(), String> {
+    let session = active_session()?.ok_or("nothing is playing")?;
+    let ticks = (seconds.max(0.0) * 10_000_000.0) as i64;
+    let op = session
+        .TryChangePlaybackPositionAsync(ticks)
+        .map_err(|e| e.to_string())?;
+    pollster::block_on(op).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[cfg(not(windows))]
+fn media_seek_blocking(_seconds: f64) -> Result<(), String> {
+    Err("media control is Windows-only for now".into())
 }
 
 /* ------------------------------------------------------------------ launch */
