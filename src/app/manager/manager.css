@@ -1,0 +1,10 @@
+@import "tailwindcss" source(none);
+@import "../../shared/styles/tokens.css";
+@import "../../shared/styles/base.css";
+@import "../../shared/styles/components.css";
+
+@source "../../shared";
+@source "../../app/manager";
+
+@utility no-drag { -webkit-app-region: no-drag; }
+@utility app-drag { -webkit-app-region: drag; }

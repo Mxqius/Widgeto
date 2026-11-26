@@ -1,0 +1,121 @@
+/*
+ * The hand-written class layer, shared by all three entries.
+ *
+ * Only ~4 KB of the stylesheet; the bulk is Tailwind's generated utilities,
+ * and those are what each entry narrows with its own `@source` list. Keeping
+ * these together avoids the failure mode where a class is used in one app area
+ * but declared in another entry's sheet — which is how `.surface-flat` came to
+ * be referenced in five places without ever being defined.
+ */
+@layer components {
+  /*
+   * Widget tiles. Solid by default — the reference language is flat black and
+   * flat white, and dropping backdrop-filter also takes real GPU work off
+   * thirteen always-on windows. Blur only kicks in if the user dials the tile
+   * translucent, and Low-memory mode zeroes --widget-blur outright.
+   */
+  .tile {
+    border-radius: var(--radius-tile);
+    overflow: hidden;
+    position: relative;
+    isolation: isolate;
+  }
+
+  .tile-dark {
+    background: color-mix(in srgb, var(--tile-dark) calc(var(--widget-alpha) * 100%), transparent);
+    color: #fff;
+  }
+
+  .tile-light {
+    background: color-mix(in srgb, var(--tile-light) calc(var(--widget-alpha) * 100%), transparent);
+    color: #0a0a0b;
+  }
+
+  .tile-translucent {
+    backdrop-filter: blur(var(--widget-blur)) saturate(150%);
+    -webkit-backdrop-filter: blur(var(--widget-blur)) saturate(150%);
+  }
+
+  /* muted text that follows the tile's ground */
+  .tile-dark .dim { color: rgba(255, 255, 255, 0.5); }
+  .tile-dark .dimmer { color: rgba(255, 255, 255, 0.32); }
+  .tile-light .dim { color: rgba(10, 10, 11, 0.5); }
+  .tile-light .dimmer { color: rgba(10, 10, 11, 0.34); }
+
+  .tile-dark .rule { background: rgba(255, 255, 255, 0.1); }
+  .tile-light .rule { background: rgba(10, 10, 11, 0.1); }
+
+  /* the signature display type: tight, large, mixed weight in one line */
+  .display {
+    font-weight: 620;
+    letter-spacing: -0.035em;
+    line-height: 1.06;
+  }
+
+  .numeral {
+    font-variant-numeric: tabular-nums;
+    font-weight: 640;
+    letter-spacing: -0.04em;
+  }
+
+  .hairline { border-color: rgba(255, 255, 255, 0.07); }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-2.5 h-8 text-[13px] font-medium
+           transition-all duration-150 select-none outline-none;
+    color: var(--color-ink-200);
+  }
+  .btn:hover { background: rgba(255, 255, 255, 0.06); color: #fff; }
+  .btn:active { transform: scale(0.97); }
+  .btn[data-pressed], .btn[data-selected="true"] {
+    background: var(--accent-soft);
+    color: color-mix(in srgb, var(--accent) 55%, #fff);
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.2) inset, 0 6px 16px -6px var(--accent);
+  }
+  .btn-primary:hover { background: color-mix(in srgb, var(--accent) 88%, #fff); color: #fff; }
+
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--color-ink-300);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .field {
+    @apply w-full rounded-lg px-3 h-9 text-[13px] outline-none transition-colors;
+    background: rgba(255, 255, 255, 0.035);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    color: var(--color-ink-100);
+  }
+  .field::placeholder { color: var(--color-ink-500); }
+  .field:focus {
+    border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .label-xs {
+    @apply text-[10px] font-semibold uppercase tracking-[0.09em];
+    color: var(--color-ink-500);
+  }
+
+  /*
+   * The flat card ground behind settings groups and the About panels. Was
+   * referenced in five places and never declared, so every one of them was
+   * rendering with no surface at all.
+   */
+  .surface-flat {
+    background: rgba(255, 255, 255, 0.025);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+  }
+}
+
+/* Base UI popup animations */
+[data-starting-style], [data-ending-style] { opacity: 0; transform: scale(0.96) translateY(-4px); }
+.popup {
+  transition: opacity 160ms var(--ease-out-expo), transform 160ms var(--ease-out-expo);
+}

@@ -1,0 +1,48 @@
+@import "tailwindcss" source(none);
+@import "../../shared/styles/tokens.css";
+@import "../../shared/styles/base.css";
+@import "../../shared/styles/components.css";
+
+/*
+ * Automatic content detection is off. Each window kind scans only the code it
+ * can actually reach, so a widget frame is not handed the manager's several
+ * hundred utility classes. The boundary script asserts that every source
+ * directory is covered by an @source somewhere, because a missing one here
+ * fails silently at runtime rather than at build time.
+ */
+@source "../../shared";
+@source "../../app/widget";
+
+/* ---------------------------------------------------------- pet widget -- */
+@keyframes pet-breathe {
+  0%, 100% { transform: scale(1, 1); }
+  50%      { transform: scale(1.025, 0.972); }
+}
+@keyframes pet-breathe-slow {
+  0%, 100% { transform: scale(1, 1); }
+  50%      { transform: scale(1.035, 0.96); }
+}
+@keyframes pet-bounce {
+  0%   { transform: translateY(0) scale(1, 1); }
+  30%  { transform: translateY(-13px) scale(0.95, 1.06); }
+  60%  { transform: translateY(0) scale(1.07, 0.93); }
+  100% { transform: translateY(0) scale(1, 1); }
+}
+@keyframes pet-tail {
+  0%, 100% { transform: rotate(-9deg); }
+  50%      { transform: rotate(11deg); }
+}
+@keyframes pet-heart {
+  0%   { opacity: 0; transform: translate(0, 0) scale(0.5); }
+  22%  { opacity: 1; transform: translate(calc(var(--drift) * 0.3), -10px) scale(1.1); }
+  100% { opacity: 0; transform: translate(var(--drift), -46px) scale(0.85); }
+}
+@keyframes pet-zzz {
+  0%   { opacity: 0; transform: translate(0, 4px) scale(0.7); }
+  35%  { opacity: 0.9; }
+  100% { opacity: 0; transform: translate(11px, -20px) scale(1.25); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [style*="pet-"] { animation: none !important; }
+}

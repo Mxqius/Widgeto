@@ -1,0 +1,7 @@
+@import "tailwindcss" source(none);
+@import "../../shared/styles/tokens.css";
+@import "../../shared/styles/base.css";
+@import "../../shared/styles/components.css";
+
+@source "../../shared";
+@source "../../app/capture";
