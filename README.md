@@ -101,8 +101,10 @@ A black pill at the top centre of your main display that grows into whatever is 
 | Idle | The time, plus one quiet fact: charging, low battery, or the outside temperature |
 | Music | The album cover and a live equaliser tinted with the cover's own colour |
 | Focus timer | A progress ring and the time left; beside music it splits off into its own bubble |
-| Hover | Opens into a panel with four tabs: **Now playing** (cover, progress, transport), **Focus** (focus / break / long break, start, pause, reset, sessions today), **System** (CPU, memory, battery, network) and **Today** (time, date, weather) |
-| Live activity | Pops out for a few seconds on a new track, charger in or out, low battery, a finished focus session (with a soft chime) or a note saved from quick capture |
+| Hover | Opens into a panel with four tabs: **Now playing** (cover, title, source app, drag-to-seek, shuffle, previous / play / next, repeat off / all / one, and a system volume slider with mute), **Focus** (focus / break / long break, start, pause, reset, sessions today), **System** (CPU, memory, battery, network) and **Today** (time, date, weather) |
+| Volume | Change the volume from the keyboard, the mixer or by **scrolling over the island**, and it shows a live volume bar |
+| Privacy | A green dot while an app uses the camera, an orange one for the microphone, with the app's name in the open panel and a pop-out when one starts |
+| Live activity | Pops out for a few seconds on a new track, charger in or out, low battery, a finished focus session (with a soft chime), a note saved from quick capture, an app turning on the mic or camera, or Caps Lock |
 
 Every shape change is a CSS transition driven by real spring physics baked into a `linear()`
 easing (`src/app/island/lib/spring.ts`), so the island needs no animation library. Its window is the
