@@ -7,6 +7,9 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-3ddc84.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-4aa8ff.svg)](#download)
 [![Built with Tauri](https://img.shields.io/badge/built%20with-Tauri%202-ff4dd8.svg)](https://tauri.app)
+[![Website](https://img.shields.io/badge/website-mxqius.github.io%2FWidgeto-7c5cff.svg)](https://mxqius.github.io/Widgeto/)
+
+**[Website →](https://mxqius.github.io/Widgeto/)** · see every widget and the Dynamic Island in action, right in your browser.
 
 Desktop widgets that live **on your desktop**, not inside an app window. Each widget is its own
 frameless, transparent, always-on-desktop OS window. The main app window is a manager: it places,

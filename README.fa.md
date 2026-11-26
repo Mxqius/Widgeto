@@ -9,6 +9,9 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-3ddc84.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-4aa8ff.svg)](#دانلود)
 [![Built with Tauri](https://img.shields.io/badge/built%20with-Tauri%202-ff4dd8.svg)](https://tauri.app)
+[![Website](https://img.shields.io/badge/website-mxqius.github.io%2FWidgeto-7c5cff.svg)](https://mxqius.github.io/Widgeto/)
+
+**[وب‌سایت ←](https://mxqius.github.io/Widgeto/)** · همه‌ی ویجت‌ها و Dynamic Island را همین‌جا در مرورگر ببینید.
 
 ویجت‌های دسکتاپی که مستقیماً روی دسکتاپ شما زندگی می‌کنند، نه داخل یک پنجرهٔ برنامه. هر ویجت یک
 پنجرهٔ مستقل، بدون کادر، شفاف و همیشه-روی-دسکتاپ خودِ سیستم‌عامل است. پنجرهٔ اصلی برنامه یک
