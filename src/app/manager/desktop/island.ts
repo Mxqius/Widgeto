@@ -1,0 +1,111 @@
+import { useEffect, useMemo, useRef } from "react";
+import { useApp } from "@/app/manager/store";
+import { configOf } from "@/shared/widgets/config";
+import { ISLAND_EVT, ISLAND_LABEL, ISLAND_WINDOW, type IslandConfig } from "@/shared/island/protocol";
+import { isTauri } from "@/shared/lib/env";
+
+/**
+ * Create the island window at the top centre of the primary display. The
+ * window is the size of the island's largest shape and transparent around it;
+ * the native watcher makes everything but the island itself click-through.
+ */
+async function openIsland() {
+  const { WebviewWindow } = await import("@tauri-apps/api/webviewWindow");
+  if (await WebviewWindow.getByLabel(ISLAND_LABEL)) return;
+
+  const { primaryMonitor } = await import("@tauri-apps/api/window");
+  const m = await primaryMonitor();
+  const scale = m?.scaleFactor ?? 1;
+  const mx = m ? m.position.x / scale : 0;
+  const my = m ? m.position.y / scale : 0;
+  const mw = m ? m.size.width / scale : 1920;
+
+  new WebviewWindow(ISLAND_LABEL, {
+    url: "island.html",
+    title: "Widgeto Island",
+    x: Math.round(mx + (mw - ISLAND_WINDOW.width) / 2),
+    y: Math.round(my),
+    width: ISLAND_WINDOW.width,
+    height: ISLAND_WINDOW.height,
+    decorations: false,
+    transparent: true,
+    shadow: false,
+    resizable: false,
+    maximizable: false,
+    minimizable: false,
+    skipTaskbar: true,
+    alwaysOnTop: true,
+    focus: false,
+    backgroundColor: "#00000000",
+  });
+}
+
+async function closeIsland() {
+  const { WebviewWindow } = await import("@tauri-apps/api/webviewWindow");
+  const w = await WebviewWindow.getByLabel(ISLAND_LABEL);
+  await w?.close();
+}
+
+/**
+ * Keeps the island window in step with settings: opens or closes it, and
+ * pushes it a fresh config whenever something it shows changes — and again
+ * whenever it says hello, so a reloaded island is never left on defaults.
+ */
+export function useIslandSync() {
+  const enabled = useApp((s) => s.settings.island);
+  const accent = useApp((s) => s.settings.accent);
+  const clock24h = useApp((s) => s.settings.clock24h);
+  const temperatureUnit = useApp((s) => s.settings.temperatureUnit);
+  const reduceMotion = useApp((s) => s.settings.reduceMotion);
+  const activities = useApp((s) => s.settings.islandActivities);
+  const hideInFullscreen = useApp((s) => s.settings.islandHideFullscreen);
+  const weatherCfg = useApp((s) => s.widgets.find((w) => w.kind === "weather")?.config);
+  const focusCfg = useApp((s) => s.widgets.find((w) => w.kind === "pomodoro")?.config);
+
+  const cfg = useMemo<IslandConfig>(() => {
+    const weather = configOf("weather", weatherCfg);
+    const pomo = configOf("pomodoro", focusCfg);
+    return {
+      accent,
+      clock24h,
+      temperatureUnit,
+      reduceMotion,
+      activities,
+      hideInFullscreen,
+      weatherPlace: weather.place?.trim() || null,
+      focus: { focusMin: pomo.focusMin, shortMin: pomo.shortMin, longMin: pomo.longMin },
+    };
+  }, [accent, clock24h, temperatureUnit, reduceMotion, activities, hideInFullscreen, weatherCfg, focusCfg]);
+
+  const latest = useRef(cfg);
+  latest.current = cfg;
+
+  useEffect(() => {
+    if (!isTauri()) return;
+    void (enabled ? openIsland() : closeIsland()).catch(() => {});
+  }, [enabled]);
+
+  useEffect(() => {
+    if (!isTauri() || !enabled) return;
+    void import("@tauri-apps/api/event").then(({ emitTo }) =>
+      emitTo(ISLAND_LABEL, ISLAND_EVT.config, cfg).catch(() => {}),
+    );
+  }, [cfg, enabled]);
+
+  useEffect(() => {
+    if (!isTauri()) return;
+    let alive = true;
+    let un: (() => void) | undefined;
+    void import("@tauri-apps/api/event").then(async ({ listen, emitTo }) => {
+      const off = await listen(ISLAND_EVT.hello, () => {
+        void emitTo(ISLAND_LABEL, ISLAND_EVT.config, latest.current).catch(() => {});
+      });
+      if (alive) un = off;
+      else off();
+    });
+    return () => {
+      alive = false;
+      un?.();
+    };
+  }, []);
+}

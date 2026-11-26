@@ -43,6 +43,33 @@ export function SystemTab() {
         </SettingRow>
       </SettingGroup>
 
+      <SettingGroup title="Dynamic Island">
+        <SettingRow
+          title="Show the island"
+          hint="A live strip at the top of your main display: music, focus timer, system and today."
+        >
+          <Toggle checked={s.island} onChange={(v) => update({ island: v })} />
+        </SettingRow>
+        <SettingRow
+          title="Live activities"
+          hint="Pops out briefly for a new track, the charger, a finished timer or a captured note."
+        >
+          <Toggle
+            checked={s.islandActivities}
+            onChange={(v) => update({ islandActivities: v })}
+          />
+        </SettingRow>
+        <SettingRow
+          title="Hide in full screen"
+          hint="Tucks the island away while a game, video or presentation is full screen."
+        >
+          <Toggle
+            checked={s.islandHideFullscreen}
+            onChange={(v) => update({ islandHideFullscreen: v })}
+          />
+        </SettingRow>
+      </SettingGroup>
+
       <SettingGroup title="Startup">
         <SettingRow
           title="Launch at login"

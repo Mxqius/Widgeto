@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useApp } from "./store";
 import { useDesktopSync } from "./desktop/useDesktopSync";
+import { useIslandSync } from "./desktop/island";
 import { bindCaptureHotkey } from "./desktop/captureWindow";
 import { setAlwaysOnTop } from "./lib/window";
 import { isTauri } from "@/shared/lib/env";
@@ -15,6 +16,7 @@ import { isTauri } from "@/shared/lib/env";
  */
 export default function ManagerRuntime() {
   useDesktopSync();
+  useIslandSync();
 
   const accent = useApp((s) => s.settings.accent);
   useEffect(() => {

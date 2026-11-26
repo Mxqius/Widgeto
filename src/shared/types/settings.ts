@@ -36,6 +36,12 @@ export interface Settings {
    * takes effect on the next launch.
    */
   lowMemory: boolean;
+  /** the Dynamic Island at the top of the primary display */
+  island: boolean;
+  /** brief island pop-outs for track changes, charging, timers and notes */
+  islandActivities: boolean;
+  /** tuck the island away while a full-screen app is in front */
+  islandHideFullscreen: boolean;
   clock24h: boolean;
   temperatureUnit: "C" | "F";
   wallpaper: string;
