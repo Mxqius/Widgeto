@@ -56,6 +56,17 @@ export async function toggleIslandTuck() {
   await emitTo(ISLAND_LABEL, ISLAND_EVT.tuck, null).catch(() => {});
 }
 
+/**
+ * Tell the island a new version is ready. The update dialog lives in the
+ * manager, which is usually parked in the tray, so without this nobody would
+ * hear about an update until they happened to open it.
+ */
+export async function announceUpdate(version: string) {
+  const { emitTo } = await import("@tauri-apps/api/event");
+  if (!useApp.getState().settings.island) return;
+  await emitTo(ISLAND_LABEL, ISLAND_EVT.update, version).catch(() => {});
+}
+
 /** (Re)bind the tuck hotkey. */
 export const bindTuckHotkey = (accelerator: string) =>
   bindHotkey("tuck", accelerator, () => void toggleIslandTuck());

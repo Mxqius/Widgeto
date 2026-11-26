@@ -271,6 +271,19 @@ export default function Island() {
     });
   });
 
+  // a new version is out; the dialog is waiting in the manager
+  useTauriEvent<string>(ISLAND_EVT.update, (version) => {
+    if (!allowRef.current) return;
+    push({
+      icon: "update",
+      title: `Widgeto ${version} is ready`,
+      subtitle: "Open Widgeto from the tray to install",
+      trailing: "New",
+      tone: "#a78bff",
+      ms: 7000,
+    });
+  });
+
   /* ------------------------------------------------------------ open on a tab */
   // pick the tab that matches what is going on, every time the island opens
   useEffect(() => {
@@ -698,6 +711,7 @@ function DevPanel({ push, simulate, nudge, openAsk, tuck }: {
     low: { icon: "battery", title: "Battery low", subtitle: "Plug in soon", trailing: "10%", tone: "#f87171" },
     focus: { icon: "focus", title: "Focus session done", subtitle: "Time for a break", tone: "var(--accent)" },
     note: { icon: "note", title: "Call the bank about the card", subtitle: "Saved to Notes", tone: "#fbbf24" },
+    update: { icon: "update", title: "Widgeto 0.2.0 is ready", subtitle: "Open Widgeto from the tray to install", trailing: "New", tone: "#a78bff", ms: 7000 },
   };
   return (
     <div className="island-dev">

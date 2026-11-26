@@ -62,9 +62,11 @@ npm run dev
 
 ## Updating
 
-Widgeto checks GitHub Releases for a newer version shortly after it starts, using Tauri's signed
-updater — no telemetry, just a version check against this repo. When one is found you get a choice:
-**Download & Install**, **Remind me later** (asks again next launch), or **Skip this version**.
+Widgeto checks GitHub Releases for a newer version shortly after it starts and every six hours after
+that, using Tauri's signed updater — no telemetry, just a version check against this repo. When one
+is found you get a choice: **Download & Install**, **Remind me later** (asks again at the next check),
+or **Skip this version**. If the manager is parked in the tray at the time, the Dynamic Island pops
+out to say an update is ready.
 Automatic checking can be turned off entirely in **Settings → Desktop & system → Updates**, which
 also has a manual "Check for updates now" button.
 

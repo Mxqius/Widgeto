@@ -1,6 +1,6 @@
 import {
   BatteryCharging, BatteryLow, BatteryMedium, CaseUpper, Cloud, CloudLightning, CloudRain, CloudSnow,
-  CloudSun, Coffee, Mic, PlugZap, StickyNote, Sun, Timer, Video, Volume1, Volume2, VolumeX,
+  CloudSun, Coffee, Download, Mic, PlugZap, StickyNote, Sun, Timer, Video, Volume1, Volume2, VolumeX,
 } from "lucide-react";
 import type { Volume, Weather } from "@/shared/ipc/commands";
 import type { ActivityIcon } from "../data/useActivities";
@@ -36,6 +36,8 @@ export function ActivityGlyph({ icon, size }: { icon: ActivityIcon; size: number
       return <Video size={size} />;
     case "caps":
       return <CaseUpper size={size} />;
+    case "update":
+      return <Download size={size} />;
     default:
       return <BatteryMedium size={size} />;
   }

@@ -33,6 +33,8 @@ export const ISLAND_EVT = {
   ask: "island:ask",
   /** manager or tray -> island: tuck into the top edge (true), come back (false) or toggle (null) */
   tuck: "island:tuck",
+  /** manager -> island: a newer version is ready to install (payload: the version) */
+  update: "island:update",
 } as const;
 
 /** Apps using the microphone and the camera right now. */

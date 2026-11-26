@@ -1,7 +1,8 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useApp } from "./store";
 import { useDesktopSync } from "./desktop/useDesktopSync";
-import { askIsland, bindTuckHotkey, useIslandSync } from "./desktop/island";
+import { announceUpdate, askIsland, bindTuckHotkey, useIslandSync } from "./desktop/island";
+import { useManagerVisible } from "./useManagerVisible";
 import { bindHotkey } from "./desktop/hotkeys";
 import { bindCaptureHotkey } from "./desktop/captureWindow";
 import { setAlwaysOnTop } from "./lib/window";
@@ -15,6 +16,8 @@ import { isTauri } from "@/shared/lib/env";
  * parked in the tray, when the visible UI is unmounted. Renders nothing, so it
  * pulls in none of Base UI, the animation library or the board.
  */
+const UPDATE_EVERY_MS = 6 * 60 * 60 * 1000;
+
 export default function ManagerRuntime() {
   useDesktopSync();
   useIslandSync();
@@ -31,11 +34,38 @@ export default function ManagerRuntime() {
   }, []);
 
   // give startup work (tray, desktop sync, hotkeys) a head start before the
-  // update check adds its own network round trip
+  // update check adds its own network round trip — then look again every few
+  // hours, since the app can stay up in the tray for days
   useEffect(() => {
-    if (!isTauri() || !useApp.getState().settings.autoUpdateEnabled) return;
-    const t = setTimeout(() => void useApp.getState().checkForUpdates(), 4000);
-    return () => clearTimeout(t);
+    if (!isTauri()) return;
+    const run = () => {
+      const st = useApp.getState();
+      // nothing to do while switched off, or while an update is already waiting
+      if (!st.settings.autoUpdateEnabled || st.pendingUpdate) return;
+      void st.checkForUpdates();
+    };
+    const first = setTimeout(run, 4000);
+    const every = setInterval(run, UPDATE_EVERY_MS);
+    return () => {
+      clearTimeout(first);
+      clearInterval(every);
+    };
+  }, []);
+
+  // the update dialog only shows inside this window; while it is parked in
+  // the tray, say so on the island instead — once per version per session
+  const visible = useManagerVisible();
+  const visibleRef = useRef(visible);
+  visibleRef.current = visible;
+  useEffect(() => {
+    if (!isTauri()) return;
+    const told = new Set<string>();
+    return useApp.subscribe((s, prev) => {
+      const v = s.pendingUpdate?.version;
+      if (!v || v === prev.pendingUpdate?.version || told.has(v) || visibleRef.current) return;
+      told.add(v);
+      void announceUpdate(v);
+    });
   }, []);
 
   // the capture hotkey lives with the manager, which is always running

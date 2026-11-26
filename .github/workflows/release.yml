@@ -1,0 +1,55 @@
+name: Release
+
+# Push a tag like v0.1.0 (matching the version in tauri.conf.json) to build the
+# Windows installers, sign them for the updater, and publish a GitHub Release
+# with the latest.json manifest the in-app updater reads.
+#
+# Needs two repository secrets:
+#   TAURI_SIGNING_PRIVATE_KEY           the contents of src-tauri/updater.key
+#   TAURI_SIGNING_PRIVATE_KEY_PASSWORD  that key's password
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - run: npm ci
+
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName: v__VERSION__
+          releaseName: Widgeto v__VERSION__
+          releaseBody: |
+            Download the **`_x64-setup.exe`** installer below and run it.
+
+            Already installed? Widgeto checks for updates on its own and will offer this version — or use **Settings → Desktop & system → Updates → Check for updates now**.
+          releaseDraft: false
+          prerelease: false
+          includeUpdaterJson: true

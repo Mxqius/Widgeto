@@ -280,7 +280,7 @@ export function FeaturesSection() {
           <Card className="md:col-span-3" icon={<PanelTop size={18} />} title="Lives in the tray" text="Close the manager and it parks in the tray. The widgets stay on the desktop, and it can start with Windows.">
             <TrayDemo />
           </Card>
-          <Card className="md:col-span-3" icon={<RefreshCw size={18} />} title="Signed auto-updates" text="A version check against GitHub Releases shortly after launch — no telemetry. Turn it off any time." delay={0.05}>
+          <Card className="md:col-span-3" icon={<RefreshCw size={18} />} title="Signed auto-updates" text="Checks GitHub Releases at launch and every few hours, with no telemetry. When a version is ready, the island tells you — even with Widgeto tucked in the tray." delay={0.05}>
             <UpdateDemo />
           </Card>
         </div>
