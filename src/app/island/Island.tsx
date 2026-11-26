@@ -40,9 +40,9 @@ const BUBBLE_GAP = 8;
 /** Bigger shapes grow with a little bounce; smaller ones settle flat. */
 const area = (s: Shape) => s.w * s.h;
 
-/** Hover in: open almost at once. Hover out: linger, so a stray exit forgives. */
+/** Hover in: open almost at once. Hover out: close quickly, with just enough grace to forgive a pointer grazing the edge. */
 const OPEN_DELAY = 70;
-const CLOSE_DELAY = 420;
+const CLOSE_DELAY = 120;
 
 export default function Island() {
   const live = isTauri();
@@ -257,7 +257,7 @@ function Crossfade({ k, w, h, children }: { k: string; w: number; h: number; chi
     if (prev.current.k === k) return;
     const old = prev.current;
     setLeaving((l) => [...l.filter((x) => x.k !== old.k && x.k !== k), old]);
-    const t = setTimeout(() => setLeaving((l) => l.filter((x) => x !== old)), 240);
+    const t = setTimeout(() => setLeaving((l) => l.filter((x) => x !== old)), 160);
     return () => clearTimeout(t);
   }, [k]);
   useLayoutEffect(() => {

@@ -40,7 +40,7 @@ export function spring(stiffness: number, damping: number, mass = 1): Spring {
 
 /** Growing: a little overshoot, the way a live activity pops open. */
 export const GROW = spring(290, 22);
-/** Shrinking: critically damped, so the pill lands without wobbling. */
-export const SETTLE = spring(340, 36);
+/** Shrinking: stiff and critically damped — snaps shut fast and lands without wobbling. */
+export const SETTLE = spring(900, 60);
 /** Reduced motion: a short, plain ease. */
 export const CALM: Spring = { easing: "cubic-bezier(0.2, 0, 0, 1)", ms: 180 };

@@ -68,7 +68,7 @@ body { user-select: none; cursor: default; }
 }
 .island-layer.is-leaving {
   pointer-events: none;
-  animation: island-out 170ms ease-in both;
+  animation: island-out 120ms ease-in both;
 }
 @keyframes island-in {
   from { opacity: 0; filter: blur(8px); transform: scale(0.92); }
