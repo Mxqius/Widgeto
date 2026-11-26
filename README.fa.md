@@ -1,5 +1,7 @@
 <p align="right" dir="rtl"><a href="README.md">English</a> · <strong>فارسی</strong></p>
 
+<p align="center"><img src="docs/banner.webp" alt="Widgeto — custom desktop widgets for Windows" width="100%"></p>
+
 <div dir="rtl">
 
 # Widgeto
@@ -11,11 +13,6 @@
 ویجت‌های دسکتاپی که مستقیماً روی دسکتاپ شما زندگی می‌کنند، نه داخل یک پنجرهٔ برنامه. هر ویجت یک
 پنجرهٔ مستقل، بدون کادر، شفاف و همیشه-روی-دسکتاپ خودِ سیستم‌عامل است. پنجرهٔ اصلی برنامه یک
 مدیر (manager) است: آن‌ها را می‌چیند، اندازه می‌دهد، به لبه‌ها می‌چسباند، نشان می‌دهد و پنهان می‌کند.
-
-<!--
-  پیش از انتشار، یک اسکرین‌شات یا گیف کوتاه اینجا اضافه کنید، مثلاً:
-  ![Widgeto on a desktop](docs/screenshot.png)
--->
 
 ## ویژگی‌ها
 

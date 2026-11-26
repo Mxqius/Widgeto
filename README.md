@@ -1,5 +1,7 @@
 <p align="right"><a href="README.fa.md">فارسی</a> · <strong>English</strong></p>
 
+<p align="center"><img src="docs/banner.webp" alt="Widgeto — custom desktop widgets for Windows" width="100%"></p>
+
 # Widgeto
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-3ddc84.svg)](LICENSE)
@@ -9,11 +11,6 @@
 Desktop widgets that live **on your desktop**, not inside an app window. Each widget is its own
 frameless, transparent, always-on-desktop OS window. The main app window is a manager: it places,
 sizes, docks, shows and hides them.
-
-<!--
-  Add a screenshot or short GIF here before publishing, e.g.:
-  ![Widgeto on a desktop](docs/screenshot.png)
--->
 
 ## Features
 
