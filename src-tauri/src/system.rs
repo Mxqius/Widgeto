@@ -308,11 +308,19 @@ fn media_now_blocking() -> Result<MediaNow, String> {
         .filter(|s| !s.is_empty());
 
     if let Ok(t) = session.GetTimelineProperties() {
-        let pos = t.Position().map(|d| d.Duration as u64 / 10_000_000).unwrap_or(0);
-        let end = t.EndTime().map(|d| d.Duration as u64 / 10_000_000).unwrap_or(0);
-        if end > 0 {
-            out.position_sec = Some(pos);
-            out.duration_sec = Some(end);
+        // TimeSpan ticks are signed 100 ns units; read them as such so a
+        // negative value cannot wrap into an enormous one.
+        let secs = |d: windows::core::Result<windows::Foundation::TimeSpan>| d.map(|d| d.Duration / 10_000_000).ok();
+        let start = secs(t.StartTime()).unwrap_or(0);
+        let pos = secs(t.Position()).unwrap_or(0) - start;
+        let end = secs(t.EndTime()).unwrap_or(0) - start;
+        // Live streams (a YouTube live in a browser, a radio station) report a
+        // made-up timeline: an end centuries away, or a playhead far past it.
+        // Nothing real lasts more than a day, so anything else is live.
+        const LONGEST: i64 = 24 * 60 * 60;
+        if end > 0 && end <= LONGEST && (0..=end + 5).contains(&pos) {
+            out.position_sec = Some(pos.min(end) as u64);
+            out.duration_sec = Some(end as u64);
         }
     }
 
