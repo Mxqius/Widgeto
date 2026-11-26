@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-export type ActivityIcon = "track" | "charging" | "unplugged" | "battery" | "focus" | "break" | "note";
+export type ActivityIcon =
+  | "track" | "charging" | "unplugged" | "battery" | "focus" | "break" | "note"
+  | "mic" | "camera" | "caps";
 
 export interface Activity {
   id: number;
@@ -13,6 +15,8 @@ export interface Activity {
   tone?: string;
   /** track activities show the cover */
   art?: string | null;
+  /** how long it stays up; defaults to a few seconds */
+  ms?: number;
   at: number;
 }
 
@@ -51,7 +55,7 @@ export function useActivities(paused: boolean) {
       setCurrent(null);
       return;
     }
-    const t = setTimeout(() => setCurrent(null), SHOW_MS);
+    const t = setTimeout(() => setCurrent(null), current.ms ?? SHOW_MS);
     return () => clearTimeout(t);
   }, [current, paused]);
 

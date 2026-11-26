@@ -159,6 +159,9 @@ body { user-select: none; cursor: default; }
 .island-icon-btn:hover { color: #fff; background: rgba(255, 255, 255, 0.08); }
 .island-icon-btn:active { transform: scale(0.88); }
 .island-icon-btn-bg { background: rgba(255, 255, 255, 0.1); }
+/* the compact transport row in the music tab */
+.island-icon-btn.island-icon-sm { width: 28px; height: 28px; }
+.island-play.island-play-sm { width: 32px; height: 32px; margin: 0 2px; }
 
 .island-play {
   display: grid;
@@ -226,12 +229,82 @@ body { user-select: none; cursor: default; }
   background: rgba(255, 255, 255, 0.06);
 }
 
+/* --------------------------------------------------------------- slider -- */
+
+/* A tall invisible hit area around a thin track that thickens under the
+   pointer, the way a touch slider does. */
+.island-slider {
+  position: relative;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  touch-action: none;
+  outline: none;
+}
+.island-slider-track {
+  width: 100%;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  overflow: hidden;
+  transition: height 160ms cubic-bezier(0.3, 1.4, 0.4, 1);
+}
+.island-slider:hover .island-slider-track,
+.island-slider:focus-visible .island-slider-track,
+.island-slider.is-drag .island-slider-track { height: 7px; }
+.island-slider-fill { height: 100%; border-radius: 999px; }
+.island-slider.is-off { cursor: default; opacity: 0.4; }
+.island-slider.is-off .island-slider-track { height: 4px; }
+
+/* ------------------------------------------------ toggles and disabled -- */
+
+.island-icon-btn:disabled { opacity: 0.25; pointer-events: none; }
+.island-toggle { color: rgba(255, 255, 255, 0.45); position: relative; }
+.island-toggle.is-on { color: var(--accent); }
+.island-toggle.is-on::after {
+  content: "";
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  width: 3px;
+  height: 3px;
+  margin-left: -1.5px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+/* ---------------------------------------------------------- privacy dots -- */
+
+.island-privacy {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  translate: 0 -50%;
+  display: flex;
+  gap: 5px;
+  animation: island-in 360ms cubic-bezier(0.2, 0.9, 0.25, 1) both;
+}
+.island-privacy-dot {
+  display: block;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  box-shadow: 0 0 8px currentColor;
+  animation: island-pulse 2.4s ease-in-out infinite;
+}
+@keyframes island-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+
 /* ------------------------------------------------------- reduced motion -- */
 
 [data-reduce] .island-layer.is-entering,
 [data-reduce] .island-layer.is-leaving,
 [data-reduce] .island-panel { animation-duration: 1ms; }
 [data-reduce] .island-eq i { animation: none; transform: scaleY(0.6); }
+[data-reduce] .island-privacy-dot { animation: none; }
 @media (prefers-reduced-motion: reduce) {
   .island-layer.is-entering, .island-layer.is-leaving, .island-panel { animation-duration: 1ms; }
   .island-eq i { animation: none; transform: scaleY(0.6); }

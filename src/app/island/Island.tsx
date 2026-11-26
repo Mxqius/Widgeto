@@ -3,9 +3,10 @@ import {
   fetchBattery, fetchNet, fetchSystem, fetchWeather,
   type BatteryStats,
 } from "@/shared/ipc/commands";
-import { ISLAND_TOP, ISLAND_WINDOW } from "@/shared/island/protocol";
+import { ISLAND_TOP, ISLAND_WINDOW, type Privacy } from "@/shared/island/protocol";
 import { isTauri } from "@/shared/lib/env";
-import { invoke, useIslandBridge, useTauriEvent } from "./data/bridge";
+import { invoke, useIslandBridge, useTauriEvent, type Simulate } from "./data/bridge";
+import { useVolume } from "./data/useVolume";
 import { useIslandMedia } from "./data/useMedia";
 import { useFocus, type FocusMode } from "./data/useFocus";
 import { useActivities, type Activity } from "./data/useActivities";
@@ -13,11 +14,12 @@ import { useNow, usePoll } from "./data/usePoll";
 import { SAMPLE_BATTERY, SAMPLE_NET, SAMPLE_SYSTEM, SAMPLE_WEATHER } from "./data/sample";
 import { CALM, GROW, SETTLE } from "./lib/spring";
 import { chime } from "./lib/chime";
-import { IdleCompact, MediaCompact, TimerBubble, TimerCompact } from "./views/Compact";
+import { IdleCompact, MediaCompact, PrivacyDots, TimerBubble, TimerCompact, VolumeHud } from "./views/Compact";
+import { CAMERA_TONE, MIC_TONE } from "./views/glyphs";
 import { Toast } from "./views/Toast";
 import { Expanded, type Tab } from "./views/Expanded";
 
-type Mode = "hidden" | "idle" | "media" | "timer" | "toast" | "expanded";
+type Mode = "hidden" | "idle" | "media" | "timer" | "volume" | "toast" | "expanded";
 
 interface Shape {
   w: number;
@@ -30,9 +32,17 @@ const SHAPES: Record<Mode, Shape> = {
   idle: { w: 176, h: 34, r: 17 },
   media: { w: 236, h: 34, r: 17 },
   timer: { w: 216, h: 34, r: 17 },
+  volume: { w: 264, h: 38, r: 19 },
   toast: { w: 372, h: 70, r: 34 },
   expanded: { w: 468, h: 192, r: 40 },
 };
+
+/** Extra pill width per privacy dot. */
+const DOT_W = 13;
+/** How long the volume pop-out lingers after the last change. */
+const HUD_MS = 1400;
+/** One notch of the scroll wheel over the island. */
+const WHEEL_STEP = 0.04;
 
 const BUBBLE = 34;
 const BUBBLE_GAP = 8;
@@ -46,7 +56,7 @@ const CLOSE_DELAY = 120;
 
 export default function Island() {
   const live = isTauri();
-  const { cfg, nativeHover, fullscreen } = useIslandBridge();
+  const { cfg, nativeHover, fullscreen, volume: nativeVolume, privacy, caps, simulate } = useIslandBridge();
 
   /* ---------------------------------------------------------------- hover */
   const [domHover, setDomHover] = useState(false);
@@ -90,9 +100,49 @@ export default function Island() {
 
   const now = useNow(1000);
 
+  /* ---------------------------------------------------------------- volume */
+  const [hud, setHud] = useState(false);
+  const hudTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const expandedRef = useRef(expanded);
+  expandedRef.current = expanded;
+  const allowHudRef = useRef(cfg.activities);
+  allowHudRef.current = cfg.activities;
+  const showHud = useCallback(() => {
+    // the open panel already has a slider; a pop-out on top would be noise
+    if (expandedRef.current || !allowHudRef.current) return;
+    setHud(true);
+    clearTimeout(hudTimer.current);
+    hudTimer.current = setTimeout(() => setHud(false), HUD_MS);
+  }, []);
+  useEffect(() => () => clearTimeout(hudTimer.current), []);
+  useEffect(() => {
+    if (expanded) setHud(false);
+  }, [expanded]);
+
+  const volume = useVolume(nativeVolume, live, showHud);
+
+  // changes made outside the island — the keyboard keys, the mixer
+  const baseVolume = useRef(nativeVolume);
+  useEffect(() => {
+    const was = baseVolume.current;
+    baseVolume.current = nativeVolume;
+    if (!was || !nativeVolume) return;
+    if (was.muted !== nativeVolume.muted || Math.abs(was.level - nativeVolume.level) > 0.004) showHud();
+  }, [nativeVolume, showHud]);
+
+  // scroll anywhere on the island to change the volume
+  const wheelAcc = useRef(0);
+  const onWheel = (e: React.WheelEvent) => {
+    wheelAcc.current += e.deltaY;
+    if (Math.abs(wheelAcc.current) < 40) return;
+    volume.nudge(wheelAcc.current < 0 ? WHEEL_STEP : -WHEEL_STEP);
+    wheelAcc.current = 0;
+  };
+
   /* ------------------------------------------------------------ activities */
   const allow = cfg.activities;
   useActivityTriggers({ allow, push, track, battery });
+  usePresenceTriggers({ allow, push, privacy, caps });
   const allowRef = useRef(allow);
   allowRef.current = allow;
   useTauriEvent<string>("notes:append", (line) => {
@@ -123,15 +173,31 @@ export default function Island() {
     ? "hidden"
     : expanded
       ? "expanded"
-      : toast
-        ? "toast"
-        : playing
-          ? "media"
-          : focus.active
-            ? "timer"
-            : "idle";
+      : hud
+        ? "volume"
+        : toast
+          ? "toast"
+          : playing
+            ? "media"
+            : focus.active
+              ? "timer"
+              : "idle";
   const bubble = mode === "media" && focus.active;
-  const shape = SHAPES[mode];
+
+  // the pill grows a little to make room for the privacy dots
+  const camOn = privacy.camera.length > 0;
+  const micOn = privacy.mic.length > 0;
+  const compact = mode === "idle" || mode === "media" || mode === "timer";
+  const extra = compact ? (camOn ? DOT_W : 0) + (micOn ? DOT_W : 0) + (camOn || micOn ? 4 : 0) : 0;
+  const base = SHAPES[mode];
+  const shape = useMemo<Shape>(
+    () => ({
+      w: base.w + extra,
+      h: base.h,
+      r: base.r,
+    }),
+    [base, extra],
+  );
 
   // the spring follows the direction of the change
   const prevShape = useRef(shape);
@@ -168,8 +234,13 @@ export default function Island() {
           net={net}
           weather={weather}
           temp={temp}
+          volume={volume}
+          privacy={privacy}
         />
       );
+      break;
+    case "volume":
+      content = <VolumeHud v={volume.vol} />;
       break;
     case "toast":
       key = `toast-${toast!.id}`;
@@ -213,10 +284,12 @@ export default function Island() {
         onMouseEnter={live ? undefined : () => setDomHover(true)}
         onMouseLeave={live ? undefined : () => setDomHover(false)}
         onClick={() => !expanded && setExpanded(true)}
+        onWheel={onWheel}
       >
-        <Crossfade k={key} w={shape.w} h={shape.h}>
+        <Crossfade k={key} w={shape.w - extra} h={shape.h} shift={-extra / 2}>
           {content}
         </Crossfade>
+        {extra > 0 && <PrivacyDots camera={camOn} mic={micOn} />}
       </div>
 
       <div
@@ -226,8 +299,8 @@ export default function Island() {
           transition: `transform ${transition}, opacity 220ms ease`,
           opacity: bubble ? 1 : 0,
           transform: bubble
-            ? `translateX(${(SHAPES.media.w + BUBBLE_GAP - BUBBLE) / 2}px) scale(1)`
-            : `translateX(${SHAPES.media.w / 2 - BUBBLE}px) scale(0.4)`,
+            ? `translateX(${(shape.w + BUBBLE_GAP - BUBBLE) / 2}px) scale(1)`
+            : `translateX(${shape.w / 2 - BUBBLE}px) scale(0.4)`,
         }}
         onMouseEnter={live ? undefined : () => setDomHover(true)}
         onMouseLeave={live ? undefined : () => setDomHover(false)}
@@ -236,7 +309,7 @@ export default function Island() {
         {focus.active && <TimerBubble focus={focus} />}
       </div>
 
-      {!live && import.meta.env.DEV && <DevPanel push={push} />}
+      {simulate && import.meta.env.DEV && <DevPanel push={push} simulate={simulate} nudge={volume.nudge} />}
     </div>
   );
 }
@@ -248,10 +321,17 @@ export default function Island() {
  * in. Each layer is laid out at its own target size and centred, so content
  * never reflows while the shape morphs around it — the shape reveals it.
  */
-function Crossfade({ k, w, h, children }: { k: string; w: number; h: number; children: ReactNode }) {
-  type Layer = { k: string; node: ReactNode; w: number; h: number };
+function Crossfade({ k, w, h, shift = 0, children }: {
+  k: string;
+  w: number;
+  h: number;
+  /** horizontal offset from centre, to leave room for the privacy dots */
+  shift?: number;
+  children: ReactNode;
+}) {
+  type Layer = { k: string; node: ReactNode; w: number; h: number; shift: number };
   const [leaving, setLeaving] = useState<Layer[]>([]);
-  const prev = useRef<Layer>({ k, node: children, w, h });
+  const prev = useRef<Layer>({ k, node: children, w, h, shift });
 
   useLayoutEffect(() => {
     if (prev.current.k === k) return;
@@ -261,17 +341,22 @@ function Crossfade({ k, w, h, children }: { k: string; w: number; h: number; chi
     return () => clearTimeout(t);
   }, [k]);
   useLayoutEffect(() => {
-    prev.current = { k, node: children, w, h };
+    prev.current = { k, node: children, w, h, shift };
   });
 
   return (
     <>
       {leaving.map((l) => (
-        <div key={l.k} className="island-layer is-leaving" style={{ width: l.w, height: l.h }} aria-hidden>
+        <div
+          key={l.k}
+          className="island-layer is-leaving"
+          style={{ width: l.w, height: l.h, marginLeft: l.shift }}
+          aria-hidden
+        >
           {l.node}
         </div>
       ))}
-      <div key={k} className="island-layer is-entering" style={{ width: w, height: h }}>
+      <div key={k} className="island-layer is-entering" style={{ width: w, height: h, marginLeft: shift }}>
         {children}
       </div>
     </>
@@ -328,6 +413,47 @@ function useActivityTriggers({ allow, push, track, battery }: {
   }, [battery, allow, push]);
 }
 
+/**
+ * Pop-outs for things the native watcher sees: an app starting to use the
+ * microphone or camera, and Caps Lock. The first reading is the baseline, so
+ * a call already running when the app starts does not announce itself.
+ */
+function usePresenceTriggers({ allow, push, privacy, caps }: {
+  allow: boolean;
+  push: (a: Omit<Activity, "id" | "at">) => void;
+  privacy: Privacy;
+  caps: boolean | undefined;
+}) {
+  const lastPrivacy = useRef<Privacy | null>(null);
+  useEffect(() => {
+    const was = lastPrivacy.current;
+    lastPrivacy.current = privacy;
+    if (!was || !allow) return;
+    const fresh = (now: string[], then: string[]) => now.filter((a) => !then.includes(a));
+    const cam = fresh(privacy.camera, was.camera);
+    const mic = fresh(privacy.mic, was.mic);
+    if (cam.length) {
+      push({ icon: "camera", title: cam.join(", "), subtitle: "Camera is on", tone: CAMERA_TONE, ms: 2600 });
+    } else if (mic.length) {
+      push({ icon: "mic", title: mic.join(", "), subtitle: "Microphone is on", tone: MIC_TONE, ms: 2600 });
+    }
+  }, [privacy, allow, push]);
+
+  const lastCaps = useRef<boolean | undefined>(undefined);
+  useEffect(() => {
+    const was = lastCaps.current;
+    lastCaps.current = caps;
+    if (was === undefined || caps === undefined || was === caps || !allow) return;
+    push({
+      icon: "caps",
+      title: caps ? "Caps Lock on" : "Caps Lock off",
+      subtitle: "Keyboard",
+      tone: caps ? "#fff" : "rgba(255,255,255,0.5)",
+      ms: 1300,
+    });
+  }, [caps, allow, push]);
+}
+
 /* ====================================================================== */
 
 /**
@@ -366,7 +492,7 @@ function useHitReport({ live, mode, shape, bubble, shapeRef, bubbleRef }: {
             x1 = Math.max(x1, r.right);
             y1 = Math.max(y1, r.bottom);
           }
-          if (bubble) x1 = Math.max(x1, W / 2 + (SHAPES.media.w + BUBBLE_GAP + BUBBLE) / 2);
+          if (bubble) x1 = Math.max(x1, W / 2 + (shape.w + BUBBLE_GAP + BUBBLE) / 2);
           const pad = 4;
           rect = { x: Math.round(x0 - pad), y: 0, w: Math.round(x1 - x0 + pad * 2), h: Math.round(y1 + pad) };
         }
@@ -393,7 +519,11 @@ function useHitReport({ live, mode, shape, bubble, shapeRef, bubbleRef }: {
 /* ====================================================================== */
 
 /** Browser-only: fire each kind of pop-out to look at it. */
-function DevPanel({ push }: { push: (a: Omit<Activity, "id" | "at">) => void }) {
+function DevPanel({ push, simulate, nudge }: {
+  push: (a: Omit<Activity, "id" | "at">) => void;
+  simulate: Simulate;
+  nudge: (d: number) => void;
+}) {
   const fire: Record<string, Omit<Activity, "id" | "at">> = {
     track: { icon: "track", title: "Sunset", subtitle: "The Midnight", art: null },
     charging: { icon: "charging", title: "Charging", subtitle: "Power connected", trailing: "64%", tone: "#4ade80" },
@@ -408,6 +538,18 @@ function DevPanel({ push }: { push: (a: Omit<Activity, "id" | "at">) => void }) 
           {k}
         </button>
       ))}
+      <button onClick={() => nudge(0.06)}>vol+</button>
+      <button onClick={() => simulate.setVolume((v) => v && { ...v, level: Math.max(0, v.level - 0.06) })}>
+        keys-
+      </button>
+      <button
+        onClick={() =>
+          simulate.setPrivacy((p) => (p.mic.length ? { mic: [], camera: [] } : { mic: ["Zoom"], camera: ["Zoom"] }))
+        }
+      >
+        zoom
+      </button>
+      <button onClick={() => simulate.setCaps((c) => !c)}>caps</button>
     </div>
   );
 }

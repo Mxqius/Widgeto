@@ -88,6 +88,15 @@ export interface MediaNow {
   app: string | null;
   positionSec: number | null;
   durationSec: number | null;
+  /** null when the player does not report it */
+  shuffle?: boolean | null;
+  repeat?: "none" | "track" | "list" | null;
+  /** what the player allows; null means it did not say */
+  canSeek?: boolean | null;
+  canShuffle?: boolean | null;
+  canRepeat?: boolean | null;
+  canNext?: boolean | null;
+  canPrev?: boolean | null;
 }
 
 export const fetchSystem = () => call<SystemStats>("system_stats");
@@ -95,8 +104,24 @@ export const fetchNet = () => call<NetStats>("net_stats");
 export const fetchBattery = () => call<BatteryStats>("battery_stats");
 export const fetchMedia = () => call<MediaNow>("media_now");
 
-export const mediaControl = (action: "play" | "pause" | "toggle" | "next" | "prev") =>
-  call<void>("media_control", { action });
+export type MediaAction = "play" | "pause" | "toggle" | "next" | "prev" | "shuffle" | "repeat";
+
+export const mediaControl = (action: MediaAction) => call<void>("media_control", { action });
+
+/** Jump the playhead to `seconds` into the current track. */
+export const mediaSeek = (seconds: number) => call<void>("media_seek", { seconds });
+
+/* ---------------------------------------------------------------- volume */
+
+export interface Volume {
+  /** 0 – 1 */
+  level: number;
+  muted: boolean;
+}
+
+export const fetchVolume = () => call<Volume>("volume_get");
+export const setVolume = (level: number) => call<Volume>("volume_set", { level });
+export const setMuted = (muted: boolean) => call<Volume>("volume_mute", { muted });
 
 /** Opens a URL, a file, a folder or an executable. */
 export const launch = (target: string) => call<void>("launch", { target });

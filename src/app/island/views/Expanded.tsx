@@ -1,14 +1,16 @@
 import {
   ArrowDown, ArrowUp, BatteryCharging, BatteryMedium, CalendarDays, Cpu, Gauge, MemoryStick,
-  Music, Pause, Play, RotateCcw, SkipBack, SkipForward, Timer,
+  Music, Pause, Play, Repeat, Repeat1, RotateCcw, Shuffle, SkipBack, SkipForward, Timer,
 } from "lucide-react";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import type { BatteryStats, NetStats, SystemStats, Weather } from "@/shared/ipc/commands";
+import type { Privacy } from "@/shared/island/protocol";
 import { ampm, appLabel, bytesPerSec, clock, mmss } from "../lib/format";
 import type { Track } from "../data/useMedia";
 import type { Focus, FocusMode } from "../data/useFocus";
-import { Art, Bar, Equalizer, Ring } from "./parts";
-import { WeatherGlyph } from "./glyphs";
+import type { VolumeCtl } from "../data/useVolume";
+import { Art, Bar, Equalizer, Ring, Slider } from "./parts";
+import { CAMERA_TONE, MIC_TONE, VolumeGlyph, WeatherGlyph } from "./glyphs";
 
 export type Tab = "media" | "focus" | "system" | "today";
 
@@ -31,6 +33,8 @@ export interface ExpandedProps {
   net: NetStats | undefined;
   weather: Weather | undefined;
   temp: (c: number) => string;
+  volume: VolumeCtl;
+  privacy: Privacy;
 }
 
 export function Expanded(p: ExpandedProps) {
@@ -54,7 +58,8 @@ export function Expanded(p: ExpandedProps) {
             </button>
           ))}
         </nav>
-        <span className="text-[11.5px] font-semibold text-white/45">
+        <span className="flex items-center text-[11.5px] font-semibold text-white/45">
+          <PrivacyChip privacy={p.privacy} />
           {d.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })}
           <span className="mx-1.5 text-white/20">·</span>
           <span className="tabular-nums text-white/80">{clock(d, p.h24)}</span>
@@ -62,7 +67,7 @@ export function Expanded(p: ExpandedProps) {
       </header>
 
       <div key={p.tab} className="island-panel min-h-0 flex-1 pt-3">
-        {p.tab === "media" && <MediaPanel track={p.track} now={p.now} />}
+        {p.tab === "media" && <MediaPanel track={p.track} now={p.now} volume={p.volume} />}
         {p.tab === "focus" && <FocusPanel focus={p.focus} />}
         {p.tab === "system" && <SystemPanel system={p.system} net={p.net} battery={p.battery} />}
         {p.tab === "today" && (
@@ -75,76 +80,158 @@ export function Expanded(p: ExpandedProps) {
 
 /* ---------------------------------------------------------------- media */
 
-function MediaPanel({ track, now }: { track: Track; now: number }) {
+function MediaPanel({ track, now, volume }: { track: Track; now: number; volume: VolumeCtl }) {
   const m = track.media;
+  const [scrub, setScrub] = useState<number | null>(null);
+
   if (!m?.title) {
     return (
-      <div className="flex h-full items-center gap-4">
-        <Art src={null} size={92} radius={20} className="opacity-40" />
-        <div>
-          <div className="text-[15px] font-bold text-white/85">Nothing playing</div>
-          <div className="mt-1 max-w-[250px] text-[12px] leading-snug font-medium text-white/45">
-            Play something in Spotify, a browser tab or any media app and it shows up here.
+      <div className="flex h-full flex-col justify-between">
+        <div className="flex items-center gap-3">
+          <Art src={null} size={46} radius={12} className="opacity-40" />
+          <div className="min-w-0">
+            <div className="text-[14px] font-bold text-white/85">Nothing playing</div>
+            <div className="truncate text-[11.5px] font-medium text-white/45">
+              Play in Spotify, Telegram, a browser or any player
+            </div>
           </div>
+        </div>
+        <div className="flex justify-end">
+          <VolumeControl volume={volume} wide />
         </div>
       </div>
     );
   }
 
   const dur = m.durationSec ?? 0;
-  const pos = track.positionAt(now);
+  const pos = scrub !== null ? scrub * dur : track.positionAt(now);
   const tint = track.tint ?? "#fff";
   const src = appLabel(m.app);
+  // a flag the player did not send means "probably fine", not "disabled"
+  const can = (flag: boolean | null | undefined) => flag !== false;
+  const repeat = m.repeat ?? "none";
+  const by = [m.artist ?? m.album, src].filter(Boolean).join(" · ");
 
   return (
-    <div className="flex h-full items-center gap-4">
-      <Art src={track.art} size={92} radius={20} className="island-art-lg" />
-      <div className="flex min-w-0 flex-1 flex-col justify-between self-stretch py-0.5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="truncate text-[15px] font-bold tracking-tight text-white">{m.title}</div>
-            <div className="truncate text-[12.5px] font-medium text-white/55">
-              {m.artist ?? src ?? "Unknown artist"}
-            </div>
-          </div>
-          <div className="mt-1 shrink-0">
-            <Equalizer playing={m.playing} colour={track.tint ?? undefined} height={16} />
-          </div>
+    <div className="flex h-full flex-col justify-between">
+      {/* what is playing */}
+      <div className="flex items-center gap-3">
+        <Art src={track.art} size={46} radius={12} className="island-art-lg" />
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-[14px] font-bold tracking-tight text-white">{m.title}</div>
+          <div className="truncate text-[11.5px] font-medium text-white/50">{by || "Unknown artist"}</div>
         </div>
+        <Equalizer playing={m.playing} colour={track.tint ?? undefined} height={14} />
+      </div>
 
-        {dur > 0 ? (
-          <div>
-            <Bar value={pos / dur} colour={tint} height={4} />
-            <div className="mt-1 flex justify-between text-[10px] font-semibold tabular-nums text-white/40">
-              <span>{mmss(pos)}</span>
-              <span>-{mmss(Math.max(0, dur - pos))}</span>
-            </div>
+      {/* where it is: drag to seek, times either side */}
+      {dur > 0 ? (
+        <div className="flex items-center gap-2.5 text-[10px] font-semibold tabular-nums text-white/40">
+          <span className={`w-8 ${scrub !== null ? "text-white/85" : ""}`}>{mmss(pos)}</span>
+          <div className="flex-1">
+            <Slider
+              label="Seek"
+              value={pos / dur}
+              colour={tint}
+              disabled={!can(m.canSeek)}
+              glide="1s linear"
+              onChange={setScrub}
+              onCommit={(f) => {
+                setScrub(null);
+                track.seek(f * dur);
+              }}
+            />
           </div>
-        ) : (
-          <div className="text-[10.5px] font-semibold text-white/35">{src ?? "Live"}</div>
-        )}
+          <span className="w-8 text-right">-{mmss(Math.max(0, dur - pos))}</span>
+        </div>
+      ) : (
+        <div className="text-[10px] font-semibold text-white/35">Live · no timeline</div>
+      )}
 
-        <div className="flex items-center justify-center gap-6">
-          <button className="island-icon-btn" title="Previous" onClick={() => void track.send("prev")}>
-            <SkipBack size={18} className="fill-current" />
+      {/* transport on the left, volume on the right */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1">
+          <button
+            className={`island-icon-btn island-icon-sm island-toggle ${m.shuffle ? "is-on" : ""}`}
+            title={m.shuffle ? "Shuffle on" : "Shuffle off"}
+            disabled={!can(m.canShuffle) || m.shuffle == null}
+            onClick={() => void track.send("shuffle")}
+          >
+            <Shuffle size={13} />
           </button>
           <button
-            className="island-play"
+            className="island-icon-btn island-icon-sm"
+            title="Previous"
+            disabled={!can(m.canPrev)}
+            onClick={() => void track.send("prev")}
+          >
+            <SkipBack size={16} className="fill-current" />
+          </button>
+          <button
+            className="island-play island-play-sm"
             title={m.playing ? "Pause" : "Play"}
             onClick={() => void track.send("toggle")}
           >
-            {m.playing ? (
-              <Pause size={17} className="fill-current" />
-            ) : (
-              <Play size={17} className="ml-0.5 fill-current" />
-            )}
+            {m.playing ? <Pause size={15} className="fill-current" /> : <Play size={15} className="ml-0.5 fill-current" />}
           </button>
-          <button className="island-icon-btn" title="Next" onClick={() => void track.send("next")}>
-            <SkipForward size={18} className="fill-current" />
+          <button
+            className="island-icon-btn island-icon-sm"
+            title="Next"
+            disabled={!can(m.canNext)}
+            onClick={() => void track.send("next")}
+          >
+            <SkipForward size={16} className="fill-current" />
+          </button>
+          <button
+            className={`island-icon-btn island-icon-sm island-toggle ${repeat !== "none" ? "is-on" : ""}`}
+            title={repeat === "track" ? "Repeat this track" : repeat === "list" ? "Repeat all" : "Repeat off"}
+            disabled={!can(m.canRepeat) || m.repeat == null}
+            onClick={() => void track.send("repeat")}
+          >
+            {repeat === "track" ? <Repeat1 size={13} /> : <Repeat size={13} />}
           </button>
         </div>
+        <VolumeControl volume={volume} />
       </div>
     </div>
+  );
+}
+
+/** Mute button and a short system-volume slider; the level shows on hover. */
+function VolumeControl({ volume, wide }: { volume: VolumeCtl; wide?: boolean }) {
+  const v = volume.vol;
+  const level = v ? (v.muted ? 0 : v.level) : 0;
+  return (
+    <div className="flex items-center gap-1.5" title={v ? `Volume ${Math.round(level * 100)}%` : undefined}>
+      <button
+        className="island-icon-btn island-icon-sm text-white/70"
+        title={v?.muted ? "Unmute" : "Mute"}
+        disabled={!v}
+        onClick={volume.toggleMute}
+      >
+        <VolumeGlyph v={v} size={14} />
+      </button>
+      <div className={wide ? "w-40" : "w-24"}>
+        <Slider label="Volume" value={level} disabled={!v} onChange={volume.set} />
+      </div>
+    </div>
+  );
+}
+
+/** "● Mic · Zoom" in the header while something is listening or watching. */
+function PrivacyChip({ privacy }: { privacy: Privacy }) {
+  const items = [
+    ...privacy.camera.map((a) => ({ a, tone: CAMERA_TONE, what: "Camera" })),
+    ...privacy.mic.filter((a) => !privacy.camera.includes(a)).map((a) => ({ a, tone: MIC_TONE, what: "Mic" })),
+  ];
+  if (!items.length) return null;
+  const first = items[0];
+  return (
+    <span className="mr-2.5 flex items-center gap-1.5 rounded-full bg-white/8 px-2 py-0.5 text-[10.5px] text-white/70">
+      <i className="island-privacy-dot" style={{ background: first.tone, color: first.tone }} />
+      {first.what} · {first.a}
+      {items.length > 1 ? ` +${items.length - 1}` : ""}
+    </span>
   );
 }
 

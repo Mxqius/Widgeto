@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { fetchMedia, mediaControl, type MediaNow } from "@/shared/ipc/commands";
+import { fetchMedia, mediaControl, mediaSeek, type MediaAction, type MediaNow } from "@/shared/ipc/commands";
 import { isTauri } from "@/shared/lib/env";
 import { vividColour } from "../lib/colour";
 import { invoke } from "./bridge";
@@ -15,7 +15,9 @@ export interface Track {
   tint: string | null;
   /** best estimate of the playhead, in seconds, at `now` */
   positionAt: (now: number) => number;
-  send: (a: "toggle" | "next" | "prev") => Promise<void>;
+  send: (a: MediaAction) => Promise<void>;
+  /** jump to `sec`; the playhead moves at once, ahead of the player */
+  seek: (sec: number) => void;
 }
 
 /**
@@ -27,9 +29,9 @@ export function useIslandMedia(): Track {
   const live = isTauri();
   const { data, refresh } = usePoll(fetchMedia, 1500, live, live ? undefined : SAMPLE_MEDIA);
 
-  // outside the app the sample track still answers play/pause
-  const [samplePlaying, setSamplePlaying] = useState(true);
-  const media = live || !data ? data : { ...data, playing: samplePlaying };
+  // outside the app the sample track still answers its buttons
+  const [sample, setSample] = useState({ playing: true, shuffle: false, repeat: "none" as MediaNow["repeat"] });
+  const media = live || !data ? data : { ...data, ...sample };
 
   const key = media?.title ? `${media.title}\u001f${media.artist ?? ""}` : null;
 
@@ -76,9 +78,29 @@ export function useIslandMedia(): Track {
   const settle = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => () => clearTimeout(settle.current), []);
 
-  const send = async (action: "toggle" | "next" | "prev") => {
+  const [, bump] = useState(0);
+  const seek = (sec: number) => {
+    const to = dur > 0 ? Math.min(dur, Math.max(0, sec)) : Math.max(0, sec);
+    anchor.current = { ...anchor.current, pos: to, at: Date.now() };
+    bump((n) => n + 1);
+    if (!live) return;
+    void mediaSeek(to)
+      .catch(() => {})
+      .finally(() => {
+        clearTimeout(settle.current);
+        settle.current = setTimeout(refresh, 300);
+      });
+  };
+
+  const send = async (action: MediaAction) => {
     if (!live) {
-      if (action === "toggle") setSamplePlaying((p) => !p);
+      setSample((s) => {
+        if (action === "toggle") return { ...s, playing: !s.playing };
+        if (action === "shuffle") return { ...s, shuffle: !s.shuffle };
+        if (action === "repeat")
+          return { ...s, repeat: s.repeat === "none" ? "list" : s.repeat === "list" ? "track" : "none" };
+        return s;
+      });
       return;
     }
     try {
@@ -91,5 +113,5 @@ export function useIslandMedia(): Track {
   };
 
   const current = art && art.key === key ? art : null;
-  return { media, key, art: current?.src ?? null, tint: current?.tint ?? null, positionAt, send };
+  return { media, key, art: current?.src ?? null, tint: current?.tint ?? null, positionAt, send, seek };
 }

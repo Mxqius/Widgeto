@@ -1,10 +1,10 @@
 import { BatteryLow, Zap } from "lucide-react";
-import type { BatteryStats, Weather } from "@/shared/ipc/commands";
+import type { BatteryStats, Volume, Weather } from "@/shared/ipc/commands";
 import { clock, mmss } from "../lib/format";
 import type { Track } from "../data/useMedia";
 import type { Focus } from "../data/useFocus";
 import { Art, Equalizer, Ring } from "./parts";
-import { WeatherGlyph } from "./glyphs";
+import { CAMERA_TONE, MIC_TONE, VolumeGlyph, WeatherGlyph } from "./glyphs";
 
 /** Nothing going on: the time, and one quiet fact on the right. */
 export function IdleCompact({ now, h24, battery, weather, temp }: {
@@ -89,5 +89,34 @@ export function TimerBubble({ focus }: { focus: Focus }) {
     <div className="grid h-full w-full place-items-center">
       <Ring value={focus.progress} size={24} stroke={3} />
     </div>
+  );
+}
+
+/** The volume pop-out: what the keys, the mixer or a scroll just did. */
+export function VolumeHud({ v }: { v: Volume | undefined }) {
+  const level = v ? (v.muted ? 0 : v.level) : 0;
+  return (
+    <div className="flex h-full items-center gap-3 px-4">
+      <VolumeGlyph v={v} size={16} className="shrink-0 text-white" />
+      <div className="h-[5px] flex-1 overflow-hidden rounded-full bg-white/15">
+        <div
+          className="h-full rounded-full bg-white"
+          style={{ width: `${level * 100}%`, transition: "width 140ms ease-out" }}
+        />
+      </div>
+      <span className="w-7 text-right text-[12px] font-bold tabular-nums text-white">
+        {v?.muted ? "Off" : Math.round(level * 100)}
+      </span>
+    </div>
+  );
+}
+
+/** Green for the camera, orange for the mic — at the right end of the pill. */
+export function PrivacyDots({ camera, mic }: { camera: boolean; mic: boolean }) {
+  return (
+    <span className="island-privacy" aria-label={[camera && "Camera in use", mic && "Microphone in use"].filter(Boolean).join(", ")}>
+      {camera && <i className="island-privacy-dot" style={{ background: CAMERA_TONE, color: CAMERA_TONE }} />}
+      {mic && <i className="island-privacy-dot" style={{ background: MIC_TONE, color: MIC_TONE }} />}
+    </span>
   );
 }

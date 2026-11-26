@@ -1,4 +1,4 @@
-import type { BatteryStats, MediaNow, NetStats, SystemStats, Weather } from "@/shared/ipc/commands";
+import type { BatteryStats, MediaNow, NetStats, SystemStats, Volume, Weather } from "@/shared/ipc/commands";
 
 /**
  * What the island shows outside the desktop app (`npm run dev` in a browser),
@@ -12,7 +12,16 @@ export const SAMPLE_MEDIA: MediaNow = {
   app: "Spotify.exe",
   positionSec: 64,
   durationSec: 241,
+  shuffle: false,
+  repeat: "none",
+  canSeek: true,
+  canShuffle: true,
+  canRepeat: true,
+  canNext: true,
+  canPrev: true,
 };
+
+export const SAMPLE_VOLUME: Volume = { level: 0.42, muted: false };
 
 export const SAMPLE_BATTERY: BatteryStats = {
   present: true,

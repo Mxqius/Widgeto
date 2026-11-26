@@ -7,7 +7,7 @@
 export const ISLAND_LABEL = "island";
 
 /** The OS window is fixed at the largest shape; the island morphs inside it. */
-export const ISLAND_WINDOW = { width: 520, height: 236 } as const;
+export const ISLAND_WINDOW = { width: 520, height: 300 } as const;
 
 /** Gap between the top of the screen and the pill. */
 export const ISLAND_TOP = 8;
@@ -21,7 +21,19 @@ export const ISLAND_EVT = {
   hover: "island:hover",
   /** native -> island: a full-screen app or presentation took over */
   fullscreen: "island:fullscreen",
+  /** native -> island: the system volume or mute changed */
+  volume: "island:volume",
+  /** native -> island: which apps are using the mic and camera */
+  privacy: "island:privacy",
+  /** native -> island: Caps Lock toggled */
+  caps: "island:caps",
 } as const;
+
+/** Apps using the microphone and the camera right now. */
+export interface Privacy {
+  mic: string[];
+  camera: string[];
+}
 
 export interface IslandConfig {
   accent: string;

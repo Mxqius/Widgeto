@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
-import { ISLAND_EVT, type IslandConfig } from "@/shared/island/protocol";
+import type { Volume } from "@/shared/ipc/commands";
+import { ISLAND_EVT, type IslandConfig, type Privacy } from "@/shared/island/protocol";
 import { isTauri } from "@/shared/lib/env";
+import { SAMPLE_VOLUME } from "./sample";
 
 export const DEFAULT_ISLAND_CONFIG: IslandConfig = {
   accent: "#a78bfa",
@@ -12,6 +14,8 @@ export const DEFAULT_ISLAND_CONFIG: IslandConfig = {
   weatherPlace: null,
   focus: { focusMin: 25, shortMin: 5, longMin: 15 },
 };
+
+const NO_PRIVACY: Privacy = { mic: [], camera: [] };
 
 export async function invoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
   const { invoke } = await import("@tauri-apps/api/core");
@@ -40,19 +44,28 @@ export function useTauriEvent<T>(name: string, on: (payload: T) => void) {
 
 /**
  * The island's links to the rest of the app: config from the manager, and
- * hover and full-screen state from the native watcher.
+ * from the native watcher hover, full-screen, volume, mic and camera use and
+ * Caps Lock. Outside the app the native half is simulated, so every state can
+ * be looked at in a browser.
  */
 export function useIslandBridge() {
+  const live = isTauri();
   const [cfg, setCfg] = useState<IslandConfig>(DEFAULT_ISLAND_CONFIG);
   const [nativeHover, setNativeHover] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
+  const [volume, setVolume] = useState<Volume | undefined>(live ? undefined : SAMPLE_VOLUME);
+  const [privacy, setPrivacy] = useState<Privacy>(NO_PRIVACY);
+  const [caps, setCaps] = useState<boolean | undefined>(live ? undefined : false);
 
   useTauriEvent<IslandConfig>(ISLAND_EVT.config, setCfg);
   useTauriEvent<boolean>(ISLAND_EVT.hover, setNativeHover);
   useTauriEvent<boolean>(ISLAND_EVT.fullscreen, setFullscreen);
+  useTauriEvent<Volume>(ISLAND_EVT.volume, setVolume);
+  useTauriEvent<Privacy>(ISLAND_EVT.privacy, setPrivacy);
+  useTauriEvent<boolean>(ISLAND_EVT.caps, setCaps);
 
   useEffect(() => {
-    if (!isTauri()) return;
+    if (!live) return;
     // give the listeners above a beat to attach before asking for state
     const t = setTimeout(async () => {
       const { emit } = await import("@tauri-apps/api/event");
@@ -60,11 +73,16 @@ export function useIslandBridge() {
       await invoke("island_ready");
     }, 60);
     return () => clearTimeout(t);
-  }, []);
+  }, [live]);
 
   useEffect(() => {
     document.documentElement.style.setProperty("--accent", cfg.accent);
   }, [cfg.accent]);
 
-  return { cfg, nativeHover, fullscreen };
+  /** browser preview only: stand-ins for what the native watcher would send */
+  const simulate = live ? null : { setVolume, setPrivacy, setCaps };
+
+  return { cfg, nativeHover, fullscreen, volume, privacy, caps, simulate };
 }
+
+export type Simulate = NonNullable<ReturnType<typeof useIslandBridge>["simulate"]>;
