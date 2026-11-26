@@ -19,6 +19,8 @@ sizes, docks, shows and hides them.
 - **No widget is faked** — system, network and battery read the real machine; weather and markets
   come from live public data; Notes, Tasks and Calendar are real and local
 - **Auto-dock, alignment guides and four auto-arrange modes** (grid, columns, cascade, ring)
+- **A Dynamic Island** at the top of the screen — music, focus timer, system stats and today, with
+  live pop-outs for track changes, the charger, finished timers and captured notes
 - **Multi-monitor aware** — every display's work area is tracked independently
 - **Lives in the tray** — closing the manager parks it there; the widgets stay on the desktop
 - **A global capture hotkey**, per-widget settings, profiles, and a keyboard-first manager
@@ -69,11 +71,12 @@ src/
 ├── app/
 │   ├── manager/   ← index.html    the manager window: store, board, settings
 │   ├── widget/    ← widget.html   one widget, alone in its own desktop window
-│   └── capture/   ← capture.html  the quick-capture bar
+│   ├── capture/   ← capture.html  the quick-capture bar
+│   └── island/    ← island.html   the Dynamic Island
 └── shared/                        types, IPC, layout maths, tokens
 ```
 
-Three HTML entries, one per window kind, and a hard rule between them: `app/*` may import
+Four HTML entries, one per window kind, and a hard rule between them: `app/*` may import
 `shared/**` and nothing else of `app/*`. That boundary is not a convention — `npm run build` runs
 `scripts/check-boundaries.mjs` first, which walks the static import graph from each entry (and from
 each widget body, since those are lazily loaded and so invisible to an entry walk) and fails if
@@ -87,6 +90,25 @@ keeps them out once they are out.
 ```bash
 npm run bundle-report   # what each window kind actually downloads and parses
 ```
+
+## Dynamic Island
+
+A black pill at the top centre of your main display that grows into whatever is going on.
+
+| State | What it shows |
+|---|---|
+| Idle | The time, plus one quiet fact: charging, low battery, or the outside temperature |
+| Music | The album cover and a live equaliser tinted with the cover's own colour |
+| Focus timer | A progress ring and the time left; beside music it splits off into its own bubble |
+| Hover | Opens into a panel with four tabs: **Now playing** (cover, progress, transport), **Focus** (focus / break / long break, start, pause, reset, sessions today), **System** (CPU, memory, battery, network) and **Today** (time, date, weather) |
+| Live activity | Pops out for a few seconds on a new track, charger in or out, low battery, a finished focus session (with a soft chime) or a note saved from quick capture |
+
+Every shape change is a CSS transition driven by real spring physics baked into a `linear()`
+easing (`src/app/island/lib/spring.ts`), so the island needs no animation library. Its window is the
+size of the largest shape and transparent around it; a small native watcher makes everything except
+the island itself click-through, and tucks the island away while a full-screen game, video or
+presentation is in front. Turn it off, or turn off the pop-outs, in
+**Settings → Desktop & system → Dynamic Island**.
 
 ## Low-memory mode
 
