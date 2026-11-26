@@ -27,8 +27,23 @@ fn read(key: &str) -> Option<Entry> {
     store().lock().ok()?.get(key).cloned()
 }
 
+/// Hard ceiling on how many payloads are kept. The key space is small in
+/// practice — one per weather place and per market symbol set — but there was
+/// no eviction path at all, so nothing stopped it growing.
+const MAX_ENTRIES: usize = 32;
+
 fn write(key: &str, json: String, ttl: Duration) {
     if let Ok(mut map) = store().lock() {
+        if map.len() >= MAX_ENTRIES && !map.contains_key(key) {
+            // drop whatever was fetched longest ago
+            if let Some(oldest) = map
+                .iter()
+                .min_by_key(|(_, e)| e.fetched)
+                .map(|(k, _)| k.clone())
+            {
+                map.remove(&oldest);
+            }
+        }
         map.insert(
             key.to_string(),
             Entry {

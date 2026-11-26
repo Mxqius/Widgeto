@@ -18,8 +18,14 @@ struct Probe {
 fn probe() -> &'static Mutex<Probe> {
     static P: OnceLock<Mutex<Probe>> = OnceLock::new();
     P.get_or_init(|| {
-        let mut sys = System::new_all();
-        sys.refresh_all();
+        // `System::new_all()` also snapshots every running process — name, exe
+        // path and command line for each — and that table then sits in this
+        // `OnceLock` for the life of the app. Nothing here ever reads it:
+        // `system_stats` wants CPU, memory and disks only. So build an empty
+        // `System` and refresh exactly those.
+        let mut sys = System::new();
+        sys.refresh_cpu_usage();
+        sys.refresh_memory();
         let nets = Networks::new_with_refreshed_list();
         let (rx, tx) = nets
             .iter()
@@ -154,9 +160,18 @@ pub struct BatteryStats {
     temp_c: Option<f32>,
 }
 
+/// Built once. The widget polls this every twenty seconds and a fresh manager
+/// each time is pure churn.
+fn battery_manager() -> Result<&'static starship_battery::Manager, String> {
+    static M: OnceLock<Result<starship_battery::Manager, String>> = OnceLock::new();
+    M.get_or_init(|| starship_battery::Manager::new().map_err(|e| e.to_string()))
+        .as_ref()
+        .map_err(|e| e.clone())
+}
+
 #[tauri::command]
 pub fn battery_stats() -> Result<BatteryStats, String> {
-    let manager = starship_battery::Manager::new().map_err(|e| e.to_string())?;
+    let manager = battery_manager()?;
     let mut batteries = manager.batteries().map_err(|e| e.to_string())?;
 
     let Some(Ok(b)) = batteries.next() else {
@@ -217,8 +232,18 @@ pub fn media_now() -> Result<MediaNow, String> {
     use windows::Media::Control::GlobalSystemMediaTransportControlsSessionManager as Mgr;
     use windows::Media::Control::GlobalSystemMediaTransportControlsSessionPlaybackStatus as Status;
 
-    let mgr = pollster::block_on(Mgr::RequestAsync().map_err(|e| e.to_string())?)
-        .map_err(|e| e.to_string())?;
+    // The session manager is a process-wide handle, but this command runs
+    // every two seconds while the Music tile is open — requesting a new one
+    // each time is a WinRT round trip for a value that never changes.
+    static MGR: OnceLock<Result<Mgr, String>> = OnceLock::new();
+    let mgr = MGR
+        .get_or_init(|| {
+            Mgr::RequestAsync()
+                .map_err(|e| e.to_string())
+                .and_then(|op| pollster::block_on(op).map_err(|e| e.to_string()))
+        })
+        .as_ref()
+        .map_err(|e| e.clone())?;
 
     let Ok(session) = mgr.GetCurrentSession() else {
         return Ok(MediaNow::default());
