@@ -16,7 +16,7 @@ export function AboutTab() {
   const diagnostics = [
     `Widgeto ${b.version}`,
     `${b.platform} (${b.arch})`,
-    `App engine ${b.tauriVersion} · Renderer ${b.renderer}`,
+    `Renderer ${b.renderer}`,
     `${live} of ${WIDGETS.length} widgets active`,
   ].join("\n");
 

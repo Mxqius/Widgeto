@@ -5,7 +5,6 @@ export interface Build {
   name: string;
   version: string;
   identifier: string;
-  tauriVersion: string;
   platform: string;
   arch: string;
   renderer: string;
@@ -22,7 +21,6 @@ export function useBuild(): Build {
     name: "Widgeto",
     version: UNKNOWN,
     identifier: UNKNOWN,
-    tauriVersion: UNKNOWN,
     platform: UNKNOWN,
     arch: UNKNOWN,
     renderer: navigator.userAgent.match(/Chrome\/([\d.]+)/)?.[1] ?? UNKNOWN,
@@ -35,11 +33,10 @@ export function useBuild(): Build {
       try {
         const app = await import("@tauri-apps/api/app");
         const { invoke } = await import("@tauri-apps/api/core");
-        const [name, version, identifier, tauriVersion, host] = await Promise.all([
+        const [name, version, identifier, host] = await Promise.all([
           app.getName(),
           app.getVersion(),
           app.getIdentifier(),
-          app.getTauriVersion(),
           invoke<{ platform: string; arch: string }>("host_info"),
         ]);
         if (alive) {
@@ -48,7 +45,6 @@ export function useBuild(): Build {
             name,
             version,
             identifier,
-            tauriVersion,
             platform: host.platform,
             arch: host.arch,
           }));
