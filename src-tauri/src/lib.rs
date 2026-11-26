@@ -24,14 +24,34 @@ fn host_info() -> HostInfo {
     }
 }
 
-/// Reads the one preference the Rust side needs before the UI boots.
-/// The frontend owns settings, so it mirrors this flag into a tiny file
-/// rather than the Rust side reaching into localStorage.
-fn start_hidden(app: &tauri::AppHandle) -> bool {
-    prefs_path(app)
+/// The preferences the Rust side needs before the UI boots.
+///
+/// The frontend owns settings, so it mirrors these into a tiny file rather
+/// than the Rust side reaching into localStorage. Both are needed earlier than
+/// any window exists — `startInTray` before the first window is shown, and
+/// `lowMemory` before the webview environment is even created.
+fn read_startup_prefs() -> String {
+    early_prefs_path()
         .and_then(|p| std::fs::read_to_string(p).ok())
-        .map(|s| s.contains("\"startInTray\":true"))
-        .unwrap_or(false)
+        .unwrap_or_default()
+}
+
+/// Resolved without an `AppHandle`, because `tune_webview` runs before there
+/// is one. Same location Tauri would give us: `%APPDATA%\<identifier>`.
+fn early_prefs_path() -> Option<std::path::PathBuf> {
+    #[cfg(windows)]
+    let base = std::path::PathBuf::from(std::env::var_os("APPDATA")?);
+    #[cfg(not(windows))]
+    let base = dirs_config()?;
+    Some(base.join("com.widgeto.app").join("startup.json"))
+}
+
+#[cfg(not(windows))]
+fn dirs_config() -> Option<std::path::PathBuf> {
+    if let Some(x) = std::env::var_os("XDG_CONFIG_HOME") {
+        return Some(std::path::PathBuf::from(x));
+    }
+    std::env::var_os("HOME").map(|h| std::path::PathBuf::from(h).join(".config"))
 }
 
 fn prefs_path(app: &tauri::AppHandle) -> Option<std::path::PathBuf> {
@@ -42,18 +62,30 @@ fn prefs_path(app: &tauri::AppHandle) -> Option<std::path::PathBuf> {
 
 /// Mirror of the startup preferences, written by the settings screen.
 #[tauri::command]
-fn set_startup_prefs(app: tauri::AppHandle, start_in_tray: bool) -> Result<(), String> {
+fn set_startup_prefs(
+    app: tauri::AppHandle,
+    start_in_tray: bool,
+    low_memory: bool,
+) -> Result<(), String> {
     let path = prefs_path(&app).ok_or("no config dir")?;
-    std::fs::write(path, format!("{{\"startInTray\":{start_in_tray}}}"))
-        .map_err(|e| e.to_string())
+    std::fs::write(
+        path,
+        format!("{{\"startInTray\":{start_in_tray},\"lowMemory\":{low_memory}}}"),
+    )
+    .map_err(|e| e.to_string())
 }
 
 /// Bring the manager back from the tray.
+///
+/// The visibility event is what lets the manager unmount its UI while parked:
+/// a top-level window hidden with `ShowWindow(SW_HIDE)` does not reliably tell
+/// the page it is gone, but we know exactly when we do it.
 fn show_manager(app: &tauri::AppHandle) {
     if let Some(w) = app.get_webview_window("main") {
         let _ = w.show();
         let _ = w.unminimize();
         let _ = w.set_focus();
+        let _ = w.emit_to("main", "manager:visible", true);
     }
 }
 
@@ -71,6 +103,12 @@ fn show_manager(app: &tauri::AppHandle) {
 /// Deliberately no `--js-flags=--max-old-space-size`: capping the heap made
 /// sense per-window, but that one renderer now hosts every widget, and a cap
 /// sized for one tile would be an out-of-memory crash for thirteen.
+///
+/// Low-memory mode adds `--enable-low-end-device-mode`, which shrinks
+/// Chromium's caches, tile sizes and V8 heap limits. Browser arguments are
+/// read once when the webview environment is created, before any window
+/// exists — which is why the flag comes from the startup file rather than the
+/// store, and why toggling it needs a restart.
 fn tune_webview() {
     const ARGS: &str = concat!(
         "--process-per-site",
@@ -81,10 +119,31 @@ fn tune_webview() {
         " --disable-breakpad",
         " --no-pings",
     );
+
+    let mut args = String::from(ARGS);
+    if read_startup_prefs().contains("\"lowMemory\":true") {
+        // Measured on this board with all thirteen widgets up: turning off GPU
+        // compositing takes the GPU process from ~106 MB of private bytes to
+        // ~21 MB, about a quarter off the whole app. Tiles are flat colour and
+        // text, so the software compositor keeps up; the cost is that blur and
+        // the pet's animation get more expensive, which is why this is opt-in
+        // and why Low-memory mode drops the blur at the same time.
+        args.push_str(" --enable-low-end-device-mode --disable-gpu --disable-gpu-compositing");
+    }
+    // Anything already in the environment wins by being appended last, so a
+    // packaged build can still be handed --remote-debugging-port or similar
+    // without editing this list.
+    if let Some(extra) = std::env::var_os("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS") {
+        if let Some(extra) = extra.to_str() {
+            args.push(' ');
+            args.push_str(extra);
+        }
+    }
+
     // SAFETY: called once at start-up, before any other thread exists to read
     // the environment.
     unsafe {
-        std::env::set_var("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS", ARGS);
+        std::env::set_var("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS", args);
     }
 }
 
@@ -167,8 +226,9 @@ pub fn run() {
                 // launched by the OS at login, or the user chose to start in
                 // the tray: come up as a tray icon only
                 let from_login = std::env::args().any(|a| a == "--startup");
-                if from_login || start_hidden(app.handle()) {
+                if from_login || read_startup_prefs().contains("\"startInTray\":true") {
                     let _ = w.hide();
+                    let _ = w.emit_to("main", "manager:visible", false);
                 }
             }
             Ok(())
@@ -180,6 +240,7 @@ pub fn run() {
                 if let WindowEvent::CloseRequested { api, .. } = event {
                     api.prevent_close();
                     let _ = window.hide();
+                    let _ = window.emit_to("main", "manager:visible", false);
                 }
             }
         })
