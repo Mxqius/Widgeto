@@ -1,6 +1,7 @@
 mod cache;
 mod data;
 mod ical;
+mod island;
 mod system;
 
 use tauri::{
@@ -175,6 +176,9 @@ pub fn run() {
             system::battery_stats,
             system::media_now,
             system::media_control,
+            system::media_art,
+            island::island_ready,
+            island::island_hit,
             system::launch,
             ical::calendar_events
         ])

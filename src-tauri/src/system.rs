@@ -210,6 +210,25 @@ pub fn battery_stats() -> Result<BatteryStats, String> {
 
 /* ------------------------------------------------------------------- media */
 
+/// The session manager is a process-wide handle, but the media commands run
+/// every couple of seconds while the Music tile or the island is up —
+/// requesting a new one each time is a WinRT round trip for a value that
+/// never changes.
+#[cfg(windows)]
+fn media_manager(
+) -> Result<&'static windows::Media::Control::GlobalSystemMediaTransportControlsSessionManager, String>
+{
+    use windows::Media::Control::GlobalSystemMediaTransportControlsSessionManager as Mgr;
+    static MGR: OnceLock<Result<Mgr, String>> = OnceLock::new();
+    MGR.get_or_init(|| {
+        Mgr::RequestAsync()
+            .map_err(|e| e.to_string())
+            .and_then(|op| pollster::block_on(op).map_err(|e| e.to_string()))
+    })
+    .as_ref()
+    .map_err(|e| e.clone())
+}
+
 #[derive(Serialize, Default)]
 pub struct MediaNow {
     playing: bool,
@@ -229,21 +248,9 @@ pub struct MediaNow {
 #[cfg(windows)]
 #[tauri::command]
 pub fn media_now() -> Result<MediaNow, String> {
-    use windows::Media::Control::GlobalSystemMediaTransportControlsSessionManager as Mgr;
     use windows::Media::Control::GlobalSystemMediaTransportControlsSessionPlaybackStatus as Status;
 
-    // The session manager is a process-wide handle, but this command runs
-    // every two seconds while the Music tile is open — requesting a new one
-    // each time is a WinRT round trip for a value that never changes.
-    static MGR: OnceLock<Result<Mgr, String>> = OnceLock::new();
-    let mgr = MGR
-        .get_or_init(|| {
-            Mgr::RequestAsync()
-                .map_err(|e| e.to_string())
-                .and_then(|op| pollster::block_on(op).map_err(|e| e.to_string()))
-        })
-        .as_ref()
-        .map_err(|e| e.clone())?;
+    let mgr = media_manager()?;
 
     let Ok(session) = mgr.GetCurrentSession() else {
         return Ok(MediaNow::default());
@@ -291,10 +298,7 @@ pub fn media_now() -> Result<MediaNow, String> {
 #[cfg(windows)]
 #[tauri::command]
 pub fn media_control(action: String) -> Result<(), String> {
-    use windows::Media::Control::GlobalSystemMediaTransportControlsSessionManager as Mgr;
-
-    let mgr = pollster::block_on(Mgr::RequestAsync().map_err(|e| e.to_string())?)
-        .map_err(|e| e.to_string())?;
+    let mgr = media_manager()?;
     let session = mgr.GetCurrentSession().map_err(|e| e.to_string())?;
 
     let op = match action.as_str() {
@@ -315,6 +319,96 @@ pub fn media_control(action: String) -> Result<(), String> {
 #[tauri::command]
 pub fn media_control(_action: String) -> Result<(), String> {
     Err("media control is Windows-only for now".into())
+}
+
+/* --------------------------------------------------------------- media art */
+
+/// Cover art of the current track as a `data:` URL, or `None` when the source
+/// does not publish one. Keyed on title and artist, so polling it is free
+/// until the track actually changes.
+#[cfg(windows)]
+#[tauri::command]
+pub fn media_art() -> Result<Option<String>, String> {
+    use windows::core::Interface;
+    use windows::Storage::Streams::{DataReader, IInputStream};
+
+    static LAST: OnceLock<Mutex<Option<(String, Option<String>)>>> = OnceLock::new();
+    let last = LAST.get_or_init(|| Mutex::new(None));
+
+    let mgr = media_manager()?;
+    let Ok(session) = mgr.GetCurrentSession() else {
+        return Ok(None);
+    };
+    let props = session
+        .TryGetMediaPropertiesAsync()
+        .map_err(|e| e.to_string())
+        .and_then(|op| pollster::block_on(op).map_err(|e| e.to_string()))?;
+
+    let key = format!(
+        "{}\u{1f}{}",
+        props.Title().map(|s| s.to_string()).unwrap_or_default(),
+        props.Artist().map(|s| s.to_string()).unwrap_or_default()
+    );
+    if let Ok(guard) = last.lock() {
+        if let Some((k, art)) = guard.as_ref() {
+            if *k == key {
+                return Ok(art.clone());
+            }
+        }
+    }
+
+    let read = || -> windows::core::Result<Option<String>> {
+        let Ok(thumb) = props.Thumbnail() else {
+            return Ok(None);
+        };
+        let stream = pollster::block_on(thumb.OpenReadAsync()?)?;
+        let size = stream.Size()?;
+        // a cover is tens of kilobytes; anything past this is not one
+        if size == 0 || size > 4 * 1024 * 1024 {
+            return Ok(None);
+        }
+        let mime = stream
+            .ContentType()
+            .map(|s| s.to_string())
+            .ok()
+            .filter(|s| s.starts_with("image/"))
+            .unwrap_or_else(|| "image/png".into());
+        let input: IInputStream = stream.cast()?;
+        let reader = DataReader::CreateDataReader(&input)?;
+        let n = pollster::block_on(reader.LoadAsync(size as u32)?)?;
+        let mut buf = vec![0u8; n as usize];
+        reader.ReadBytes(&mut buf)?;
+        Ok(Some(format!("data:{mime};base64,{}", base64(&buf))))
+    };
+    let art = read().unwrap_or(None);
+
+    if let Ok(mut guard) = last.lock() {
+        *guard = Some((key, art.clone()));
+    }
+    Ok(art)
+}
+
+#[cfg(not(windows))]
+#[tauri::command]
+pub fn media_art() -> Result<Option<String>, String> {
+    Ok(None)
+}
+
+/// Standard base64 with padding. One call site, so not worth a dependency.
+#[cfg(windows)]
+fn base64(bytes: &[u8]) -> String {
+    const T: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut out = String::with_capacity(bytes.len().div_ceil(3) * 4);
+    for c in bytes.chunks(3) {
+        let b1 = c.get(1).copied().unwrap_or(0) as u32;
+        let b2 = c.get(2).copied().unwrap_or(0) as u32;
+        let n = (c[0] as u32) << 16 | b1 << 8 | b2;
+        out.push(T[(n >> 18) as usize & 63] as char);
+        out.push(T[(n >> 12) as usize & 63] as char);
+        out.push(if c.len() > 1 { T[(n >> 6) as usize & 63] as char } else { '=' });
+        out.push(if c.len() > 2 { T[n as usize & 63] as char } else { '=' });
+    }
+    out
 }
 
 /* ------------------------------------------------------------------ launch */

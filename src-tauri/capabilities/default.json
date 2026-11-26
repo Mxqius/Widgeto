@@ -5,7 +5,8 @@
   "windows": [
     "main",
     "w-*",
-    "capture"
+    "capture",
+    "island"
   ],
   "permissions": [
     "core:default",
