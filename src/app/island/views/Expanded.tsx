@@ -1,6 +1,6 @@
 import {
-  ArrowDown, ArrowUp, BatteryCharging, BatteryMedium, CalendarDays, Cpu, Gauge, MemoryStick,
-  Music, Pause, Play, Repeat, Repeat1, RotateCcw, Shuffle, SkipBack, SkipForward, Timer,
+  ArrowDown, ArrowUp, BatteryCharging, BatteryMedium, CalendarDays, ChevronsUp, Cpu, Gauge, MemoryStick,
+  Music, Pause, Play, Repeat, Repeat1, RotateCcw, Shuffle, SkipBack, SkipForward, Sparkles, Timer,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import type { BatteryStats, NetStats, SystemStats, Weather } from "@/shared/ipc/commands";
@@ -9,16 +9,20 @@ import { ampm, appLabel, bytesPerSec, clock, mmss } from "../lib/format";
 import type { Track } from "../data/useMedia";
 import type { Focus, FocusMode } from "../data/useFocus";
 import type { VolumeCtl } from "../data/useVolume";
+import type { AskState } from "../data/useAsk";
+import type { AiTarget } from "@/shared/ai/client";
+import { AskPanel } from "./AskPanel";
 import { Art, Bar, Equalizer, Ring, Slider } from "./parts";
 import { CAMERA_TONE, MIC_TONE, VolumeGlyph, WeatherGlyph } from "./glyphs";
 
-export type Tab = "media" | "focus" | "system" | "today";
+export type Tab = "media" | "focus" | "system" | "today" | "ask";
 
 const TABS: { id: Tab; icon: typeof Music; label: string }[] = [
   { id: "media", icon: Music, label: "Now playing" },
   { id: "focus", icon: Timer, label: "Focus" },
   { id: "system", icon: Gauge, label: "System" },
   { id: "today", icon: CalendarDays, label: "Today" },
+  { id: "ask", icon: Sparkles, label: "Ask AI" },
 ];
 
 export interface ExpandedProps {
@@ -35,17 +39,26 @@ export interface ExpandedProps {
   temp: (c: number) => string;
   volume: VolumeCtl;
   privacy: Privacy;
+  /** null while Ask AI is off, which also hides its tab */
+  ai: AiTarget | null;
+  ask: AskState;
+  askSignal: number;
+  onAskFocus: (focused: boolean) => void;
+  onClose: () => void;
+  /** shrink the island into a handle on the top edge */
+  onTuck: () => void;
 }
 
 export function Expanded(p: ExpandedProps) {
   const d = new Date(p.now);
-  const i = TABS.findIndex((t) => t.id === p.tab);
+  const tabs = p.ai ? TABS : TABS.filter((t) => t.id !== "ask");
+  const i = tabs.findIndex((t) => t.id === p.tab);
   return (
     <div className="flex h-full flex-col px-4 pt-3 pb-4">
       <header className="flex h-7 shrink-0 items-center justify-between">
         <nav className="relative flex gap-1" role="tablist">
           <span className="island-tab-thumb" style={{ transform: `translateX(${i * 36}px)` }} />
-          {TABS.map(({ id, icon: I, label }) => (
+          {tabs.map(({ id, icon: I, label }) => (
             <button
               key={id}
               role="tab"
@@ -63,6 +76,18 @@ export function Expanded(p: ExpandedProps) {
           {d.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })}
           <span className="mx-1.5 text-white/20">·</span>
           <span className="tabular-nums text-white/80">{clock(d, p.h24)}</span>
+          <button
+            type="button"
+            title="Tuck away (right-click the island works too)"
+            aria-label="Tuck the island into the top edge"
+            onClick={(e) => {
+              e.stopPropagation();
+              p.onTuck();
+            }}
+            className="island-tuck-btn"
+          >
+            <ChevronsUp size={14} />
+          </button>
         </span>
       </header>
 
@@ -72,6 +97,15 @@ export function Expanded(p: ExpandedProps) {
         {p.tab === "system" && <SystemPanel system={p.system} net={p.net} battery={p.battery} />}
         {p.tab === "today" && (
           <TodayPanel now={d} h24={p.h24} weather={p.weather} temp={p.temp} battery={p.battery} />
+        )}
+        {p.tab === "ask" && p.ai && (
+          <AskPanel
+            ask={p.ask}
+            ai={p.ai}
+            focusSignal={p.askSignal}
+            onFocusChange={p.onAskFocus}
+            onClose={p.onClose}
+          />
         )}
       </div>
     </div>

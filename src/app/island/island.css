@@ -298,8 +298,122 @@ body { user-select: none; cursor: default; }
   50% { opacity: 0.55; }
 }
 
+/* --------------------------------------------------------------- tucked -- */
+
+/*
+ * Tucked, the island folds up into the top edge and leaves a slim handle
+ * hanging from it. The shape's own spring does the morph; on top of that the
+ * whole shape squashes as it is pulled in and stretches as it drops back out,
+ * anchored at the top edge so it reads as one elastic thing.
+ */
+.island-shape { transform-origin: 50% 0; }
+[data-mode="tucked"] .island-shape {
+  cursor: pointer;
+  box-shadow:
+    inset 0 -1px 0 rgba(255, 255, 255, 0.09),
+    0 4px 14px -4px rgba(0, 0, 0, 0.6);
+}
+
+[data-tuck="in"] .island-shape { animation: island-tuck 560ms cubic-bezier(0.2, 0.9, 0.25, 1) both; }
+[data-tuck="out"] .island-shape { animation: island-untuck 620ms cubic-bezier(0.2, 0.9, 0.25, 1) both; }
+@keyframes island-tuck {
+  0%   { scale: 1 1; }
+  30%  { scale: 1.06 0.8; }
+  62%  { scale: 0.98 1.05; }
+  100% { scale: 1 1; }
+}
+@keyframes island-untuck {
+  0%   { scale: 0.86 1.3; }
+  45%  { scale: 1.03 0.96; }
+  100% { scale: 1 1; }
+}
+/* what was showing is drawn up into the edge, not just faded */
+[data-tuck="in"][data-mode="tucked"] .island-layer.is-leaving {
+  animation: island-out-up 180ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+@keyframes island-out-up {
+  from { opacity: 1; filter: blur(0); transform: translateY(0) scale(1); }
+  to   { opacity: 0; filter: blur(6px); transform: translateY(-14px) scale(0.9); }
+}
+
+/* the tuck button in the open island's header */
+.island-tuck-btn {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin-left: 6px;
+  margin-right: -6px;
+  border-radius: 999px;
+  color: rgba(255, 255, 255, 0.4);
+  transition: color 160ms ease, background 160ms ease, transform 200ms cubic-bezier(0.3, 1.4, 0.4, 1);
+}
+.island-tuck-btn:hover { color: #fff; background: rgba(255, 255, 255, 0.1); transform: translateY(-1px); }
+.island-tuck-btn:active { transform: translateY(-3px) scale(0.9); }
+
+.island-tucked {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+}
+.island-grip {
+  display: block;
+  width: 26px;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--grip);
+  transition:
+    width 360ms cubic-bezier(0.3, 1.4, 0.4, 1),
+    background 400ms ease,
+    box-shadow 300ms ease;
+}
+.island-tucked[data-live] .island-grip { box-shadow: 0 0 6px color-mix(in srgb, var(--grip) 70%, transparent); }
+.island-tucked[data-hover] .island-grip {
+  width: 42px;
+  background: color-mix(in srgb, var(--grip) 45%, #fff);
+}
+/* something live: a slow breath of light behind the grip */
+.island-tucked[data-live]::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 34px;
+  height: 6px;
+  translate: -50% -50%;
+  border-radius: 999px;
+  background: var(--grip);
+  filter: blur(6px);
+  animation: island-breathe 2.8s ease-in-out infinite;
+}
+@keyframes island-breathe {
+  0%, 100% { opacity: 0.15; }
+  50%      { opacity: 0.5; }
+}
+
+/* the grip draws itself out from the centre as the shape lands */
+.island-grip.is-in { animation: island-grip-in 560ms cubic-bezier(0.3, 1.4, 0.4, 1) 160ms both; }
+@keyframes island-grip-in {
+  from { scale: 0 1; opacity: 0; }
+  to   { scale: 1 1; opacity: 1; }
+}
+/* an activity arrived while tucked: a flare in its colour, then back */
+.island-grip.is-ping { animation: island-grip-ping 1.5s cubic-bezier(0.2, 0.9, 0.25, 1) both; }
+@keyframes island-grip-ping {
+  0%   { scale: 1 1; background: var(--grip); box-shadow: 0 0 0 transparent; }
+  18%  { scale: 2 1.35; background: var(--ping); box-shadow: 0 0 12px 2px var(--ping); }
+  55%  { scale: 1.6 1.2; background: var(--ping); box-shadow: 0 0 10px 1px var(--ping); }
+  100% { scale: 1 1; background: var(--grip); box-shadow: 0 0 0 transparent; }
+}
+
 /* ------------------------------------------------------- reduced motion -- */
 
+[data-reduce][data-tuck] .island-shape,
+[data-reduce] .island-grip,
+[data-reduce] .island-tucked::before { animation: none; }
+[data-reduce] .island-tucked::before { opacity: 0.3; }
 [data-reduce] .island-layer.is-entering,
 [data-reduce] .island-layer.is-leaving,
 [data-reduce] .island-panel { animation-duration: 1ms; }
@@ -308,6 +422,7 @@ body { user-select: none; cursor: default; }
 @media (prefers-reduced-motion: reduce) {
   .island-layer.is-entering, .island-layer.is-leaving, .island-panel { animation-duration: 1ms; }
   .island-eq i { animation: none; transform: scaleY(0.6); }
+  [data-tuck] .island-shape, .island-grip, .island-tucked::before { animation: none; }
 }
 
 /* ------------------------------------------------- browser preview only -- */
@@ -328,3 +443,133 @@ body { user-select: none; cursor: default; }
   color: rgba(255, 255, 255, 0.7);
   background: rgba(127, 127, 127, 0.35);
 }
+
+/* ------------------------------------------------------------------- ask */
+.island-icon-xs { width: 24px; height: 24px; }
+.island-ask-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  flex-shrink: 0;
+  padding: 0 4px 0 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  transition: background 200ms ease, box-shadow 200ms ease;
+}
+.island-ask-field:focus-within {
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 55%, transparent);
+}
+.island-ask-send {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: #fff;
+  color: #000;
+  transition: transform 160ms ease, opacity 160ms ease;
+}
+.island-ask-send:active { transform: scale(0.9); }
+.island-ask-send:disabled { opacity: 0.25; }
+.island-ask-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 11px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.82);
+  background: rgba(255, 255, 255, 0.08);
+  transition: background 160ms ease, color 160ms ease, transform 160ms ease;
+}
+.island-ask-chip:hover { background: rgba(255, 255, 255, 0.14); color: #fff; }
+.island-ask-chip:active { transform: scale(0.96); }
+.island-ask-scroll { scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, 0.18) transparent; }
+.island-ask-q {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.island-ask-a {
+  position: relative;
+  margin-top: 4px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.92);
+  user-select: text;
+}
+.island-ask-a p + p, .island-ask-a p + ul, .island-ask-a p + ol, .island-ask-a ul + p, .island-ask-a ol + p,
+.island-ask-a pre + p, .island-ask-a p + pre { margin-top: 6px; }
+.island-ask-a ul, .island-ask-a ol { padding-left: 16px; }
+.island-ask-a ul { list-style: disc; }
+.island-ask-a ol { list-style: decimal; }
+.island-ask-a li::marker { color: rgba(255, 255, 255, 0.35); }
+.island-ask-a strong { font-weight: 700; color: #fff; }
+.island-ask-a code {
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 11.5px;
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.1);
+}
+.island-ask-a pre {
+  margin-top: 6px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.07);
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 11px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.island-ask-a.is-live > :last-child::after {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-left: 4px;
+  border-radius: 999px;
+  background: var(--accent);
+  vertical-align: middle;
+  animation: island-ask-blink 900ms ease-in-out infinite;
+}
+.island-ask-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.06);
+  transition: color 160ms ease, background 160ms ease;
+}
+.island-ask-copy:hover { color: #fff; background: rgba(255, 255, 255, 0.12); }
+.island-ask-thinking { display: flex; gap: 4px; padding: 8px 2px; }
+.island-ask-thinking i {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.55);
+  animation: island-ask-dot 1100ms ease-in-out infinite;
+}
+.island-ask-thinking i:nth-child(2) { animation-delay: 150ms; }
+.island-ask-thinking i:nth-child(3) { animation-delay: 300ms; }
+@keyframes island-ask-dot {
+  0%, 80%, 100% { opacity: 0.25; transform: translateY(0); }
+  40% { opacity: 1; transform: translateY(-3px); }
+}
+@keyframes island-ask-blink { 50% { opacity: 0.2; } }

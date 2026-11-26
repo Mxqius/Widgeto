@@ -3,6 +3,7 @@ import { useApp } from "@/app/manager/store";
 import { configOf } from "@/shared/widgets/config";
 import { ISLAND_EVT, ISLAND_LABEL, ISLAND_WINDOW, type IslandConfig } from "@/shared/island/protocol";
 import { isTauri } from "@/shared/lib/env";
+import { bindHotkey } from "./hotkeys";
 
 /**
  * Create the island window at the top centre of the primary display. The
@@ -40,6 +41,25 @@ async function openIsland() {
   });
 }
 
+/** The Ask hotkey: open the island on its Ask tab, ready to type. */
+export async function askIsland() {
+  const { emitTo } = await import("@tauri-apps/api/event");
+  const st = useApp.getState().settings;
+  if (!st.island || !st.aiEnabled) return;
+  await emitTo(ISLAND_LABEL, ISLAND_EVT.ask, null).catch(() => {});
+}
+
+/** The tuck hotkey: fold the island into the top edge, or bring it back. */
+export async function toggleIslandTuck() {
+  const { emitTo } = await import("@tauri-apps/api/event");
+  if (!useApp.getState().settings.island) return;
+  await emitTo(ISLAND_LABEL, ISLAND_EVT.tuck, null).catch(() => {});
+}
+
+/** (Re)bind the tuck hotkey. */
+export const bindTuckHotkey = (accelerator: string) =>
+  bindHotkey("tuck", accelerator, () => void toggleIslandTuck());
+
 async function closeIsland() {
   const { WebviewWindow } = await import("@tauri-apps/api/webviewWindow");
   const w = await WebviewWindow.getByLabel(ISLAND_LABEL);
@@ -61,6 +81,11 @@ export function useIslandSync() {
   const hideInFullscreen = useApp((s) => s.settings.islandHideFullscreen);
   const weatherCfg = useApp((s) => s.widgets.find((w) => w.kind === "weather")?.config);
   const focusCfg = useApp((s) => s.widgets.find((w) => w.kind === "pomodoro")?.config);
+  const aiEnabled = useApp((s) => s.settings.aiEnabled);
+  const aiProvider = useApp((s) => s.settings.aiProvider);
+  const aiModels = useApp((s) => s.settings.aiModels);
+  const aiBaseUrls = useApp((s) => s.settings.aiBaseUrls);
+  const aiHotkey = useApp((s) => s.settings.aiHotkey);
 
   const cfg = useMemo<IslandConfig>(() => {
     const weather = configOf("weather", weatherCfg);
@@ -74,8 +99,30 @@ export function useIslandSync() {
       hideInFullscreen,
       weatherPlace: weather.place?.trim() || null,
       focus: { focusMin: pomo.focusMin, shortMin: pomo.shortMin, longMin: pomo.longMin },
+      ai: aiEnabled
+        ? {
+            provider: aiProvider,
+            model: aiModels[aiProvider] ?? "",
+            baseUrl: aiProvider === "claude" ? null : aiBaseUrls[aiProvider] || null,
+            hotkey: aiHotkey,
+          }
+        : null,
     };
-  }, [accent, clock24h, temperatureUnit, reduceMotion, activities, hideInFullscreen, weatherCfg, focusCfg]);
+  }, [
+    accent,
+    clock24h,
+    temperatureUnit,
+    reduceMotion,
+    activities,
+    hideInFullscreen,
+    weatherCfg,
+    focusCfg,
+    aiEnabled,
+    aiProvider,
+    aiModels,
+    aiBaseUrls,
+    aiHotkey,
+  ]);
 
   const latest = useRef(cfg);
   latest.current = cfg;

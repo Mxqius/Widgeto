@@ -1,4 +1,5 @@
 import { isTauri } from "@/shared/lib/env";
+import { bindHotkey } from "./hotkeys";
 
 const LABEL = "capture";
 
@@ -42,23 +43,5 @@ export async function openCapture() {
   await win.setFocus();
 }
 
-/**
- * (Re)bind the capture hotkey. Everything is unregistered first because the
- * user can change the combination, and a stale binding would keep firing.
- */
-export async function bindCaptureHotkey(accelerator: string): Promise<boolean> {
-  if (!isTauri()) return false;
-  try {
-    const { register, unregisterAll } = await import("@tauri-apps/plugin-global-shortcut");
-    await unregisterAll();
-    if (!accelerator.trim()) return false;
-    await register(accelerator, (event) => {
-      // the plugin fires for press and release; only act once
-      if (event.state === "Pressed") void openCapture();
-    });
-    return true;
-  } catch {
-    // the combination may already be owned by another app
-    return false;
-  }
-}
+/** (Re)bind the capture hotkey. */
+export const bindCaptureHotkey = (accelerator: string) => bindHotkey("capture", accelerator, () => void openCapture());

@@ -1,6 +1,7 @@
 mod cache;
 mod data;
 mod ical;
+mod ai;
 mod audio;
 mod island;
 mod system;
@@ -91,6 +92,13 @@ fn show_manager(app: &tauri::AppHandle) {
     }
 }
 
+/// Bring the manager forward on a settings tab — the island's "Open settings".
+#[tauri::command]
+fn manager_open_settings(app: tauri::AppHandle, tab: String) {
+    show_manager(&app);
+    let _ = app.emit_to("main", "manager:open-settings", tab);
+}
+
 /// WebView2 tuning, applied before the environment is created.
 ///
 /// Every window here is the same origin, so `--process-per-site` lets Chromium
@@ -178,6 +186,15 @@ pub fn run() {
             system::media_now,
             system::media_control,
             system::media_art,
+            ai::ai_ask,
+            ai::ai_cancel,
+            ai::ai_models,
+            ai::ai_key_set,
+            ai::ai_key_clear,
+            ai::ai_key_status,
+            ai::ai_next_id,
+            ai::clipboard_text,
+            manager_open_settings,
             audio::volume_get,
             audio::volume_set,
             audio::volume_mute,
@@ -195,10 +212,17 @@ pub fn run() {
                 MenuItem::with_id(handle, "show_all", "Show all widgets", true, None::<&str>)?;
             let hide_all =
                 MenuItem::with_id(handle, "hide_all", "Hide all widgets", true, None::<&str>)?;
+            let tuck_island = MenuItem::with_id(
+                handle,
+                "tuck_island",
+                "Tuck or show the island",
+                true,
+                None::<&str>,
+            )?;
             let quit = MenuItem::with_id(handle, "quit", "Quit", true, None::<&str>)?;
             let sep = PredefinedMenuItem::separator(handle)?;
 
-            let menu = Menu::with_items(handle, &[&open, &sep, &show_all, &hide_all, &sep, &quit])?;
+            let menu = Menu::with_items(handle, &[&open, &sep, &show_all, &hide_all, &tuck_island, &sep, &quit])?;
 
             TrayIconBuilder::with_id("widgeto-tray")
                 .icon(app.default_window_icon().unwrap().clone())
@@ -213,6 +237,10 @@ pub fn run() {
                     }
                     "hide_all" => {
                         let _ = app.emit("tray:widgets", "hide_all");
+                    }
+                    // null toggles: the island knows whether it is tucked
+                    "tuck_island" => {
+                        let _ = app.emit_to("island", "island:tuck", ());
                     }
                     "quit" => app.exit(0),
                     _ => {}

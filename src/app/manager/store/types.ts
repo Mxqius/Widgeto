@@ -36,6 +36,10 @@ export interface MonitorsSlice {
 export interface SettingsSlice {
   settings: Settings;
   update: (patch: Partial<Settings>) => void;
+  /** a settings tab someone outside the UI asked for (the island); not persisted */
+  settingsRequest: { tab: string; n: number } | null;
+  requestSettings: (tab: string) => void;
+  clearSettingsRequest: () => void;
 }
 
 export interface UpdaterSlice {

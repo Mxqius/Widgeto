@@ -1,4 +1,5 @@
 import type { ArrangeMode } from "./geometry";
+import type { AiProvider } from "@/shared/ai/client";
 
 export type PowerSaver = "off" | "onBattery" | "always";
 
@@ -42,6 +43,17 @@ export interface Settings {
   islandActivities: boolean;
   /** tuck the island away while a full-screen app is in front */
   islandHideFullscreen: boolean;
+  /** global shortcut that tucks the island into the top edge and back; empty disables it */
+  islandTuckHotkey: string;
+  /** the Ask tab in the island */
+  aiEnabled: boolean;
+  aiProvider: AiProvider;
+  /** the model picked for each provider, so switching back keeps it */
+  aiModels: Record<AiProvider, string>;
+  /** endpoints for the OpenAI-compatible providers */
+  aiBaseUrls: { openai: string; local: string };
+  /** global shortcut that opens the island's Ask tab; empty disables it */
+  aiHotkey: string;
   clock24h: boolean;
   temperatureUnit: "C" | "F";
   wallpaper: string;

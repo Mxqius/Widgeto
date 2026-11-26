@@ -1,22 +1,41 @@
 import { useState } from "react";
 import { useApp } from "@/app/manager/store";
 import { bindCaptureHotkey } from "@/app/manager/desktop/captureWindow";
+import { bindHotkey } from "@/app/manager/desktop/hotkeys";
+import { askIsland, bindTuckHotkey } from "@/app/manager/desktop/island";
+
+type Field = "captureHotkey" | "aiHotkey" | "islandTuckHotkey";
+
+const BIND: Record<Field, (accel: string) => Promise<boolean>> = {
+  captureHotkey: bindCaptureHotkey,
+  aiHotkey: (accel) => bindHotkey("ask", accel, () => void askIsland()),
+  islandTuckHotkey: bindTuckHotkey,
+};
+
+const PLACEHOLDER: Record<Field, string> = {
+  captureHotkey: "CommandOrControl+Shift+N",
+  aiHotkey: "CommandOrControl+Shift+Space",
+  islandTuckHotkey: "CommandOrControl+Alt+H",
+};
 
 /**
  * The combination is only committed once it actually binds — another app may
  * already own it, and silently keeping a dead shortcut in settings would be
  * worse than saying so.
  */
-export function HotkeyField() {
-  const saved = useApp((st) => st.settings.captureHotkey);
+export function HotkeyField({ field = "captureHotkey" }: { field?: Field }) {
+  const saved = useApp((st) => st.settings[field]);
   const update = useApp((st) => st.update);
   const [draft, setDraft] = useState(saved);
   const [state, setState] = useState<"idle" | "ok" | "taken">("idle");
 
   const apply = async (value: string) => {
-    const ok = await bindCaptureHotkey(value);
+    if (value === saved && state !== "taken") return;
+    const ok = await BIND[field](value);
     setState(value.trim() === "" ? "idle" : ok ? "ok" : "taken");
-    if (ok || value.trim() === "") update({ captureHotkey: value });
+    if (ok || value.trim() === "") update({ [field]: value });
+    // a failed rebind leaves the slot empty; put the old one back
+    else if (saved.trim()) void BIND[field](saved);
   };
 
   return (
@@ -30,7 +49,7 @@ export function HotkeyField() {
       <input
         className="field h-8 w-47.5 font-mono text-[12px]"
         value={draft}
-        placeholder="CommandOrControl+Shift+N"
+        placeholder={PLACEHOLDER[field]}
         onChange={(e) => {
           setDraft(e.target.value);
           setState("idle");

@@ -6,6 +6,7 @@ import ManagerBoard from "./board/ManagerBoard";
 import SettingsScreen from "./settings/SettingsScreen";
 import UpdateDialog from "./updates/UpdateDialog";
 import { useApp } from "./store";
+import { TABS, type TabId } from "./settings/tabs";
 
 const BACKDROP =
   "radial-gradient(900px 500px at 0% -10%, #17162e 0%, transparent 55%)," +
@@ -19,9 +20,28 @@ const BACKDROP =
  */
 export default function ManagerUI() {
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsTab, setSettingsTab] = useState<TabId>("appearance");
+  const request = useApp((s) => s.settingsRequest);
+  const clearRequest = useApp((s) => s.clearSettingsRequest);
+
+  // the island asked for a particular tab ("Open settings" on its Ask tab)
+  useEffect(() => {
+    if (!request) return;
+    const tab = TABS.find((t) => t.id === request.tab)?.id;
+    if (tab) {
+      setSettingsTab(tab);
+      setSettingsOpen(true);
+    }
+    clearRequest();
+  }, [request, clearRequest]);
   const update = useApp((s) => s.update);
   const autoArrangeNow = useApp((s) => s.autoArrangeNow);
   const redock = useApp((s) => s.redock);
+
+  const openSettings = () => {
+    setSettingsTab("appearance");
+    setSettingsOpen(true);
+  };
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -60,14 +80,18 @@ export default function ManagerUI() {
         className="flex h-full w-full flex-col overflow-hidden rounded-xl"
         style={{ background: BACKDROP }}
       >
-        <ManagerChrome onOpenSettings={() => setSettingsOpen(true)} />
+        <ManagerChrome onOpenSettings={() => openSettings()} />
 
         <main className="relative min-h-0 flex-1">
-          <ManagerBoard onOpenSettings={() => setSettingsOpen(true)} />
+          <ManagerBoard onOpenSettings={() => openSettings()} />
           <AnimatePresence>
             {settingsOpen && (
               <div className="absolute inset-0 z-700">
-                <SettingsScreen onBack={() => setSettingsOpen(false)} />
+                <SettingsScreen
+                  key={settingsTab}
+                  initialTab={settingsTab}
+                  onBack={() => setSettingsOpen(false)}
+                />
               </div>
             )}
           </AnimatePresence>

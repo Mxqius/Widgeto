@@ -1,10 +1,11 @@
-import { Blocks, Info, Keyboard, Magnet, MonitorCog, Palette } from "lucide-react";
+import { Blocks, Info, Keyboard, Magnet, MonitorCog, Palette, Sparkles } from "lucide-react";
 
 export const TABS = [
   { id: "appearance", label: "Appearance", icon: Palette },
   { id: "layout", label: "Layout & docking", icon: Magnet },
   { id: "widgets", label: "Widgets", icon: Blocks },
   { id: "system", label: "Desktop & system", icon: MonitorCog },
+  { id: "ai", label: "Ask AI", icon: Sparkles },
   { id: "shortcuts", label: "Shortcuts", icon: Keyboard },
   { id: "about", label: "About", icon: Info },
 ] as const;
@@ -16,6 +17,7 @@ export const BLURB: Record<TabId, string> = {
   layout: "Control how your widgets snap, dock and arrange themselves.",
   widgets: "Shared formats, and where your live data comes from.",
   system: "How Widgeto and your widgets behave on your desktop.",
+  ai: "Ask Claude, OpenAI or a local model from the island. Keys stay in Windows Credential Manager.",
   shortcuts: "Everything you can do without touching the mouse.",
   about: "Version, what it is built on, and what to send if something breaks.",
 };

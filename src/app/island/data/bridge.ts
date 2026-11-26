@@ -13,6 +13,7 @@ export const DEFAULT_ISLAND_CONFIG: IslandConfig = {
   hideInFullscreen: true,
   weatherPlace: null,
   focus: { focusMin: 25, shortMin: 5, longMin: 15 },
+  ai: { provider: "claude", model: "claude-opus-5-5", baseUrl: null, hotkey: "CommandOrControl+Shift+Space" },
 };
 
 const NO_PRIVACY: Privacy = { mic: [], camera: [] };

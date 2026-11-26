@@ -1,7 +1,8 @@
 import { useEffect } from "react";
 import { useApp } from "./store";
 import { useDesktopSync } from "./desktop/useDesktopSync";
-import { useIslandSync } from "./desktop/island";
+import { askIsland, bindTuckHotkey, useIslandSync } from "./desktop/island";
+import { bindHotkey } from "./desktop/hotkeys";
 import { bindCaptureHotkey } from "./desktop/captureWindow";
 import { setAlwaysOnTop } from "./lib/window";
 import { isTauri } from "@/shared/lib/env";
@@ -42,6 +43,38 @@ export default function ManagerRuntime() {
   useEffect(() => {
     void bindCaptureHotkey(captureHotkey);
   }, [captureHotkey]);
+
+  // ...and so does the one that opens the island's Ask tab
+  const aiHotkey = useApp((s) => s.settings.aiHotkey);
+  const aiOn = useApp((s) => s.settings.aiEnabled && s.settings.island);
+  useEffect(() => {
+    void bindHotkey("ask", aiOn ? aiHotkey : "", () => void askIsland());
+  }, [aiHotkey, aiOn]);
+
+  // ...and the one that tucks the island into the top edge
+  const tuckHotkey = useApp((s) => s.settings.islandTuckHotkey);
+  const islandOn = useApp((s) => s.settings.island);
+  useEffect(() => {
+    void bindTuckHotkey(islandOn ? tuckHotkey : "");
+  }, [tuckHotkey, islandOn]);
+
+  // the island's "Open settings" -> remember which tab, for when the UI mounts
+  useEffect(() => {
+    if (!isTauri()) return;
+    let un: (() => void) | undefined;
+    let alive = true;
+    void import("@tauri-apps/api/event").then(async ({ listen }) => {
+      const off = await listen<string>("manager:open-settings", (e) =>
+        useApp.getState().requestSettings(e.payload),
+      );
+      if (alive) un = off;
+      else off();
+    });
+    return () => {
+      alive = false;
+      un?.();
+    };
+  }, []);
 
   // tray menu -> show/hide every widget
   useEffect(() => {

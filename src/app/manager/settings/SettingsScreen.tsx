@@ -9,6 +9,7 @@ import { LayoutTab } from "./tabs/LayoutTab";
 import { WidgetsTab } from "./tabs/WidgetsTab";
 import { SystemTab } from "./tabs/SystemTab";
 import { ShortcutsTab } from "./tabs/ShortcutsTab";
+import { AiTab } from "./tabs/AiTab";
 import { BLURB, TABS, type TabId } from "./tabs";
 
 const PANELS: Record<TabId, () => React.ReactElement> = {
@@ -16,12 +17,19 @@ const PANELS: Record<TabId, () => React.ReactElement> = {
   layout: LayoutTab,
   widgets: WidgetsTab,
   system: SystemTab,
+  ai: AiTab,
   shortcuts: ShortcutsTab,
   about: AboutTab,
 };
 
-export default function SettingsScreen({ onBack }: { onBack: () => void }) {
-  const [tab, setTab] = useState<TabId>("appearance");
+export default function SettingsScreen({
+  onBack,
+  initialTab = "appearance",
+}: {
+  onBack: () => void;
+  initialTab?: TabId;
+}) {
+  const [tab, setTab] = useState<TabId>(initialTab);
   const Panel = PANELS[tab];
 
   return (

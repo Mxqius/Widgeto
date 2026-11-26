@@ -3,13 +3,14 @@ import {
   fetchBattery, fetchNet, fetchSystem, fetchWeather,
   type BatteryStats,
 } from "@/shared/ipc/commands";
-import { ISLAND_TOP, ISLAND_WINDOW, type Privacy } from "@/shared/island/protocol";
+import { ISLAND_EVT, ISLAND_TOP, ISLAND_WINDOW, type Privacy } from "@/shared/island/protocol";
 import { isTauri } from "@/shared/lib/env";
 import { invoke, useIslandBridge, useTauriEvent, type Simulate } from "./data/bridge";
 import { useVolume } from "./data/useVolume";
 import { useIslandMedia } from "./data/useMedia";
 import { useFocus, type FocusMode } from "./data/useFocus";
 import { useActivities, type Activity } from "./data/useActivities";
+import { useAsk } from "./data/useAsk";
 import { useNow, usePoll } from "./data/usePoll";
 import { SAMPLE_BATTERY, SAMPLE_NET, SAMPLE_SYSTEM, SAMPLE_WEATHER } from "./data/sample";
 import { CALM, GROW, SETTLE } from "./lib/spring";
@@ -17,9 +18,10 @@ import { chime } from "./lib/chime";
 import { IdleCompact, MediaCompact, PrivacyDots, TimerBubble, TimerCompact, VolumeHud } from "./views/Compact";
 import { CAMERA_TONE, MIC_TONE } from "./views/glyphs";
 import { Toast } from "./views/Toast";
+import { TuckHandle } from "./views/TuckHandle";
 import { Expanded, type Tab } from "./views/Expanded";
 
-type Mode = "hidden" | "idle" | "media" | "timer" | "volume" | "toast" | "expanded";
+type Mode = "hidden" | "tucked" | "idle" | "media" | "timer" | "volume" | "toast" | "expanded";
 
 interface Shape {
   w: number;
@@ -29,6 +31,7 @@ interface Shape {
 
 const SHAPES: Record<Mode, Shape> = {
   hidden: { w: 150, h: 30, r: 15 },
+  tucked: { w: 64, h: 8, r: 8 },
   idle: { w: 176, h: 34, r: 17 },
   media: { w: 236, h: 34, r: 17 },
   timer: { w: 216, h: 34, r: 17 },
@@ -41,8 +44,24 @@ const SHAPES: Record<Mode, Shape> = {
 const DOT_W = 13;
 /** How long the volume pop-out lingers after the last change. */
 const HUD_MS = 1400;
+/** The Ask tab opens taller once there is an answer to read. */
+const ASK_H = 264;
+/** How long the hotkey holds the island open waiting for the field to take focus. */
+const ASK_HOLD_MS = 4000;
 /** One notch of the scroll wheel over the island. */
 const WHEEL_STEP = 0.04;
+
+/** The tucked handle reaches out a little under the pointer, to say "click me". */
+const TUCKED_HOVER: Shape = { w: 92, h: 12, r: 10 };
+/** Remembered across restarts: tucking it away is a choice, not a moment. */
+const TUCK_KEY = "widgeto.island.tucked";
+const readTucked = () => {
+  try {
+    return localStorage.getItem(TUCK_KEY) === "1";
+  } catch {
+    return false;
+  }
+};
 
 const BUBBLE = 34;
 const BUBBLE_GAP = 8;
@@ -63,11 +82,95 @@ export default function Island() {
   // In the app the native watcher decides: once cursor events are switched
   // off, the page never hears the pointer leave.
   const hover = live ? nativeHover : domHover;
+  const hoverRef = useRef(hover);
+  hoverRef.current = hover;
   const [expanded, setExpanded] = useState(false);
+  const [tab, setTab] = useState<Tab>("today");
+
+  /* ----------------------------------------------------------------- tuck */
+  // Tucked, the island shrinks to a slim handle on the top edge and stays out
+  // of the way of tab strips and title bars: hovering it no longer opens it.
+  const [tucked, setTuckedState] = useState(readTucked);
+  const tuckedRef = useRef(tucked);
+  tuckedRef.current = tucked;
+  // which way it last moved: a squash on the way in, a drop on the way out
+  const [tuckAnim, setTuckAnim] = useState<"in" | "out" | undefined>(undefined);
+  // after coming back, wait for the pointer to leave before hover opens it
+  const [hoverHold, setHoverHold] = useState(false);
   useEffect(() => {
-    const t = setTimeout(() => setExpanded(hover), hover ? OPEN_DELAY : CLOSE_DELAY);
-    return () => clearTimeout(t);
+    if (!hover) setHoverHold(false);
   }, [hover]);
+
+  const setTucked = useCallback((next: boolean) => {
+    if (next === tuckedRef.current) return;
+    tuckedRef.current = next;
+    setTuckedState(next);
+    setTuckAnim(next ? "in" : "out");
+    try {
+      localStorage.setItem(TUCK_KEY, next ? "1" : "0");
+    } catch {
+      /* storage unavailable: it just won't be remembered */
+    }
+    if (next) {
+      (document.activeElement as HTMLElement | null)?.blur();
+      setExpanded(false);
+      setHud(false);
+    } else {
+      setHoverHold(hoverRef.current);
+    }
+  }, []);
+  useTauriEvent<boolean | null>(ISLAND_EVT.tuck, (v) => setTucked(v ?? !tuckedRef.current));
+
+  /* ------------------------------------------------------------------ ask */
+  const ai = cfg.ai;
+  const ask = useAsk(ai);
+  // typing or waiting on an answer holds the island open after the pointer leaves
+  const [askFocused, setAskFocused] = useState(false);
+  const [askHold, setAskHold] = useState(false);
+  const [askSignal, setAskSignal] = useState(0);
+  const askOpening = useRef(false);
+  const pinned = askFocused || askHold || ask.streaming;
+  const onAskFocus = useCallback((f: boolean) => {
+    setAskFocused(f);
+    if (f) setAskHold(false);
+  }, []);
+  useEffect(() => {
+    if (!askHold) return;
+    const t = setTimeout(() => setAskHold(false), ASK_HOLD_MS);
+    return () => clearTimeout(t);
+  }, [askHold]);
+  useEffect(() => {
+    if (!ai && tab === "ask") setTab("today");
+  }, [ai, tab]);
+
+  const openAsk = useCallback(() => {
+    // the Ask hotkey always brings it back
+    setTucked(false);
+    askOpening.current = true;
+    setTab("ask");
+    setAskHold(true);
+    setExpanded(true);
+    setAskSignal((n) => n + 1);
+    if (isTauri()) {
+      // the hotkey grants this app the foreground, so the field can take keys
+      void import("@tauri-apps/api/window").then(({ getCurrentWindow }) =>
+        getCurrentWindow().setFocus().catch(() => {}),
+      );
+    }
+  }, [setTucked]);
+  useTauriEvent<null>(ISLAND_EVT.ask, () => openAsk());
+
+  const closeAsk = useCallback(() => {
+    setAskHold(false);
+    (document.activeElement as HTMLElement | null)?.blur();
+    setExpanded(false);
+  }, []);
+
+  const want = ((hover && !hoverHold) || pinned) && !tucked;
+  useEffect(() => {
+    const t = setTimeout(() => setExpanded(want), want ? OPEN_DELAY : CLOSE_DELAY);
+    return () => clearTimeout(t);
+  }, [want]);
 
   /* ----------------------------------------------------------------- feeds */
   const track = useIslandMedia();
@@ -77,8 +180,18 @@ export default function Island() {
   const { data: weatherRaw } = usePoll(weatherFn, 15 * 60_000, live && !!place, live ? undefined : SAMPLE_WEATHER);
   const weather = live && !place ? undefined : weatherRaw;
 
-  const activities = useActivities(expanded || (fullscreen && cfg.hideInFullscreen));
-  const { push } = activities;
+  // tucked, pop-outs wait (and go stale) instead of covering the top of the screen
+  const activities = useActivities(expanded || tucked || (fullscreen && cfg.hideInFullscreen));
+  const { push: queueActivity } = activities;
+  // ...and the handle glows briefly in the activity's colour instead
+  const [ping, setPing] = useState({ n: 0, tone: "#fff" });
+  const push = useCallback(
+    (a: Omit<Activity, "id" | "at">) => {
+      queueActivity(a);
+      if (tuckedRef.current) setPing((p) => ({ n: p.n + 1, tone: a.tone ?? "#fff" }));
+    },
+    [queueActivity],
+  );
 
   const onFocusDone = useCallback(
     (m: FocusMode) => {
@@ -93,7 +206,6 @@ export default function Island() {
   );
   const focus = useFocus(cfg.focus, onFocusDone);
 
-  const [tab, setTab] = useState<Tab>("today");
   const sysActive = expanded && tab === "system";
   const { data: system } = usePoll(fetchSystem, 2000, live && sysActive, live ? undefined : SAMPLE_SYSTEM);
   const { data: net } = usePoll(fetchNet, 2000, live && sysActive, live ? undefined : SAMPLE_NET);
@@ -109,7 +221,7 @@ export default function Island() {
   allowHudRef.current = cfg.activities;
   const showHud = useCallback(() => {
     // the open panel already has a slider; a pop-out on top would be noise
-    if (expandedRef.current || !allowHudRef.current) return;
+    if (expandedRef.current || tuckedRef.current || !allowHudRef.current) return;
     setHud(true);
     clearTimeout(hudTimer.current);
     hudTimer.current = setTimeout(() => setHud(false), HUD_MS);
@@ -133,6 +245,9 @@ export default function Island() {
   // scroll anywhere on the island to change the volume
   const wheelAcc = useRef(0);
   const onWheel = (e: React.WheelEvent) => {
+    if (tucked) return;
+    // the Ask tab scrolls its answer instead
+    if (expanded && tab === "ask") return;
     wheelAcc.current += e.deltaY;
     if (Math.abs(wheelAcc.current) < 40) return;
     volume.nudge(wheelAcc.current < 0 ? WHEEL_STEP : -WHEEL_STEP);
@@ -160,6 +275,12 @@ export default function Island() {
   // pick the tab that matches what is going on, every time the island opens
   useEffect(() => {
     if (!expanded) return;
+    if (askOpening.current) {
+      askOpening.current = false;
+      return;
+    }
+    // a conversation still being read keeps its place
+    if (tab === "ask" && (ask.turns.length > 0 || ask.streaming)) return;
     setTab(track.media?.playing ? "media" : focus.active ? "focus" : track.media?.title ? "media" : "today");
     // only on open
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -171,17 +292,19 @@ export default function Island() {
   const playing = !!track.media?.playing;
   const mode: Mode = hidden
     ? "hidden"
-    : expanded
-      ? "expanded"
-      : hud
-        ? "volume"
-        : toast
-          ? "toast"
-          : playing
-            ? "media"
-            : focus.active
-              ? "timer"
-              : "idle";
+    : tucked
+      ? "tucked"
+      : expanded
+        ? "expanded"
+        : hud
+          ? "volume"
+          : toast
+            ? "toast"
+            : playing
+              ? "media"
+              : focus.active
+                ? "timer"
+                : "idle";
   const bubble = mode === "media" && focus.active;
 
   // the pill grows a little to make room for the privacy dots
@@ -189,14 +312,14 @@ export default function Island() {
   const micOn = privacy.mic.length > 0;
   const compact = mode === "idle" || mode === "media" || mode === "timer";
   const extra = compact ? (camOn ? DOT_W : 0) + (micOn ? DOT_W : 0) + (camOn || micOn ? 4 : 0) : 0;
-  const base = SHAPES[mode];
+  const base = mode === "tucked" && hover ? TUCKED_HOVER : SHAPES[mode];
   const shape = useMemo<Shape>(
     () => ({
       w: base.w + extra,
-      h: base.h,
+      h: mode === "expanded" && tab === "ask" && (ask.turns.length > 0 || ask.streaming) ? ASK_H : base.h,
       r: base.r,
     }),
-    [base, extra],
+    [base, extra, mode, tab, ask.turns.length, ask.streaming],
   );
 
   // the spring follows the direction of the change
@@ -225,6 +348,7 @@ export default function Island() {
         <Expanded
           tab={tab}
           setTab={setTab}
+          onTuck={() => setTucked(true)}
           now={now}
           h24={cfg.clock24h}
           track={track}
@@ -236,6 +360,11 @@ export default function Island() {
           temp={temp}
           volume={volume}
           privacy={privacy}
+          ai={ai}
+          ask={ask}
+          askSignal={askSignal}
+          onAskFocus={onAskFocus}
+          onClose={closeAsk}
         />
       );
       break;
@@ -254,6 +383,16 @@ export default function Island() {
         />
       );
       break;
+    case "tucked":
+      content = (
+        <TuckHandle
+          hover={hover}
+          tone={playing ? (track.tint ?? "#fff") : focus.active ? "var(--accent)" : null}
+          live={playing || focus.active}
+          ping={ping}
+        />
+      );
+      break;
     case "media":
       content = <MediaCompact track={track} />;
       break;
@@ -267,23 +406,39 @@ export default function Island() {
   }
 
   const transition = `${motion.ms}ms ${motion.easing}`;
+  // tucked, it hangs from the top edge: square on top, round underneath
+  const corner = mode === "tucked" ? 0 : shape.r;
+  const lift = mode === "tucked" ? ` translateY(${-ISLAND_TOP}px)` : hidden ? " translateY(-56px) scale(0.7)" : "";
 
   return (
-    <div className="island-stage" data-mode={mode} data-reduce={cfg.reduceMotion || undefined}>
+    <div
+      className="island-stage"
+      data-mode={mode}
+      data-tuck={tuckAnim}
+      data-reduce={cfg.reduceMotion || undefined}
+    >
       <div
         ref={shapeRef}
         className="island-shape"
         style={{
           width: shape.w,
           height: shape.h,
-          borderRadius: shape.r,
+          borderRadius: `${corner}px ${corner}px ${shape.r}px ${shape.r}px`,
           transition: `width ${transition}, height ${transition}, border-radius ${transition}, transform ${transition}, opacity 260ms ease, box-shadow 400ms ease`,
           // when a bubble sits beside it, the pair is centred together
-          transform: `translateX(calc(-50% - ${bubble ? (BUBBLE + BUBBLE_GAP) / 2 : 0}px))${hidden ? " translateY(-56px) scale(0.7)" : ""}`,
+          transform: `translateX(calc(-50% - ${bubble ? (BUBBLE + BUBBLE_GAP) / 2 : 0}px))${lift}`,
         }}
         onMouseEnter={live ? undefined : () => setDomHover(true)}
         onMouseLeave={live ? undefined : () => setDomHover(false)}
-        onClick={() => !expanded && setExpanded(true)}
+        onClick={() => {
+          if (tucked) setTucked(false);
+          else if (!expanded) setExpanded(true);
+        }}
+        // right-click tucks it into the top edge, and brings it back
+        onContextMenu={(e) => {
+          e.preventDefault();
+          setTucked(!tucked);
+        }}
         onWheel={onWheel}
       >
         <Crossfade k={key} w={shape.w - extra} h={shape.h} shift={-extra / 2}>
@@ -309,7 +464,9 @@ export default function Island() {
         {focus.active && <TimerBubble focus={focus} />}
       </div>
 
-      {simulate && import.meta.env.DEV && <DevPanel push={push} simulate={simulate} nudge={volume.nudge} />}
+      {simulate && import.meta.env.DEV && (
+        <DevPanel push={push} simulate={simulate} nudge={volume.nudge} openAsk={openAsk} tuck={() => setTucked(!tucked)} />
+      )}
     </div>
   );
 }
@@ -484,7 +641,8 @@ function useHitReport({ live, mode, shape, bubble, shapeRef, bubbleRef }: {
           const shift = bubble ? (BUBBLE + BUBBLE_GAP) / 2 : 0;
           let x0 = (W - shape.w) / 2 - shift;
           let x1 = x0 + shape.w;
-          let y1 = ISLAND_TOP + shape.h;
+          const tuck = mode === "tucked";
+          let y1 = (tuck ? 0 : ISLAND_TOP) + shape.h;
           for (const el of [shapeRef.current, bubble ? bubbleRef.current : null]) {
             const r = el?.getBoundingClientRect();
             if (!r || r.width === 0) continue;
@@ -493,7 +651,8 @@ function useHitReport({ live, mode, shape, bubble, shapeRef, bubbleRef }: {
             y1 = Math.max(y1, r.bottom);
           }
           if (bubble) x1 = Math.max(x1, W / 2 + (shape.w + BUBBLE_GAP + BUBBLE) / 2);
-          const pad = 4;
+          // the handle is thin; give the pointer a little more to land on
+          const pad = tuck ? 6 : 4;
           rect = { x: Math.round(x0 - pad), y: 0, w: Math.round(x1 - x0 + pad * 2), h: Math.round(y1 + pad) };
         }
         const sig = JSON.stringify(rect);
@@ -512,17 +671,26 @@ function useHitReport({ live, mode, shape, bubble, shapeRef, bubbleRef }: {
     // follow the shape through its spring so the hit area never lags behind
     const ro = new ResizeObserver(report);
     ro.observe(el);
-    return () => ro.disconnect();
+    // a move with no change of size (sliding into the top edge) ends here
+    el.addEventListener("transitionend", report);
+    el.addEventListener("animationend", report);
+    return () => {
+      ro.disconnect();
+      el.removeEventListener("transitionend", report);
+      el.removeEventListener("animationend", report);
+    };
   }, [report, shapeRef, live]);
 }
 
 /* ====================================================================== */
 
 /** Browser-only: fire each kind of pop-out to look at it. */
-function DevPanel({ push, simulate, nudge }: {
+function DevPanel({ push, simulate, nudge, openAsk, tuck }: {
   push: (a: Omit<Activity, "id" | "at">) => void;
   simulate: Simulate;
   nudge: (d: number) => void;
+  openAsk: () => void;
+  tuck: () => void;
 }) {
   const fire: Record<string, Omit<Activity, "id" | "at">> = {
     track: { icon: "track", title: "Sunset", subtitle: "The Midnight", art: null },
@@ -550,6 +718,8 @@ function DevPanel({ push, simulate, nudge }: {
         zoom
       </button>
       <button onClick={() => simulate.setCaps((c) => !c)}>caps</button>
+      <button onClick={openAsk}>ask</button>
+      <button onClick={tuck}>tuck</button>
     </div>
   );
 }

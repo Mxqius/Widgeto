@@ -4,6 +4,8 @@
  * it a small config; everything else — media, battery, the focus timer — the
  * island reads for itself.
  */
+import type { AiTarget } from "@/shared/ai/client";
+
 export const ISLAND_LABEL = "island";
 
 /** The OS window is fixed at the largest shape; the island morphs inside it. */
@@ -27,6 +29,10 @@ export const ISLAND_EVT = {
   privacy: "island:privacy",
   /** native -> island: Caps Lock toggled */
   caps: "island:caps",
+  /** manager -> island: the Ask hotkey was pressed */
+  ask: "island:ask",
+  /** manager or tray -> island: tuck into the top edge (true), come back (false) or toggle (null) */
+  tuck: "island:tuck",
 } as const;
 
 /** Apps using the microphone and the camera right now. */
@@ -47,4 +53,6 @@ export interface IslandConfig {
   /** the Weather widget's place, reused so the island needs no setting of its own */
   weatherPlace: string | null;
   focus: { focusMin: number; shortMin: number; longMin: number };
+  /** null while Ask AI is switched off */
+  ai: (AiTarget & { hotkey: string }) | null;
 }

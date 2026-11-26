@@ -68,6 +68,12 @@ export function SystemTab() {
             onChange={(v) => update({ islandHideFullscreen: v })}
           />
         </SettingRow>
+        <SettingRow
+          title="Tuck away hotkey"
+          hint="Folds the island into a slim handle on the top edge, out of the way of tabs and title bars. Press again, click the handle or right-click it to bring it back."
+        >
+          <HotkeyField field="islandTuckHotkey" />
+        </SettingRow>
       </SettingGroup>
 
       <SettingGroup title="Startup">
@@ -111,7 +117,7 @@ export function SystemTab() {
           title="Capture hotkey"
           hint="Opens a one-line bar that appends to your Notes widget."
         >
-          <HotkeyField />
+          <HotkeyField field="captureHotkey" />
         </SettingRow>
       </SettingGroup>
 
