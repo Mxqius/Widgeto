@@ -46,7 +46,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDk2QkRBRkJBQkVEMzI0RkIKUldUN0pOTyt1cSs5bHIxcmtjYzhpNVFOM1h2S3FHNS9hWWhXMFY1MW54UUFCTWo3TEVjeDlPbWkK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDJBMzIzOTFFOEQ5RTY4NTUKUldSVmFKNk5Iamt5S2piWkhoMlAwWWU1Ni9rNEZ5NWVvakJKUlY5ZDEzRDMwVStxMlZRRlRHZnUK",
       "endpoints": [
         "https://github.com/mxqius/widgeto/releases/latest/download/latest.json"
       ]
