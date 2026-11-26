@@ -16,8 +16,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "node scripts/check-boundaries.mjs && tsc --noEmit && vite build",
     "preview": "vite preview",
+    "boundaries": "node scripts/check-boundaries.mjs",
+    "bundle-report": "node scripts/bundle-report.mjs",
     "tauri": "tauri",
     "app": "tauri dev",
     "app:build": "tauri build",
