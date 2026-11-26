@@ -24,9 +24,10 @@ import path from "node:path";
 const SRC = "src";
 
 const FOLDER_RULES = [
-  { from: "src/app/widget", deny: ["src/app/manager", "src/app/capture"] },
-  { from: "src/app/capture", deny: ["src/app/manager", "src/app/widget"] },
-  { from: "src/app/manager", deny: ["src/app/widget", "src/app/capture"] },
+  { from: "src/app/widget", deny: ["src/app/manager", "src/app/capture", "src/app/island"] },
+  { from: "src/app/capture", deny: ["src/app/manager", "src/app/widget", "src/app/island"] },
+  { from: "src/app/manager", deny: ["src/app/widget", "src/app/capture", "src/app/island"] },
+  { from: "src/app/island", deny: ["src/app/manager", "src/app/widget", "src/app/capture"] },
   { from: "src/shared", deny: ["src/app"] },
 ];
 
@@ -40,6 +41,7 @@ const HEAVY = ["motion", "@base-ui/react", "zustand", "tailwind-merge"];
 const ROOTS = [
   { root: "src/app/widget/main.tsx", banned: [...HEAVY, "@tanstack/react-query"] },
   { root: "src/app/capture/main.tsx", banned: [...HEAVY, "@tanstack/react-query"] },
+  { root: "src/app/island/main.tsx", banned: [...HEAVY, "@tanstack/react-query"] },
 ];
 
 /**
@@ -54,6 +56,7 @@ const ENTRY_CSS = [
   "src/app/manager/manager.css",
   "src/app/widget/widget.css",
   "src/app/capture/capture.css",
+  "src/app/island/island.css",
 ];
 
 const STATIC_IMPORT =

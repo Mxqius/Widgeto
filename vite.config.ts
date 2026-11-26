@@ -84,6 +84,7 @@ export default defineConfig({
         manager: at("index.html"),
         widget: at("widget.html"),
         capture: at("capture.html"),
+        island: at("island.html"),
       },
       output: { manualChunks: vendorChunk },
     },
