@@ -21,6 +21,7 @@ import { CAMERA_TONE, MIC_TONE } from "./views/glyphs";
 import { Toast } from "./views/Toast";
 import { TuckHandle } from "./views/TuckHandle";
 import { Expanded, TAB_ORDER, type Tab } from "./views/Expanded";
+import { ResizeHandles, useAskSize, type Size } from "./views/ResizeHandles";
 
 type Mode = "hidden" | "tucked" | "idle" | "media" | "timer" | "volume" | "toast" | "expanded";
 
@@ -45,8 +46,6 @@ const SHAPES: Record<Mode, Shape> = {
 const DOT_W = 13;
 /** How long the volume pop-out lingers after the last change. */
 const HUD_MS = 1400;
-/** The Ask tab opens taller once there is an answer to read. */
-const ASK_H = 264;
 /** How long the hotkey holds the island open waiting for the field to take focus. */
 const ASK_HOLD_MS = 4000;
 /** One notch of the scroll wheel over the island. */
@@ -77,6 +76,8 @@ const area = (s: Shape) => s.w * s.h;
 
 /** Hover out: close quickly, with just enough grace to forgive a pointer grazing the edge. (Hover in is a setting.) */
 const CLOSE_DELAY = 120;
+/** Room under the open island for its shadow, so a stretched chat never runs off the window. */
+const BOTTOM_ROOM = 30;
 
 /** Where the island (and the bubble beside it) starts, in island units across its window. */
 const leftOf = (align: IslandAlign, width: number, room: number) =>
@@ -144,7 +145,9 @@ export default function Island() {
   const [askHold, setAskHold] = useState(false);
   const [askSignal, setAskSignal] = useState(0);
   const askOpening = useRef(false);
-  const pinned = askFocused || askHold || ask.streaming;
+  // dragging the chat bigger can take the pointer outside the island
+  const [resizing, setResizing] = useState(false);
+  const pinned = askFocused || askHold || ask.streaming || resizing;
   const onAskFocus = useCallback((f: boolean) => {
     setAskFocused(f);
     if (f) setAskHold(false);
@@ -379,13 +382,15 @@ export default function Island() {
   const notch = cfg.style === "notch";
   const top = notch ? 0 : cfg.top;
 
+  // once there is an answer to read, the Ask chat takes the size it was dragged to
+  const askSize = useAskSize();
+  const chatting = mode === "expanded" && tab === "ask" && (ask.turns.length > 0 || ask.streaming);
+  const askMax: Size = { w: room.w - ISLAND_SIDE_PAD * 2, h: room.h - top - BOTTOM_ROOM };
+  const chatW = Math.min(askSize.size.w, askMax.w);
+  const chatH = Math.min(askSize.size.h, askMax.h);
   const shape = useMemo<Shape>(
-    () => ({
-      w: base.w + extra,
-      h: mode === "expanded" && tab === "ask" && (ask.turns.length > 0 || ask.streaming) ? ASK_H : base.h,
-      r: base.r,
-    }),
-    [base, extra, mode, tab, ask.turns.length, ask.streaming],
+    () => (chatting ? { w: chatW, h: chatH, r: base.r } : { w: base.w + extra, h: base.h, r: base.r }),
+    [base, extra, chatting, chatW, chatH],
   );
 
   // the spring follows the direction of the change
@@ -404,7 +409,7 @@ export default function Island() {
   /* ------------------------------------------------------ native hit area */
   const shapeRef = useRef<HTMLDivElement>(null);
   const bubbleRef = useRef<HTMLDivElement>(null);
-  useHitReport({ live, mode, shape, x, pairW, top, ear, scale, shapeRef, bubbleRef });
+  useHitReport({ live, mode, shape, x, pairW, top, ear, scale, resizing, shapeRef, bubbleRef });
 
   /* ---------------------------------------------------------------- render */
   const temp = useCallback(
@@ -485,7 +490,8 @@ export default function Island() {
       );
   }
 
-  const transition = `${motion.ms}ms ${motion.easing}`;
+  // while dragging the chat bigger, the island follows the pointer exactly
+  const transition = resizing ? "0ms linear" : `${motion.ms}ms ${motion.easing}`;
   const radius = Math.round(shape.r * cfg.roundness);
   // tucked, or as a notch, it hangs from the top edge: square on top, round underneath
   const corner = mode === "tucked" || notch ? 0 : radius;
@@ -499,6 +505,7 @@ export default function Island() {
       data-mode={mode}
       data-tuck={tuckAnim}
       data-reduce={cfg.reduceMotion || undefined}
+      data-resizing={resizing || undefined}
       style={{
         // drawn in island units and zoomed, so the hit maths stays in one space
         zoom: scale,
@@ -536,6 +543,17 @@ export default function Island() {
           {content}
         </Crossfade>
         {extra > 0 && <PrivacyDots camera={camOn} mic={micOn} />}
+        {chatting && (
+          <ResizeHandles
+            size={{ w: chatW, h: chatH }}
+            max={askMax}
+            align={cfg.align}
+            scale={scale}
+            onSize={askSize.set}
+            onDone={askSize.save}
+            onActive={setResizing}
+          />
+        )}
       </div>
 
       {notch && (
@@ -729,9 +747,10 @@ function usePresenceTriggers({ allow, push, privacy, caps }: {
  * through everywhere else. Reports the union of where the shape is now and
  * where it is heading, extended to the very top of the screen so throwing the
  * pointer at the top edge counts. The page is zoomed, so island units are
- * turned into window pixels on the way out.
+ * turned into window pixels on the way out. While the chat is being dragged
+ * bigger the whole window counts, so the drag never falls through.
  */
-function useHitReport({ live, mode, shape, x, pairW, top, ear, scale, shapeRef, bubbleRef }: {
+function useHitReport({ live, mode, shape, x, pairW, top, ear, scale, resizing, shapeRef, bubbleRef }: {
   live: boolean;
   mode: Mode;
   shape: Shape;
@@ -742,6 +761,7 @@ function useHitReport({ live, mode, shape, x, pairW, top, ear, scale, shapeRef, 
   top: number;
   ear: number;
   scale: number;
+  resizing: boolean;
   shapeRef: React.RefObject<HTMLDivElement | null>;
   bubbleRef: React.RefObject<HTMLDivElement | null>;
 }) {
@@ -754,7 +774,9 @@ function useHitReport({ live, mode, shape, x, pairW, top, ear, scale, shapeRef, 
       cancelAnimationFrame(frame.current);
       frame.current = requestAnimationFrame(() => {
         let rect: { x: number; y: number; w: number; h: number } | null = null;
-        if (mode !== "hidden") {
+        if (resizing) {
+          rect = { x: 0, y: 0, w: ISLAND_WINDOW.width, h: ISLAND_WINDOW.height };
+        } else if (mode !== "hidden") {
           const tuck = mode === "tucked";
           let x0 = (x - ear) * scale;
           let x1 = (x + pairW + ear) * scale;
@@ -776,7 +798,7 @@ function useHitReport({ live, mode, shape, x, pairW, top, ear, scale, shapeRef, 
         void invoke("island_hit", { rect }).catch(() => {});
       });
     },
-    [live, mode, shape, x, pairW, top, ear, scale, shapeRef, bubbleRef],
+    [live, mode, shape, x, pairW, top, ear, scale, resizing, shapeRef, bubbleRef],
   );
 
   useEffect(() => {

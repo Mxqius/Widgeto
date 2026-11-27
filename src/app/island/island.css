@@ -99,6 +99,36 @@ body { user-select: none; cursor: default; }
 }
 [data-mode="hidden"] .island-ears { opacity: 0; }
 
+/* ---------------------------------------------------------- chat resize -- */
+
+/* Invisible grab strips along the open Ask chat's bottom and sides; the
+   bottom one shows a small grip so there is something to find. */
+.island-resize {
+  position: absolute;
+  z-index: 5;
+  touch-action: none;
+}
+.island-resize-s { left: 24px; right: 24px; bottom: 0; height: 10px; cursor: ns-resize; }
+.island-resize-e { top: 40px; bottom: 24px; right: 0; width: 8px; cursor: ew-resize; }
+.island-resize-w { top: 40px; bottom: 24px; left: 0; width: 8px; cursor: ew-resize; }
+.island-resize-se { right: 0; bottom: 0; width: 22px; height: 22px; cursor: nwse-resize; }
+.island-resize-sw { left: 0; bottom: 0; width: 22px; height: 22px; cursor: nesw-resize; }
+.island-resize-s::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 4px;
+  width: 32px;
+  height: 3px;
+  translate: -50% 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  transition: background 160ms ease, width 200ms cubic-bezier(0.3, 1.4, 0.4, 1);
+}
+.island-resize-s:hover::after,
+[data-resizing] .island-resize-s::after { width: 44px; background: rgba(255, 255, 255, 0.45); }
+[data-resizing], [data-resizing] * { user-select: none; }
+
 /* ------------------------------------------------------------ crossfade -- */
 
 .island-layer {
