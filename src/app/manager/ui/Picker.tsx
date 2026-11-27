@@ -11,7 +11,8 @@ export function Picker<T extends string>({
   options: { value: T; label: string }[];
 }) {
   return (
-    <Select.Root value={value} onValueChange={(v) => onChange(v as T)}>
+    // `items` lets the trigger show the chosen option's label, not its raw value
+    <Select.Root items={options} value={value} onValueChange={(v) => onChange(v as T)}>
       <Select.Trigger
         className="flex h-8 min-w-32.5 items-center justify-between gap-2 rounded-lg
                    border border-white/[0.07] bg-white/[0.035] px-2.5 text-[12.5px]
