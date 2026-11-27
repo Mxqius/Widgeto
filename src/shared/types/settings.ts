@@ -3,6 +3,9 @@ import type { AiProvider } from "@/shared/ai/client";
 
 export type PowerSaver = "off" | "onBattery" | "always";
 
+/** A floating pill below the top edge, or a notch hanging from it. */
+export type IslandStyle = "pill" | "notch";
+
 export interface Settings {
   accent: string;
   widgetAlpha: number;
@@ -43,6 +46,8 @@ export interface Settings {
   islandActivities: boolean;
   /** tuck the island away while a full-screen app is in front */
   islandHideFullscreen: boolean;
+  /** the island's outline: a floating pill, or a notch attached to the top edge */
+  islandStyle: IslandStyle;
   /** global shortcut that tucks the island into the top edge and back; empty disables it */
   islandTuckHotkey: string;
   /** the Ask tab in the island */

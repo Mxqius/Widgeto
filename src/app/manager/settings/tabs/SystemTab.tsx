@@ -1,6 +1,7 @@
 import { RotateCcw } from "lucide-react";
-import { Picker, SettingGroup, SettingRow, Toggle } from "@/app/manager/ui";
+import { Picker, Segmented, SettingGroup, SettingRow, Toggle } from "@/app/manager/ui";
 import { useApp, DEFAULT_SETTINGS } from "@/app/manager/store";
+import type { IslandStyle } from "@/shared/types/settings";
 import { setAlwaysOnTop } from "@/app/manager/lib/window";
 import { setStartInTray } from "@/app/manager/desktop/startup";
 import { AutostartToggle } from "../controls/AutostartToggle";
@@ -49,6 +50,20 @@ export function SystemTab() {
           hint="A live strip at the top of your main display: music, focus timer, system and today."
         >
           <Toggle checked={s.island} onChange={(v) => update({ island: v })} />
+        </SettingRow>
+        <SettingRow
+          title="Shape"
+          hint="Pill floats just below the top edge. Notch hangs from it, with its corners flaring into the edge."
+        >
+          <Segmented<IslandStyle>
+            value={s.islandStyle}
+            onChange={(v) => update({ islandStyle: v })}
+            layoutId="island-style"
+            options={[
+              { value: "pill", label: "Pill" },
+              { value: "notch", label: "Notch" },
+            ]}
+          />
         </SettingRow>
         <SettingRow
           title="Live activities"

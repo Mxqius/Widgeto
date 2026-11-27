@@ -31,6 +31,7 @@ export const DEFAULT_SETTINGS: Settings = {
   island: true,
   islandActivities: true,
   islandHideFullscreen: true,
+  islandStyle: "pill",
   islandTuckHotkey: "CommandOrControl+Alt+H",
   aiEnabled: true,
   aiProvider: "claude",

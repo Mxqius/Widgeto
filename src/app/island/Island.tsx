@@ -63,6 +63,12 @@ const readTucked = () => {
   }
 };
 
+/** Notch style: how far the top corners flare into the screen edge, as a share of the bottom radius. */
+const EAR_RATIO = 0.5;
+const EAR_MIN = 5;
+const EAR_MAX = 20;
+const earOf = (s: Shape) => Math.round(Math.min(EAR_MAX, Math.max(EAR_MIN, s.r * EAR_RATIO)));
+
 const BUBBLE = 34;
 const BUBBLE_GAP = 8;
 
@@ -349,10 +355,14 @@ export default function Island() {
     prevShape.current = shape;
   }, [shape]);
 
+  // the notch hangs from the top edge itself, and flares into it at the corners
+  const notch = cfg.style === "notch";
+  const ear = notch ? earOf(shape) : 0;
+
   /* ------------------------------------------------------ native hit area */
   const shapeRef = useRef<HTMLDivElement>(null);
   const bubbleRef = useRef<HTMLDivElement>(null);
-  useHitReport({ live, mode, shape, bubble, shapeRef, bubbleRef });
+  useHitReport({ live, mode, shape, bubble, notch, ear, shapeRef, bubbleRef });
 
   /* ---------------------------------------------------------------- render */
   const temp = useCallback(
@@ -426,13 +436,17 @@ export default function Island() {
   }
 
   const transition = `${motion.ms}ms ${motion.easing}`;
-  // tucked, it hangs from the top edge: square on top, round underneath
-  const corner = mode === "tucked" ? 0 : shape.r;
-  const lift = mode === "tucked" ? ` translateY(${-ISLAND_TOP}px)` : hidden ? " translateY(-56px) scale(0.7)" : "";
+  // tucked, or as a notch, it hangs from the top edge: square on top, round underneath
+  const corner = mode === "tucked" || notch ? 0 : shape.r;
+  const lift =
+    mode === "tucked" && !notch ? ` translateY(${-ISLAND_TOP}px)` : hidden ? " translateY(-56px) scale(0.7)" : "";
+  // when a bubble sits beside it, the pair is centred together
+  const placement = `translateX(calc(-50% - ${bubble ? (BUBBLE + BUBBLE_GAP) / 2 : 0}px))${lift}`;
 
   return (
     <div
       className="island-stage"
+      data-style={notch ? "notch" : "pill"}
       data-mode={mode}
       data-tuck={tuckAnim}
       data-reduce={cfg.reduceMotion || undefined}
@@ -445,8 +459,7 @@ export default function Island() {
           height: shape.h,
           borderRadius: `${corner}px ${corner}px ${shape.r}px ${shape.r}px`,
           transition: `width ${transition}, height ${transition}, border-radius ${transition}, transform ${transition}, opacity 260ms ease, box-shadow 400ms ease`,
-          // when a bubble sits beside it, the pair is centred together
-          transform: `translateX(calc(-50% - ${bubble ? (BUBBLE + BUBBLE_GAP) / 2 : 0}px))${lift}`,
+          transform: placement,
         }}
         onMouseEnter={live ? undefined : () => setDomHover(true)}
         onMouseLeave={live ? undefined : () => setDomHover(false)}
@@ -466,6 +479,24 @@ export default function Island() {
         </Crossfade>
         {extra > 0 && <PrivacyDots camera={camOn} mic={micOn} />}
       </div>
+
+      {notch && (
+        // the two concave fillets that join the notch to the top edge; they
+        // ride the same spring as the shape, so they stay glued to its corners
+        <div
+          className="island-ears"
+          aria-hidden
+          style={{
+            width: shape.w,
+            height: ear,
+            transition: `width ${transition}, height ${transition}, transform ${transition}, opacity 260ms ease`,
+            transform: placement,
+          }}
+        >
+          <i />
+          <i />
+        </div>
+      )}
 
       <div
         ref={bubbleRef}
@@ -639,11 +670,13 @@ function usePresenceTriggers({ allow, push, privacy, caps }: {
  * where it is heading, extended to the very top of the screen so throwing the
  * pointer at the top edge counts.
  */
-function useHitReport({ live, mode, shape, bubble, shapeRef, bubbleRef }: {
+function useHitReport({ live, mode, shape, bubble, notch, ear, shapeRef, bubbleRef }: {
   live: boolean;
   mode: Mode;
   shape: Shape;
   bubble: boolean;
+  notch: boolean;
+  ear: number;
   shapeRef: React.RefObject<HTMLDivElement | null>;
   bubbleRef: React.RefObject<HTMLDivElement | null>;
 }) {
@@ -659,10 +692,10 @@ function useHitReport({ live, mode, shape, bubble, shapeRef, bubbleRef }: {
         if (mode !== "hidden") {
           const W = ISLAND_WINDOW.width;
           const shift = bubble ? (BUBBLE + BUBBLE_GAP) / 2 : 0;
-          let x0 = (W - shape.w) / 2 - shift;
-          let x1 = x0 + shape.w;
+          let x0 = (W - shape.w) / 2 - shift - ear;
+          let x1 = x0 + shape.w + ear * 2;
           const tuck = mode === "tucked";
-          let y1 = (tuck ? 0 : ISLAND_TOP) + shape.h;
+          let y1 = (tuck || notch ? 0 : ISLAND_TOP) + shape.h;
           for (const el of [shapeRef.current, bubble ? bubbleRef.current : null]) {
             const r = el?.getBoundingClientRect();
             if (!r || r.width === 0) continue;
@@ -681,7 +714,7 @@ function useHitReport({ live, mode, shape, bubble, shapeRef, bubbleRef }: {
         void invoke("island_hit", { rect }).catch(() => {});
       });
     },
-    [live, mode, shape, bubble, shapeRef, bubbleRef],
+    [live, mode, shape, bubble, notch, ear, shapeRef, bubbleRef],
   );
 
   useEffect(() => {
@@ -741,6 +774,9 @@ function DevPanel({ push, simulate, nudge, openAsk, tuck }: {
       <button onClick={() => simulate.setCaps((c) => !c)}>caps</button>
       <button onClick={openAsk}>ask</button>
       <button onClick={tuck}>tuck</button>
+      <button onClick={() => simulate.setCfg((c) => ({ ...c, style: c.style === "notch" ? "pill" : "notch" }))}>
+        shape
+      </button>
     </div>
   );
 }

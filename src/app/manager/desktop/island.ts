@@ -90,6 +90,7 @@ export function useIslandSync() {
   const reduceMotion = useApp((s) => s.settings.reduceMotion);
   const activities = useApp((s) => s.settings.islandActivities);
   const hideInFullscreen = useApp((s) => s.settings.islandHideFullscreen);
+  const style = useApp((s) => s.settings.islandStyle);
   const weatherCfg = useApp((s) => s.widgets.find((w) => w.kind === "weather")?.config);
   const focusCfg = useApp((s) => s.widgets.find((w) => w.kind === "pomodoro")?.config);
   const aiEnabled = useApp((s) => s.settings.aiEnabled);
@@ -108,6 +109,7 @@ export function useIslandSync() {
       reduceMotion,
       activities,
       hideInFullscreen,
+      style,
       weatherPlace: weather.place?.trim() || null,
       focus: { focusMin: pomo.focusMin, shortMin: pomo.shortMin, longMin: pomo.longMin },
       ai: aiEnabled
@@ -126,6 +128,7 @@ export function useIslandSync() {
     reduceMotion,
     activities,
     hideInFullscreen,
+    style,
     weatherCfg,
     focusCfg,
     aiEnabled,

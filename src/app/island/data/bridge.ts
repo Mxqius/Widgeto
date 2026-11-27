@@ -11,6 +11,7 @@ export const DEFAULT_ISLAND_CONFIG: IslandConfig = {
   reduceMotion: false,
   activities: true,
   hideInFullscreen: true,
+  style: "pill",
   weatherPlace: null,
   focus: { focusMin: 25, shortMin: 5, longMin: 15 },
   ai: { provider: "claude", model: "claude-opus-5-5", baseUrl: null, hotkey: "CommandOrControl+Shift+Space" },
@@ -81,7 +82,7 @@ export function useIslandBridge() {
   }, [cfg.accent]);
 
   /** browser preview only: stand-ins for what the native watcher would send */
-  const simulate = live ? null : { setVolume, setPrivacy, setCaps };
+  const simulate = live ? null : { setVolume, setPrivacy, setCaps, setCfg };
 
   return { cfg, nativeHover, fullscreen, volume, privacy, caps, simulate };
 }

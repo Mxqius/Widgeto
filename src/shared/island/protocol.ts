@@ -5,6 +5,7 @@
  * island reads for itself.
  */
 import type { AiTarget } from "@/shared/ai/client";
+import type { IslandStyle } from "@/shared/types/settings";
 
 export const ISLAND_LABEL = "island";
 
@@ -52,6 +53,8 @@ export interface IslandConfig {
   activities: boolean;
   /** slide away while a full-screen app or game is in front */
   hideInFullscreen: boolean;
+  /** a floating pill, or a notch hanging from the top edge */
+  style: IslandStyle;
   /** the Weather widget's place, reused so the island needs no setting of its own */
   weatherPlace: string | null;
   focus: { focusMin: number; shortMin: number; longMin: number };
