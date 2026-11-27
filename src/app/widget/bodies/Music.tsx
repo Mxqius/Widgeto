@@ -1,12 +1,14 @@
 import { useEffect, useRef } from "react";
-import { AudioLines, Music, Pause, Play, SkipBack, SkipForward } from "lucide-react";
+import { AudioLines, Music, Pause, Play, Radio, SkipBack, SkipForward } from "lucide-react";
 import { Line } from "../ui";
 import { useMedia } from "../data/useLocalStats";
 import { mediaControl } from "@/shared/ipc/commands";
 import { mmss } from "../lib/format";
 import { isSm } from "../lib/scale";
 import { useWidgetConfig } from "../prefs";
+import { saveConfig } from "../lib/saveConfig";
 import type { WidgetBodyProps } from "./props";
+import RadioView from "./RadioView";
 
 /** Turns "Spotify.exe" / an AUMID into something worth showing. */
 function appLabel(id: string | null) {
@@ -16,12 +18,32 @@ function appLabel(id: string | null) {
 }
 
 /**
- * Follows the system media session, so whatever is actually playing — Spotify,
- * a browser tab, a local player — shows up here with working transport.
+ * Either follows the system media session — whatever is actually playing,
+ * Spotify, a browser tab, a local player — or is a remote for Widgeto's own
+ * radio. The corner button flips between the two.
  */
 export default function MusicWidget({ size }: WidgetBodyProps) {
   const cfg = useWidgetConfig("music");
-  const { data, refetch } = useMedia(cfg.refreshSec);
+  const radio = cfg.source === "radio";
+  return (
+    <div className="relative h-full w-full">
+      {radio ? <RadioView size={size} /> : <MediaView size={size} refreshSec={cfg.refreshSec} />}
+      <button
+        data-nodrag
+        onClick={() => void saveConfig("music", { source: radio ? "media" : "radio" })}
+        title={radio ? "Follow system media" : "Switch to radio"}
+        className="absolute top-2.5 left-2.5 z-10 grid size-6 place-items-center rounded-full opacity-45 transition-opacity hover:opacity-100"
+        style={radio ? { color: "var(--accent)" } : undefined}
+      >
+        {radio ? <Radio size={13} /> : <Music size={12} />}
+      </button>
+    </div>
+  );
+}
+
+/** The system media session, with working transport. */
+function MediaView({ size, refreshSec }: Pick<WidgetBodyProps, "size"> & { refreshSec: number }) {
+  const { data, refetch } = useMedia(refreshSec);
   const small = isSm(size);
 
   // the source needs a beat to report the new track; do not leave the timer

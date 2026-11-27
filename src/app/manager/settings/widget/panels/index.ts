@@ -8,6 +8,7 @@ import { MarketsPanel } from "./MarketsPanel";
 import { CalendarPanel } from "./CalendarPanel";
 import { LauncherPanel } from "./LauncherPanel";
 import { PetPanel } from "./PetPanel";
+import { MusicPanel } from "./MusicPanel";
 
 /**
  * Replaces the switch this used to be. A kind with no entry simply has no
@@ -23,4 +24,5 @@ export const KIND_PANELS: Partial<Record<WidgetKind, ComponentType<{ kind: Widge
   calendar: CalendarPanel,
   launcher: LauncherPanel,
   pet: PetPanel,
+  music: MusicPanel,
 };

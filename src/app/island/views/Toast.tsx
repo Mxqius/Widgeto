@@ -11,9 +11,10 @@ export function Toast({ a, art, playing, tint }: {
   tint: string | null;
 }) {
   const tone = a.tone ?? "var(--accent)";
+  const song = a.icon === "track" || a.icon === "radio";
   return (
     <div className="flex h-full items-center gap-3 pl-3 pr-5">
-      {a.icon === "track" ? (
+      {song ? (
         <Art src={art} size={46} radius={14} />
       ) : (
         <div
@@ -27,7 +28,7 @@ export function Toast({ a, art, playing, tint }: {
         <div className="truncate text-[11px] font-semibold text-white/50">{a.subtitle}</div>
         <div className="truncate text-[14px] font-bold tracking-tight text-white">{a.title}</div>
       </div>
-      {a.icon === "track" ? (
+      {song ? (
         <Equalizer playing={playing} colour={tint ?? undefined} height={18} />
       ) : a.trailing ? (
         <span className="shrink-0 text-[17px] font-bold tabular-nums" style={{ color: tone }}>

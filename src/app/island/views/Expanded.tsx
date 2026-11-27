@@ -1,6 +1,6 @@
 import {
   ArrowDown, ArrowUp, BatteryCharging, BatteryMedium, CalendarDays, ChevronsUp, Cpu, Gauge, MemoryStick,
-  Music, Pause, Play, Repeat, Repeat1, RotateCcw, Shuffle, SkipBack, SkipForward, Sparkles, Timer,
+  Music, Pause, Play, Radio, Repeat, Repeat1, RotateCcw, Shuffle, SkipBack, SkipForward, Sparkles, Timer,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import type { BatteryStats, NetStats, SystemStats, Weather } from "@/shared/ipc/commands";
@@ -13,6 +13,8 @@ import type { AskState } from "../data/useAsk";
 import type { AiTarget } from "@/shared/ai/client";
 import type { IslandTab } from "@/shared/types/settings";
 import { AskPanel } from "./AskPanel";
+import { RadioPanel } from "./RadioPanel";
+import type { RadioRemote } from "../data/useIslandRadio";
 import { Art, Bar, Equalizer, Ring, Slider } from "./parts";
 import { CAMERA_TONE, MIC_TONE, VolumeGlyph, WeatherGlyph } from "./glyphs";
 
@@ -20,6 +22,7 @@ export type Tab = IslandTab;
 
 const TABS: { id: Tab; icon: typeof Music; label: string }[] = [
   { id: "media", icon: Music, label: "Now playing" },
+  { id: "radio", icon: Radio, label: "Radio" },
   { id: "focus", icon: Timer, label: "Focus" },
   { id: "system", icon: Gauge, label: "System" },
   { id: "today", icon: CalendarDays, label: "Today" },
@@ -37,6 +40,7 @@ export interface ExpandedProps {
   now: number;
   h24: boolean;
   track: Track;
+  radio: RadioRemote;
   focus: Focus;
   battery: BatteryStats | undefined;
   system: SystemStats | undefined;
@@ -99,6 +103,7 @@ export function Expanded(p: ExpandedProps) {
 
       <div key={p.tab} className="island-panel min-h-0 flex-1 pt-3">
         {p.tab === "media" && <MediaPanel track={p.track} now={p.now} volume={p.volume} />}
+        {p.tab === "radio" && <RadioPanel radio={p.radio} onFocusChange={p.onAskFocus} />}
         {p.tab === "focus" && <FocusPanel focus={p.focus} />}
         {p.tab === "system" && <SystemPanel system={p.system} net={p.net} battery={p.battery} />}
         {p.tab === "today" && (

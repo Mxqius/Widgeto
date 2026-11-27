@@ -5,6 +5,7 @@ import { createMonitorsSlice } from "./monitorsSlice";
 import { createSettingsSlice } from "./settingsSlice";
 import { createUpdaterSlice } from "./updaterSlice";
 import { createProfilesSlice } from "./profilesSlice";
+import { createRadioSlice } from "./radioSlice";
 import { persistOptions } from "./persist";
 import type { AppState } from "./types";
 
@@ -13,8 +14,8 @@ export { DEFAULT_SETTINGS } from "@/shared/settings/defaults";
 export { seed } from "./widgetsSlice";
 
 /**
- * Manager-only. Five slices over one persisted store: widgets, monitors,
- * settings, the updater and profiles. They are composed rather than nested so
+ * Manager-only. Six slices over one persisted store: widgets, monitors,
+ * settings, the updater, profiles and the radio. They are composed rather than nested so
  * cross-slice calls stay direct `get()` lookups.
  */
 export const useApp = create<AppState>()(
@@ -25,6 +26,7 @@ export const useApp = create<AppState>()(
       ...createSettingsSlice(...a),
       ...createUpdaterSlice(...a),
       ...createProfilesSlice(...a),
+      ...createRadioSlice(...a),
     }),
     persistOptions,
   ),

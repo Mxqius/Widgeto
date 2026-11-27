@@ -6,6 +6,8 @@ import type { Track } from "../data/useMedia";
 import type { Focus } from "../data/useFocus";
 import { Art, Equalizer, Ring } from "./parts";
 import { CAMERA_TONE, MIC_TONE, VolumeGlyph, WeatherGlyph } from "./glyphs";
+import type { RadioRemote } from "../data/useIslandRadio";
+import { StationIcon } from "@/shared/radio/StationIcon";
 
 /**
  * Nothing going on: the time, and one quiet fact on the right — the one the
@@ -74,6 +76,17 @@ export function MediaCompact({ track }: { track: Track }) {
     <div className="flex h-full items-center justify-between pl-1.5 pr-3.5">
       <Art src={track.art} size={24} radius={8} className={track.media?.playing ? "" : "opacity-60"} />
       <Equalizer playing={!!track.media?.playing} colour={track.tint ?? undefined} />
+    </div>
+  );
+}
+
+/** The radio is on and nothing else is playing: the station's icon, then the bars. */
+export function RadioCompact({ radio }: { radio: RadioRemote }) {
+  const r = radio.state;
+  return (
+    <div className="flex h-full items-center justify-between pl-1.5 pr-3.5">
+      <StationIcon station={r.station} size={24} radius={8} className={r.playing ? "" : "opacity-60"} />
+      <Equalizer playing={r.playing} />
     </div>
   );
 }

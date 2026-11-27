@@ -15,7 +15,8 @@ export const DEFAULT_CONFIG = {
   system: { refreshSec: 2 },
   calendar: { sources: [] as string[], days: 14 },
   tasks: {},
-  music: { refreshSec: 2 },
+  /** "media" follows whatever plays on the system; "radio" is Widgeto's own player */
+  music: { refreshSec: 2, source: "media" as "media" | "radio" },
   notes: { fontSize: 12 },
   pomodoro: { focusMin: 25, shortMin: 5, longMin: 15 },
   markets: { symbols: ["BTC", "ETH", "SOL"] as string[], refreshSec: 60 },
@@ -46,7 +47,7 @@ export function configOf<K extends WidgetKind>(
 
 /** Which kinds expose a settings panel at all. */
 export const HAS_CONFIG = new Set<WidgetKind>([
-  "clock", "weather", "notes", "pomodoro", "markets", "launcher", "pet",
+  "clock", "weather", "notes", "pomodoro", "markets", "launcher", "pet", "music",
 ]);
 
 /** Kinds that poll for data and therefore expose a refresh interval. */

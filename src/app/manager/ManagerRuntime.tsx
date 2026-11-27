@@ -3,6 +3,7 @@ import { useApp } from "./store";
 import { useDesktopSync } from "./desktop/useDesktopSync";
 import { announceUpdate, askIsland, bindTuckHotkey, useIslandSync } from "./desktop/island";
 import { useManagerVisible } from "./useManagerVisible";
+import { useRadioHost } from "./radio/host";
 import { bindHotkey } from "./desktop/hotkeys";
 import { bindCaptureHotkey } from "./desktop/captureWindow";
 import { setAlwaysOnTop } from "./lib/window";
@@ -10,7 +11,7 @@ import { isTauri } from "@/shared/lib/env";
 
 /**
  * Everything the manager does that is not on screen: reconciling widget
- * windows, the tray menu, the capture hotkey, the update check.
+ * windows, the tray menu, the capture hotkey, the update check, the radio.
  *
  * Stays mounted for the whole life of the app — including while the window is
  * parked in the tray, when the visible UI is unmounted. Renders nothing, so it
@@ -21,6 +22,7 @@ const UPDATE_EVERY_MS = 6 * 60 * 60 * 1000;
 export default function ManagerRuntime() {
   useDesktopSync();
   useIslandSync();
+  useRadioHost();
 
   const accent = useApp((s) => s.settings.accent);
   useEffect(() => {

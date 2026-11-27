@@ -9,6 +9,7 @@ import { isTauri } from "@/shared/lib/env";
 import { invoke, useIslandBridge, useTauriEvent, type Simulate } from "./data/bridge";
 import { useVolume } from "./data/useVolume";
 import { useIslandMedia } from "./data/useMedia";
+import { useIslandRadio, type RadioRemote } from "./data/useIslandRadio";
 import { useFocus, type FocusMode } from "./data/useFocus";
 import { useActivities, type Activity } from "./data/useActivities";
 import { useAsk } from "./data/useAsk";
@@ -16,7 +17,7 @@ import { useNow, usePoll, useSettled } from "./data/usePoll";
 import { SAMPLE_BATTERY, SAMPLE_NET, SAMPLE_SYSTEM, SAMPLE_WEATHER } from "./data/sample";
 import { CALM, GROW, SETTLE } from "./lib/spring";
 import { chime } from "./lib/chime";
-import { IdleCompact, MediaCompact, PrivacyDots, TimerBubble, TimerCompact, VolumeHud } from "./views/Compact";
+import { IdleCompact, MediaCompact, PrivacyDots, RadioCompact, TimerBubble, TimerCompact, VolumeHud } from "./views/Compact";
 import { CAMERA_TONE, MIC_TONE } from "./views/glyphs";
 import { Toast } from "./views/Toast";
 import { TuckHandle } from "./views/TuckHandle";
@@ -41,6 +42,9 @@ const SHAPES: Record<Mode, Shape> = {
   toast: { w: 372, h: 70, r: 34 },
   expanded: { w: 468, h: 192, r: 40 },
 };
+
+/** The Radio tab opens taller: room for a row or two of stations under the controls. */
+const RADIO_OPEN: Shape = { w: 468, h: 262, r: 40 };
 
 /** Extra pill width per privacy dot. */
 const DOT_W = 13;
@@ -209,6 +213,7 @@ export default function Island() {
 
   /* ----------------------------------------------------------------- feeds */
   const track = useIslandMedia();
+  const radio = useIslandRadio();
   const { data: battery } = usePoll(fetchBattery, 20_000, live, live ? undefined : SAMPLE_BATTERY);
   // the Weather widget's city: follow it as soon as it changes, once typing settles
   const place = useSettled(cfg.weatherPlace, 800);
@@ -288,8 +293,8 @@ export default function Island() {
   const wheelAcc = useRef(0);
   const onWheel = (e: React.WheelEvent) => {
     if (tucked || !cfg.wheelVolume) return;
-    // the Ask tab scrolls its answer instead
-    if (expanded && tab === "ask") return;
+    // the Ask tab scrolls its answer instead, the Radio tab its stations
+    if (expanded && (tab === "ask" || tab === "radio")) return;
     wheelAcc.current += e.deltaY;
     if (Math.abs(wheelAcc.current) < 40) return;
     volume.nudge(wheelAcc.current < 0 ? WHEEL_STEP : -WHEEL_STEP);
@@ -299,6 +304,7 @@ export default function Island() {
   /* ------------------------------------------------------------ activities */
   const allow = cfg.activities;
   useActivityTriggers({ allow, push, track, battery });
+  useRadioTriggers({ allow, push, radio });
   usePresenceTriggers({ allow, push, privacy, caps });
   const allowRef = useRef(allow);
   allowRef.current = allow;
@@ -350,6 +356,7 @@ export default function Island() {
     if (cfg.defaultTab !== "auto" && tabs.includes(cfg.defaultTab)) return setTab(cfg.defaultTab);
     const wanted: Tab[] = [
       ...(track.media?.playing ? (["media"] as const) : []),
+      ...(radio.on ? (["radio"] as const) : []),
       ...(focus.active ? (["focus"] as const) : []),
       ...(track.media?.title ? (["media"] as const) : []),
       "today",
@@ -363,6 +370,8 @@ export default function Island() {
   const hidden = fullscreen && cfg.hideInFullscreen && !expanded;
   const toast = activities.current;
   const playing = !!track.media?.playing;
+  // the radio takes the media pill only while the system has nothing playing
+  const radioPill = !playing && radio.on;
   const mode: Mode = hidden
     ? "hidden"
     : tucked
@@ -373,7 +382,7 @@ export default function Island() {
           ? "volume"
           : toast
             ? "toast"
-            : playing
+            : playing || radioPill
               ? "media"
               : focus.active
                 ? "timer"
@@ -385,7 +394,12 @@ export default function Island() {
   const micOn = privacy.mic.length > 0;
   const compact = mode === "idle" || mode === "media" || mode === "timer";
   const extra = compact ? (camOn ? DOT_W : 0) + (micOn ? DOT_W : 0) + (camOn || micOn ? 4 : 0) : 0;
-  const base = mode === "tucked" && hover ? TUCKED_HOVER : SHAPES[mode];
+  const base =
+    mode === "tucked" && hover
+      ? TUCKED_HOVER
+      : mode === "expanded" && tab === "radio"
+        ? RADIO_OPEN
+        : SHAPES[mode];
 
   // the window, in island units: everything inside is drawn at `scale`
   const scale = cfg.scale;
@@ -441,6 +455,7 @@ export default function Island() {
           now={now}
           h24={cfg.clock24h}
           track={track}
+          radio={radio}
           focus={focus}
           battery={battery}
           system={system}
@@ -466,8 +481,14 @@ export default function Island() {
       content = (
         <Toast
           a={toast!}
-          art={toast!.icon === "track" ? (track.art ?? toast!.art ?? null) : null}
-          playing={playing}
+          art={
+            toast!.icon === "track"
+              ? (track.art ?? toast!.art ?? null)
+              : toast!.icon === "radio"
+                ? (toast!.art ?? null)
+                : null
+          }
+          playing={toast!.icon === "radio" ? radio.state.playing : playing}
           tint={track.tint}
         />
       );
@@ -483,7 +504,7 @@ export default function Island() {
       );
       break;
     case "media":
-      content = <MediaCompact track={track} />;
+      content = radioPill ? <RadioCompact radio={radio} /> : <MediaCompact track={track} />;
       break;
     case "timer":
       content = <TimerCompact focus={focus} />;
@@ -708,6 +729,23 @@ function useActivityTriggers({ allow, push, track, battery }: {
       }
     }
   }, [battery, allow, push]);
+}
+
+/** A pop-out when the radio starts a new song, with the station's icon. */
+function useRadioTriggers({ allow, push, radio }: {
+  allow: boolean;
+  push: (a: Omit<Activity, "id" | "at">) => void;
+  radio: RadioRemote;
+}) {
+  const { nowTitle, playing, station } = radio.state;
+  const last = useRef<string | null>(null);
+  useEffect(() => {
+    if (!playing || !nowTitle || !station) return;
+    const k = `${station.id}\u001f${nowTitle}`;
+    if (k === last.current) return;
+    last.current = k;
+    if (allow) push({ icon: "radio", title: nowTitle, subtitle: station.name, art: radio.art });
+  }, [nowTitle, playing, station, allow, push, radio.art]);
 }
 
 /**

@@ -462,8 +462,7 @@ fn media_art_blocking() -> Result<Option<String>, String> {
 
 /// What the bytes actually are, by their magic number; the declared content
 /// type is often empty or generic. `None` when it is not an image at all.
-#[cfg(windows)]
-fn image_mime(b: &[u8], declared: &str) -> Option<String> {
+pub(crate) fn image_mime(b: &[u8], declared: &str) -> Option<String> {
     let sniffed = if b.starts_with(&[0xFF, 0xD8, 0xFF]) {
         "image/jpeg"
     } else if b.starts_with(b"\x89PNG") {
@@ -474,6 +473,8 @@ fn image_mime(b: &[u8], declared: &str) -> Option<String> {
         "image/webp"
     } else if b.starts_with(b"BM") {
         "image/bmp"
+    } else if b.starts_with(&[0, 0, 1, 0]) {
+        "image/x-icon"
     } else if declared.starts_with("image/") && !b.is_empty() {
         return Some(declared.to_string());
     } else {
@@ -520,9 +521,8 @@ fn media_art_blocking() -> Result<Option<String>, String> {
     Ok(None)
 }
 
-/// Standard base64 with padding. One call site, so not worth a dependency.
-#[cfg(windows)]
-fn base64(bytes: &[u8]) -> String {
+/// Standard base64 with padding. Two call sites, so not worth a dependency.
+pub(crate) fn base64(bytes: &[u8]) -> String {
     const T: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     let mut out = String::with_capacity(bytes.len().div_ceil(3) * 4);
     for c in bytes.chunks(3) {
@@ -689,9 +689,9 @@ mod tests {
         assert!(b.percent >= 0.0 && b.percent <= 100.0);
     }
 
-    #[test]
-    fn media_session_is_readable() {
-        let m = media_now().expect("media");
+    #[tokio::test]
+    async fn media_session_is_readable() {
+        let m = media_now().await.expect("media");
         println!(
             "playing {} | {:?} - {:?} | app {:?}",
             m.playing, m.artist, m.title, m.app

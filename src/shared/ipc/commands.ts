@@ -1,4 +1,5 @@
 import { isTauri } from "@/shared/lib/env";
+import type { RadioQuery, Station } from "@/shared/radio/protocol";
 
 /**
  * The data layer is Rust: every call below is a Tauri command, so there is no
@@ -141,3 +142,19 @@ export interface CalEvent {
 
 export const fetchEvents = (paths: string[], days: number) =>
   call<CalEvent[]>("calendar_events", { paths, days });
+
+/* ----------------------------------------------------------------- radio */
+
+
+/** Stations in the Radio Browser directory, the most listened to first. */
+export const radioSearch = (query: RadioQuery) =>
+  call<Fetched<{ stations: Station[] }>>("radio_search", { query });
+
+/** A station's icon as a data URL; null when it has none worth showing. */
+export const radioFavicon = (url: string) => call<string | null>("radio_favicon", { url });
+
+/** Counts a play with the directory, which is how it ranks stations. */
+export const radioClick = (id: string) => call<void>("radio_click", { id });
+
+/** The song a stream says it is playing, from its in-band metadata. */
+export const radioNowTitle = (url: string) => call<string | null>("radio_now_title", { url });

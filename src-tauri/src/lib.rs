@@ -4,6 +4,7 @@ mod ical;
 mod ai;
 mod audio;
 mod island;
+mod radio;
 mod system;
 
 use tauri::{
@@ -123,7 +124,14 @@ fn tune_webview() {
     const ARGS: &str = concat!(
         "--process-per-site",
         " --disable-features=Translate,BackForwardCache,AcceptCHFrame,",
-        "MediaRouter,OptimizationHints,InterestFeedContentSuggestions",
+        "MediaRouter,OptimizationHints,InterestFeedContentSuggestions,",
+        // the radio plays in the manager's webview; left on, Chromium would
+        // publish it as a media session and it would show up twice — once as
+        // "system media" and once as the radio itself
+        "HardwareMediaKeyHandling",
+        // the radio is started by an event from another window, never by a
+        // click inside the manager's own document
+        " --autoplay-policy=no-user-gesture-required",
         " --disable-background-networking",
         " --disable-sync",
         " --disable-breakpad",
@@ -213,7 +221,11 @@ pub fn run() {
             island::island_hit,
             island::island_clipboard,
             system::launch,
-            ical::calendar_events
+            ical::calendar_events,
+            radio::radio_search,
+            radio::radio_click,
+            radio::radio_favicon,
+            radio::radio_now_title
         ])
         .setup(|app| {
             let handle = app.handle();

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 export type ActivityIcon =
   | "track" | "charging" | "unplugged" | "battery" | "focus" | "break" | "note"
-  | "mic" | "camera" | "caps" | "update" | "copy";
+  | "mic" | "camera" | "caps" | "update" | "copy" | "radio";
 
 export interface Activity {
   id: number;

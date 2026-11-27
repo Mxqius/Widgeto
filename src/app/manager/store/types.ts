@@ -5,6 +5,7 @@ import type { Settings } from "@/shared/types/settings";
 import type { SizeKey, WidgetInstance, WidgetKind } from "@/shared/types/widget";
 import type { Area } from "@/shared/desktop/area";
 import type { Profile } from "@/app/manager/desktop/profiles";
+import type { Station } from "@/shared/radio/protocol";
 
 export interface WidgetsSlice {
   widgets: WidgetInstance[];
@@ -62,7 +63,26 @@ export interface ProfilesSlice {
   deleteProfile: (id: string) => void;
 }
 
-export type AppState = WidgetsSlice & MonitorsSlice & SettingsSlice & UpdaterSlice & ProfilesSlice;
+/** What the radio remembers between runs; what is playing right now lives in the player. */
+export interface RadioPrefs {
+  favorites: Station[];
+  /** the station last played, offered again by Play after a restart */
+  last: Station | null;
+  /** 0 – 1 */
+  volume: number;
+}
+
+export interface RadioSlice {
+  radio: RadioPrefs;
+  setRadio: (patch: Partial<RadioPrefs>) => void;
+}
+
+export type AppState = WidgetsSlice &
+  MonitorsSlice &
+  SettingsSlice &
+  UpdaterSlice &
+  ProfilesSlice &
+  RadioSlice;
 
 /**
  * Every slice is typed against the whole state, so cross-slice `get()` calls —

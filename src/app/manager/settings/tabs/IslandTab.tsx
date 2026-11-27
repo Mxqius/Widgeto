@@ -1,4 +1,4 @@
-import { CalendarDays, Gauge, Music, RotateCcw, Sparkles, Timer } from "lucide-react";
+import { CalendarDays, Gauge, Music, Radio, RotateCcw, Sparkles, Timer } from "lucide-react";
 import { Picker, Range, Segmented, SettingGroup, SettingRow, Toggle, cn } from "@/app/manager/ui";
 import { useApp, DEFAULT_SETTINGS } from "@/app/manager/store";
 import type { IslandAlign, IslandIdle, IslandStyle, IslandTab as Tab, Settings } from "@/shared/types/settings";
@@ -6,6 +6,7 @@ import { HotkeyField } from "../controls/HotkeyField";
 
 const TABS: { id: Tab; label: string; icon: typeof Music }[] = [
   { id: "media", label: "Music", icon: Music },
+  { id: "radio", label: "Radio", icon: Radio },
   { id: "focus", label: "Focus", icon: Timer },
   { id: "system", label: "System", icon: Gauge },
   { id: "today", label: "Today", icon: CalendarDays },
@@ -236,7 +237,7 @@ export function IslandTab() {
         <SettingRow title="Scroll for volume" hint="Scroll over the island to turn the volume up or down.">
           <Toggle checked={s.islandWheelVolume} onChange={(v) => update({ islandWheelVolume: v })} />
         </SettingRow>
-        <SettingRow title="Opens on" hint="Automatic picks music while it plays, then a running timer, then Today.">
+        <SettingRow title="Opens on" hint="Automatic picks music or the radio while it plays, then a running timer, then Today.">
           <Picker
             value={s.islandDefaultTab}
             onChange={(v) => update({ islandDefaultTab: v })}

@@ -8,7 +8,7 @@ export type IslandStyle = "pill" | "notch";
 /** Which side of the screen the island hugs. */
 export type IslandAlign = "left" | "center" | "right";
 /** The island's open panels. */
-export type IslandTab = "media" | "focus" | "system" | "today" | "ask";
+export type IslandTab = "media" | "radio" | "focus" | "system" | "today" | "ask";
 /** What the resting pill shows beside the clock; "auto" picks whatever is most useful. */
 export type IslandIdle = "auto" | "weather" | "battery" | "date" | "none";
 

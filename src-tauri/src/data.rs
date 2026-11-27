@@ -7,7 +7,7 @@ use crate::cache::{entries, through, Fetched};
 
 /// One shared client: connection pooling matters when thirteen windows each
 /// ask for their own data.
-fn client() -> &'static reqwest::Client {
+pub(crate) fn client() -> &'static reqwest::Client {
     static CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
     CLIENT.get_or_init(|| {
         reqwest::Client::builder()
@@ -18,7 +18,7 @@ fn client() -> &'static reqwest::Client {
     })
 }
 
-async fn get_json<T: serde::de::DeserializeOwned>(url: &str) -> Result<T, String> {
+pub(crate) async fn get_json<T: serde::de::DeserializeOwned>(url: &str) -> Result<T, String> {
     let res = client().get(url).send().await.map_err(|e| e.to_string())?;
     if !res.status().is_success() {
         return Err(format!("upstream returned {}", res.status()));
@@ -350,7 +350,7 @@ pub fn data_health() -> DataHealth {
 
 /// Minimal percent-encoding for a query value — avoids a dependency for the
 /// one place we interpolate user text into a URL.
-fn urlencoding(s: &str) -> String {
+pub(crate) fn urlencoding(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
     for b in s.bytes() {
         match b {

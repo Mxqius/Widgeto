@@ -2,6 +2,7 @@ import type { PersistOptions, PersistStorage, StorageValue } from "zustand/middl
 import type { Settings } from "@/shared/types/settings";
 import { DEFAULT_SETTINGS } from "@/shared/settings/defaults";
 import { BUILTIN_PROFILES } from "@/app/manager/desktop/profiles";
+import { DEFAULT_RADIO } from "./radioSlice";
 import type { AppState } from "./types";
 
 type Persisted = Partial<AppState>;
@@ -113,6 +114,7 @@ export const persistOptions: PersistOptions<AppState, Persisted> = {
     zTop: s.zTop,
     profiles: s.profiles,
     activeProfile: s.activeProfile,
+    radio: s.radio,
   }),
 
   /** Heal older/partial payloads so every kind exists exactly once. */
@@ -125,6 +127,7 @@ export const persistOptions: PersistOptions<AppState, Persisted> = {
       settings: { ...DEFAULT_SETTINGS, ...(p.settings ?? {}) },
       widgets: current.widgets.map((base) => ({ ...base, ...(stored.get(base.kind) ?? {}) })),
       profiles: [...BUILTIN_PROFILES, ...(p.profiles ?? []).filter((x) => !x.builtin)],
+      radio: { ...DEFAULT_RADIO, ...(p.radio ?? {}) },
     };
   },
 };
