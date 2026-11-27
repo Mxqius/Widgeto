@@ -470,7 +470,7 @@ pub fn clipboard_text() -> Option<String> {
 }
 
 #[cfg(windows)]
-mod clip {
+pub(crate) mod clip {
     use windows::Win32::Foundation::{HANDLE, HGLOBAL};
     use windows::Win32::System::DataExchange::{CloseClipboard, GetClipboardData, OpenClipboard};
     use windows::Win32::System::Memory::{GlobalLock, GlobalUnlock};
@@ -502,7 +502,7 @@ mod clip {
 }
 
 #[cfg(not(windows))]
-mod clip {
+pub(crate) mod clip {
     pub fn read() -> Option<String> {
         None
     }

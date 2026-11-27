@@ -50,6 +50,8 @@ export interface Settings {
   island: boolean;
   /** brief island pop-outs for track changes, charging, timers and notes */
   islandActivities: boolean;
+  /** an island pop-out whenever something is copied */
+  islandClipboard: boolean;
   /** tuck the island away while a full-screen app is in front */
   islandHideFullscreen: boolean;
   /** the island's outline: a floating pill, or a notch attached to the top edge */

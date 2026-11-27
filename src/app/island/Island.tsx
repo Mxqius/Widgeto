@@ -3,7 +3,7 @@ import {
   fetchBattery, fetchNet, fetchSystem, fetchWeather,
   type BatteryStats,
 } from "@/shared/ipc/commands";
-import { ISLAND_EVT, ISLAND_SIDE_PAD, ISLAND_WINDOW, type Privacy } from "@/shared/island/protocol";
+import { ISLAND_EVT, ISLAND_SIDE_PAD, ISLAND_WINDOW, type Clip, type Privacy } from "@/shared/island/protocol";
 import type { IslandAlign } from "@/shared/types/settings";
 import { isTauri } from "@/shared/lib/env";
 import { invoke, useIslandBridge, useTauriEvent, type Simulate } from "./data/bridge";
@@ -311,6 +311,17 @@ export default function Island() {
       subtitle: task ? "Added as a task" : "Saved to Notes",
       tone: "#fbbf24",
     });
+  });
+
+  // something new on the clipboard; the native side only watches while this is on
+  const clipOn = allow && cfg.clipboard;
+  useEffect(() => {
+    if (live) void invoke("island_clipboard", { on: clipOn }).catch(() => {});
+  }, [live, clipOn]);
+  useTauriEvent<Clip>(ISLAND_EVT.clip, (c) => {
+    // copied from inside the island: its own button already said so
+    if (!allowRef.current || expandedRef.current) return;
+    push(clipActivity(c));
   });
 
   // a new version is out; the dialog is waiting in the manager
@@ -821,6 +832,40 @@ function useHitReport({ live, mode, shape, x, pairW, top, ear, scale, resizing, 
 
 /* ====================================================================== */
 
+const CLIP_TONE = "#38bdf8";
+const CLIP_MS = 2200;
+
+/** A copy, as a pop-out: a peek at what was copied, never more than a line. */
+function clipActivity(c: Clip): Omit<Activity, "id" | "at"> {
+  const base = { icon: "copy" as const, tone: CLIP_TONE, ms: CLIP_MS };
+  switch (c.kind) {
+    case "files":
+      return {
+        ...base,
+        title: c.text ?? "Files",
+        subtitle: c.count > 1 ? `Copied ${c.count} files` : "Copied file",
+        trailing: c.count > 1 ? `+${c.count - 1}` : undefined,
+      };
+    case "image":
+      return {
+        ...base,
+        title: "Image",
+        subtitle: "Copied",
+        trailing: c.width && c.height ? `${c.width}×${c.height}` : undefined,
+      };
+    case "link":
+      return { ...base, title: (c.text ?? "").replace(/^https?:\/\/(www\.)?/, ""), subtitle: "Copied link" };
+    case "text":
+      return {
+        ...base,
+        title: c.text || "Text",
+        subtitle: c.count > 90 ? `Copied · ${c.count.toLocaleString()} characters` : "Copied",
+      };
+    default:
+      return { ...base, title: "Copied to clipboard", subtitle: "Contents hidden" };
+  }
+}
+
 /** Browser-only: fire each kind of pop-out to look at it. */
 function DevPanel({ push, simulate, nudge, openAsk, tuck }: {
   push: (a: Omit<Activity, "id" | "at">) => void;
@@ -836,6 +881,9 @@ function DevPanel({ push, simulate, nudge, openAsk, tuck }: {
     focus: { icon: "focus", title: "Focus session done", subtitle: "Time for a break", tone: "var(--accent)" },
     note: { icon: "note", title: "Call the bank about the card", subtitle: "Saved to Notes", tone: "#fbbf24" },
     update: { icon: "update", title: "Widgeto 0.2.0 is ready", subtitle: "Open Widgeto from the tray to install", trailing: "New", tone: "#a78bff", ms: 7000 },
+    copy: clipActivity({ kind: "text", text: "Meet at the corner café at 6, bring the tickets", count: 48, width: 0, height: 0 }),
+    files: clipActivity({ kind: "files", text: "Quarterly report.pdf", count: 3, width: 0, height: 0 }),
+    image: clipActivity({ kind: "image", text: null, count: 0, width: 1920, height: 1080 }),
   };
   return (
     <div className="island-dev">

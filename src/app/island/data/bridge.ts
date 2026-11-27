@@ -10,6 +10,7 @@ export const DEFAULT_ISLAND_CONFIG: IslandConfig = {
   temperatureUnit: "C",
   reduceMotion: false,
   activities: true,
+  clipboard: true,
   hideInFullscreen: true,
   style: "pill",
   align: "center",

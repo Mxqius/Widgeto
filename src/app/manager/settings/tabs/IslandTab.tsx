@@ -74,6 +74,14 @@ export function IslandTab() {
         >
           <Toggle checked={s.islandActivities} onChange={(v) => update({ islandActivities: v })} />
         </SettingRow>
+        {s.islandActivities && (
+          <SettingRow
+            title="Copy notifications"
+            hint="Pops out with a peek at what you just copied. Passwords copied from a password manager are never shown."
+          >
+            <Toggle checked={s.islandClipboard} onChange={(v) => update({ islandClipboard: v })} />
+          </SettingRow>
+        )}
         <SettingRow
           title="Hide in full screen"
           hint="Tucks the island away while a game, video or presentation is full screen."

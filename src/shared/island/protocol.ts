@@ -35,6 +35,8 @@ export const ISLAND_EVT = {
   privacy: "island:privacy",
   /** native -> island: Caps Lock toggled */
   caps: "island:caps",
+  /** native -> island: something new was copied */
+  clip: "island:clip",
   /** manager -> island: the Ask hotkey was pressed */
   ask: "island:ask",
   /** manager or tray -> island: tuck into the top edge (true), come back (false) or toggle (null) */
@@ -42,6 +44,19 @@ export const ISLAND_EVT = {
   /** manager -> island: a newer version is ready to install (payload: the version) */
   update: "island:update",
 } as const;
+
+/** What was just copied, as the native watcher describes it. */
+export interface Clip {
+  /** "hidden": marked private by the app that copied it (a password manager), or nothing showable */
+  kind: "text" | "link" | "image" | "files" | "hidden";
+  /** a one-line preview of the text, or the first file's name */
+  text: string | null;
+  /** characters of text, or how many files */
+  count: number;
+  /** an image's size in pixels, 0 when unknown */
+  width: number;
+  height: number;
+}
 
 /** Apps using the microphone and the camera right now. */
 export interface Privacy {
@@ -56,6 +71,8 @@ export interface IslandConfig {
   reduceMotion: boolean;
   /** brief pop-outs for track changes, charging, timers and captured notes */
   activities: boolean;
+  /** a pop-out when something is copied; needs `activities` too */
+  clipboard: boolean;
   /** slide away while a full-screen app or game is in front */
   hideInFullscreen: boolean;
   /** a floating pill, or a notch hanging from the top edge */

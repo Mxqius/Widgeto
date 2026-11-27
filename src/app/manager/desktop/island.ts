@@ -86,6 +86,7 @@ function islandConfig(
     temperatureUnit: st.temperatureUnit,
     reduceMotion: st.reduceMotion,
     activities: st.islandActivities,
+    clipboard: st.islandClipboard,
     hideInFullscreen: st.islandHideFullscreen,
     style: st.islandStyle,
     align: st.islandAlign,

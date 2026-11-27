@@ -211,6 +211,7 @@ pub fn run() {
             system::media_seek,
             island::island_ready,
             island::island_hit,
+            island::island_clipboard,
             system::launch,
             ical::calendar_events
         ])

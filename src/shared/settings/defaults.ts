@@ -30,6 +30,7 @@ export const DEFAULT_SETTINGS: Settings = {
   lowMemory: false,
   island: true,
   islandActivities: true,
+  islandClipboard: true,
   islandHideFullscreen: true,
   islandStyle: "pill",
   islandMonitor: null,
