@@ -561,8 +561,7 @@ body { user-select: none; cursor: default; }
   color: rgba(255, 255, 255, 0.92);
   user-select: text;
 }
-.island-ask-a p + p, .island-ask-a p + ul, .island-ask-a p + ol, .island-ask-a ul + p, .island-ask-a ol + p,
-.island-ask-a pre + p, .island-ask-a p + pre { margin-top: 6px; }
+.island-ask-a p + p, .island-ask-a p + ul, .island-ask-a p + ol, .island-ask-a ul + p, .island-ask-a ol + p { margin-top: 6px; }
 .island-ask-a ul, .island-ask-a ol { padding-left: 16px; }
 .island-ask-a ul { list-style: disc; }
 .island-ask-a ol { list-style: decimal; }
@@ -575,16 +574,64 @@ body { user-select: none; cursor: default; }
   border-radius: 5px;
   background: rgba(255, 255, 255, 0.1);
 }
-.island-ask-a pre {
+/* a fenced code block: its language and a copy button over the coloured code */
+.island-code {
   margin-top: 6px;
-  padding: 8px 10px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+}
+.island-ask-a p + .island-code, .island-ask-a .island-code + p { margin-top: 6px; }
+.island-code-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 24px;
+  padding: 0 4px 0 10px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.42);
+  background: rgba(255, 255, 255, 0.04);
+}
+.island-code-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 18px;
+  padding: 0 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+  transition: color 160ms ease, background 160ms ease;
+}
+.island-code-copy:hover { color: #fff; background: rgba(255, 255, 255, 0.1); }
+.island-ask-a pre {
+  padding: 8px 10px;
   font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
   font-size: 11px;
+  line-height: 1.55;
   white-space: pre-wrap;
   word-break: break-word;
+  /* show code as typed: no arrows for => or merged != */
+  font-variant-ligatures: none;
+  color: #e6e6ea;
 }
+.island-ask-a pre code { padding: 0; background: none; font-size: inherit; border-radius: 0; }
+/* a quiet dark palette; colours stay readable at the island's low opacity too */
+.tk-comment { color: #7d8590; font-style: italic; }
+.tk-string  { color: #a5d6a7; }
+.tk-number  { color: #f2b77a; }
+.tk-keyword { color: #c792ea; }
+.tk-literal { color: #f78c6c; }
+.tk-type    { color: #ffcb6b; }
+.tk-fn      { color: #82aaff; }
+.tk-prop    { color: #89ddff; }
+.tk-tag     { color: #f07178; }
+.tk-attr    { color: #ffcb6b; }
+.tk-punct   { color: rgba(255, 255, 255, 0.45); }
 .island-ask-a.is-live > :last-child::after {
   content: "";
   display: inline-block;

@@ -132,7 +132,13 @@ const SAMPLE_ANSWER =
   "**Short answer:** yes — a pomodoro is 25 minutes of focus, then a 5-minute break.\n\n" +
   "- After four rounds, take a longer 15–30 minute break\n" +
   "- Keep a note of what pulled you away, and deal with it on the break\n" +
-  "- Start the timer from the island's `Focus` tab";
+  "- Start the timer from the island's `Focus` tab\n\n" +
+  "```ts\n" +
+  "// four rounds, then a long break\n" +
+  "const plan = (rounds: number) =>\n" +
+  "  Array.from({ length: rounds }, (_, i) => ({ focus: 25, rest: i === 3 ? 15 : 5 }));\n" +
+  "console.log(plan(4), \"done\", true);\n" +
+  "```";
 
 /** Browser preview: stream a canned answer so the panel can be looked at. */
 function simulate(_q: string, emit: (piece: string, done: boolean) => void) {

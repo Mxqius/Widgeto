@@ -1,8 +1,9 @@
 import { ArrowUp, Check, ClipboardList, Copy, Languages, Lightbulb, Plus, Settings2, Sparkles, Square, Wand2 } from "lucide-react";
-import { Fragment, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { AI_PROVIDERS, hasKey, openManagerSettings, readClipboard, type AiTarget } from "@/shared/ai/client";
 import { isTauri } from "@/shared/lib/env";
 import type { AskState } from "../data/useAsk";
+import { Markdown } from "./Markdown";
 
 const SAMPLE_CLIP = "The quarterly report shows revenue up 12% while costs held flat, mostly thanks to the new pricing.";
 
@@ -240,73 +241,6 @@ function Answer({ text, copyable }: { text: string; copyable: boolean }) {
       )}
     </div>
   );
-}
-
-/* --------------------------------------------------------------- markdown */
-
-/**
- * Just enough Markdown for short answers: paragraphs, bullet and numbered
- * lists, fenced code, **bold**, *italic* and `code`. Built as elements, never
- * as HTML, so nothing in an answer can inject markup.
- */
-function Markdown({ text }: { text: string }) {
-  const blocks: ReactNode[] = [];
-  const lines = text.replace(/\r/g, "").split("\n");
-  let i = 0;
-  while (i < lines.length) {
-    const line = lines[i];
-    if (line.trimStart().startsWith("```")) {
-      const code: string[] = [];
-      i++;
-      while (i < lines.length && !lines[i].trimStart().startsWith("```")) code.push(lines[i++]);
-      i++;
-      blocks.push(<pre key={blocks.length}>{code.join("\n")}</pre>);
-      continue;
-    }
-    const bullet = /^\s*[-*•]\s+(.*)$/;
-    const numbered = /^\s*\d+[.)]\s+(.*)$/;
-    if (bullet.test(line) || numbered.test(line)) {
-      const ordered = numbered.test(line);
-      const re = ordered ? numbered : bullet;
-      const items: string[] = [];
-      while (i < lines.length && re.test(lines[i])) items.push(lines[i++].match(re)![1]);
-      const List = ordered ? "ol" : "ul";
-      blocks.push(
-        <List key={blocks.length}>
-          {items.map((it, k) => (
-            <li key={k}>{inline(it)}</li>
-          ))}
-        </List>,
-      );
-      continue;
-    }
-    if (!line.trim()) {
-      i++;
-      continue;
-    }
-    const para: string[] = [];
-    while (
-      i < lines.length &&
-      lines[i].trim() &&
-      !bullet.test(lines[i]) &&
-      !numbered.test(lines[i]) &&
-      !lines[i].trimStart().startsWith("```")
-    ) {
-      para.push(lines[i++].replace(/^#{1,6}\s+/, ""));
-    }
-    blocks.push(<p key={blocks.length}>{inline(para.join(" "))}</p>);
-  }
-  return <>{blocks}</>;
-}
-
-function inline(s: string): ReactNode {
-  const parts = s.split(/(`[^`]+`|\*\*[^*]+\*\*|\*[^*\s][^*]*\*)/g);
-  return parts.map((p, i) => {
-    if (p.startsWith("`") && p.endsWith("`") && p.length > 1) return <code key={i}>{p.slice(1, -1)}</code>;
-    if (p.startsWith("**") && p.endsWith("**") && p.length > 4) return <strong key={i}>{p.slice(2, -2)}</strong>;
-    if (p.startsWith("*") && p.endsWith("*") && p.length > 2) return <em key={i}>{p.slice(1, -1)}</em>;
-    return <Fragment key={i}>{p}</Fragment>;
-  });
 }
 
 /* ------------------------------------------------------------------ hooks */
