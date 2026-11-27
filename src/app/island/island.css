@@ -21,12 +21,11 @@ body { user-select: none; cursor: default; }
   height: 100%;
 }
 
+/* top and left are set inline: they follow the position settings */
 .island-shape {
   position: absolute;
-  top: 8px;
-  left: 50%;
   overflow: hidden;
-  background: #000;
+  background: var(--island-bg, #000);
   color: #fff;
   /* a hairline catches the light at the edge so it reads on a black desktop */
   box-shadow:
@@ -45,12 +44,10 @@ body { user-select: none; cursor: default; }
 
 .island-bubble {
   position: absolute;
-  top: 8px;
-  left: 50%;
   width: 34px;
   height: 34px;
   border-radius: 999px;
-  background: #000;
+  background: var(--island-bg, #000);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07), 0 8px 24px -6px rgba(0, 0, 0, 0.55);
   overflow: hidden;
 }
@@ -62,8 +59,6 @@ body { user-select: none; cursor: default; }
  * concave fillets either side of it flare its top corners into the edge, so it
  * reads as a cutout in the screen rather than something floating under it.
  */
-[data-style="notch"] .island-shape,
-[data-style="notch"] .island-bubble { top: 0; }
 [data-style="notch"] .island-shape {
   /* only the underside catches the light; a hairline across the top would
      cut it off from the edge it is meant to grow out of */
@@ -81,7 +76,6 @@ body { user-select: none; cursor: default; }
 .island-ears {
   position: absolute;
   top: 0;
-  left: 50%;
   pointer-events: none;
   transform-origin: 50% 0;
 }
@@ -96,12 +90,12 @@ body { user-select: none; cursor: default; }
 .island-ears i:first-child {
   right: 100%;
   margin-right: -0.5px;
-  background: radial-gradient(100% 100% at 0 100%, transparent calc(100% - 0.75px), #000 calc(100% + 0.25px));
+  background: radial-gradient(100% 100% at 0 100%, transparent calc(100% - 0.75px), var(--island-bg, #000) calc(100% + 0.25px));
 }
 .island-ears i:last-child {
   left: 100%;
   margin-left: -0.5px;
-  background: radial-gradient(100% 100% at 100% 100%, transparent calc(100% - 0.75px), #000 calc(100% + 0.25px));
+  background: radial-gradient(100% 100% at 100% 100%, transparent calc(100% - 0.75px), var(--island-bg, #000) calc(100% + 0.25px));
 }
 [data-mode="hidden"] .island-ears { opacity: 0; }
 

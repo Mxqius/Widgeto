@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { Settings } from "@/shared/types/settings";
 import { useApp } from "@/app/manager/store";
 import { configOf } from "@/shared/widgets/config";
 import { ISLAND_EVT, ISLAND_LABEL, ISLAND_WINDOW, type IslandConfig } from "@/shared/island/protocol";
@@ -21,7 +22,7 @@ async function openIsland() {
   const my = m ? m.position.y / scale : 0;
   const mw = m ? m.size.width / scale : 1920;
 
-  new WebviewWindow(ISLAND_LABEL, {
+  const win = new WebviewWindow(ISLAND_LABEL, {
     url: "island.html",
     title: "Widgeto Island",
     x: Math.round(mx + (mw - ISLAND_WINDOW.width) / 2),
@@ -39,6 +40,77 @@ async function openIsland() {
     focus: false,
     backgroundColor: "#00000000",
   });
+  await new Promise<void>((done) => {
+    void win.once("tauri://created", () => done());
+    void win.once("tauri://error", () => done());
+  });
+}
+
+type Placement = Pick<Settings, "islandMonitor" | "islandAlign" | "islandOffsetX">;
+
+/**
+ * Move the island's window to the chosen monitor and side. Worked out in
+ * physical pixels against the target monitor's own scale, so it lands right
+ * on mixed-DPI setups; Windows resizes the window itself when it crosses over.
+ */
+async function placeIsland(p: Placement) {
+  const { WebviewWindow } = await import("@tauri-apps/api/webviewWindow");
+  const win = await WebviewWindow.getByLabel(ISLAND_LABEL);
+  if (!win) return;
+  const { availableMonitors, primaryMonitor } = await import("@tauri-apps/api/window");
+  const { PhysicalPosition } = await import("@tauri-apps/api/dpi");
+  const [all, primary] = await Promise.all([availableMonitors(), primaryMonitor()]);
+  const m = (p.islandMonitor && all.find((x) => x.name === p.islandMonitor)) || primary || all[0];
+  if (!m) return;
+  const s = m.scaleFactor;
+  const mw = m.size.width;
+  const w = ISLAND_WINDOW.width * s;
+  const off = p.islandOffsetX * s;
+  const base =
+    p.islandAlign === "left" ? 0 : p.islandAlign === "right" ? mw - w : (mw - w) / 2;
+  const x = m.position.x + Math.min(Math.max(base + off, 0), Math.max(0, mw - w));
+  await win.setPosition(new PhysicalPosition(Math.round(x), m.position.y));
+}
+
+/** Everything the island page needs, from the manager's settings. */
+function islandConfig(
+  st: Settings,
+  weatherCfg: Record<string, unknown> | undefined,
+  focusCfg: Record<string, unknown> | undefined,
+): IslandConfig {
+  const weather = configOf("weather", weatherCfg);
+  const pomo = configOf("pomodoro", focusCfg);
+  return {
+    accent: st.accent,
+    clock24h: st.clock24h,
+    temperatureUnit: st.temperatureUnit,
+    reduceMotion: st.reduceMotion,
+    activities: st.islandActivities,
+    hideInFullscreen: st.islandHideFullscreen,
+    style: st.islandStyle,
+    align: st.islandAlign,
+    top: st.islandTop,
+    scale: st.islandScale,
+    roundness: st.islandRoundness,
+    opacity: st.islandOpacity,
+    earSize: st.islandEarSize,
+    openOn: st.islandOpenOn,
+    openDelay: st.islandOpenDelay,
+    wheelVolume: st.islandWheelVolume,
+    defaultTab: st.islandDefaultTab,
+    hiddenTabs: st.islandHiddenTabs,
+    idle: st.islandIdle,
+    weatherPlace: weather.place?.trim() || null,
+    focus: { focusMin: pomo.focusMin, shortMin: pomo.shortMin, longMin: pomo.longMin },
+    ai: st.aiEnabled
+      ? {
+          provider: st.aiProvider,
+          model: st.aiModels[st.aiProvider] ?? "",
+          baseUrl: st.aiProvider === "claude" ? null : st.aiBaseUrls[st.aiProvider] || null,
+          hotkey: st.aiHotkey,
+        }
+      : null,
+  };
 }
 
 /** The Ask hotkey: open the island on its Ask tab, ready to type. */
@@ -78,80 +150,55 @@ async function closeIsland() {
 }
 
 /**
- * Keeps the island window in step with settings: opens or closes it, and
- * pushes it a fresh config whenever something it shows changes — and again
- * whenever it says hello, so a reloaded island is never left on defaults.
+ * Keeps the island window in step with settings: opens or closes it, places
+ * it on the chosen monitor and side, and pushes it a fresh config whenever
+ * something it shows changes — and again whenever it says hello, so a
+ * reloaded island is never left on defaults.
  */
 export function useIslandSync() {
-  const enabled = useApp((s) => s.settings.island);
-  const accent = useApp((s) => s.settings.accent);
-  const clock24h = useApp((s) => s.settings.clock24h);
-  const temperatureUnit = useApp((s) => s.settings.temperatureUnit);
-  const reduceMotion = useApp((s) => s.settings.reduceMotion);
-  const activities = useApp((s) => s.settings.islandActivities);
-  const hideInFullscreen = useApp((s) => s.settings.islandHideFullscreen);
-  const style = useApp((s) => s.settings.islandStyle);
+  const settings = useApp((s) => s.settings);
+  const enabled = settings.island;
   const weatherCfg = useApp((s) => s.widgets.find((w) => w.kind === "weather")?.config);
   const focusCfg = useApp((s) => s.widgets.find((w) => w.kind === "pomodoro")?.config);
-  const aiEnabled = useApp((s) => s.settings.aiEnabled);
-  const aiProvider = useApp((s) => s.settings.aiProvider);
-  const aiModels = useApp((s) => s.settings.aiModels);
-  const aiBaseUrls = useApp((s) => s.settings.aiBaseUrls);
-  const aiHotkey = useApp((s) => s.settings.aiHotkey);
+  // a monitor plugged in or out may move the island's home
+  const screens = useApp((s) => s.areas.map((a) => `${a.name}@${a.x},${a.y},${a.w}`).join("|"));
 
-  const cfg = useMemo<IslandConfig>(() => {
-    const weather = configOf("weather", weatherCfg);
-    const pomo = configOf("pomodoro", focusCfg);
-    return {
-      accent,
-      clock24h,
-      temperatureUnit,
-      reduceMotion,
-      activities,
-      hideInFullscreen,
-      style,
-      weatherPlace: weather.place?.trim() || null,
-      focus: { focusMin: pomo.focusMin, shortMin: pomo.shortMin, longMin: pomo.longMin },
-      ai: aiEnabled
-        ? {
-            provider: aiProvider,
-            model: aiModels[aiProvider] ?? "",
-            baseUrl: aiProvider === "claude" ? null : aiBaseUrls[aiProvider] || null,
-            hotkey: aiHotkey,
-          }
-        : null,
-    };
-  }, [
-    accent,
-    clock24h,
-    temperatureUnit,
-    reduceMotion,
-    activities,
-    hideInFullscreen,
-    style,
-    weatherCfg,
-    focusCfg,
-    aiEnabled,
-    aiProvider,
-    aiModels,
-    aiBaseUrls,
-    aiHotkey,
-  ]);
+  const cfg = useMemo(
+    () => islandConfig(settings, weatherCfg, focusCfg),
+    [settings, weatherCfg, focusCfg],
+  );
+  // settings unrelated to the island change the object, not the payload
+  const sig = JSON.stringify(cfg);
 
   const latest = useRef(cfg);
   latest.current = cfg;
 
+  const { islandMonitor, islandAlign, islandOffsetX } = settings;
+  // placing waits for the window to exist
+  const [opened, setOpened] = useState(false);
+
   useEffect(() => {
     if (!isTauri()) return;
-    void (enabled ? openIsland() : closeIsland()).catch(() => {});
-  }, [enabled]);
+    let alive = true;
+    void (enabled ? openIsland() : closeIsland())
+      .then(() => alive && setOpened(enabled))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [enabled, setOpened]);
+
+  useEffect(() => {
+    if (!isTauri() || !enabled || !opened) return;
+    void placeIsland({ islandMonitor, islandAlign, islandOffsetX }).catch(() => {});
+  }, [enabled, opened, islandMonitor, islandAlign, islandOffsetX, screens]);
 
   useEffect(() => {
     if (!isTauri() || !enabled) return;
     void import("@tauri-apps/api/event").then(({ emitTo }) =>
-      emitTo(ISLAND_LABEL, ISLAND_EVT.config, cfg).catch(() => {}),
+      emitTo(ISLAND_LABEL, ISLAND_EVT.config, latest.current).catch(() => {}),
     );
-  }, [cfg, enabled]);
+  }, [sig, enabled]);
 
   useEffect(() => {
     if (!isTauri()) return;

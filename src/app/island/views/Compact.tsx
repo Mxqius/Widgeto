@@ -1,36 +1,51 @@
-import { BatteryLow, Zap } from "lucide-react";
+import { BatteryLow, BatteryMedium, Zap } from "lucide-react";
 import type { BatteryStats, Volume, Weather } from "@/shared/ipc/commands";
+import type { IslandIdle } from "@/shared/types/settings";
 import { clock, mmss } from "../lib/format";
 import type { Track } from "../data/useMedia";
 import type { Focus } from "../data/useFocus";
 import { Art, Equalizer, Ring } from "./parts";
 import { CAMERA_TONE, MIC_TONE, VolumeGlyph, WeatherGlyph } from "./glyphs";
 
-/** Nothing going on: the time, and one quiet fact on the right. */
-export function IdleCompact({ now, h24, battery, weather, temp }: {
+/**
+ * Nothing going on: the time, and one quiet fact on the right — the one the
+ * user picked, or on "auto" whichever matters most right now.
+ */
+export function IdleCompact({ now, h24, show, battery, weather, temp }: {
   now: Date;
   h24: boolean;
+  show: IslandIdle;
   battery: BatteryStats | undefined;
   weather: Weather | undefined;
   temp: (c: number) => string;
 }) {
   const pct = battery?.present ? Math.round(battery.percent) : null;
+  const auto = show === "auto";
   let right: React.ReactNode;
-  if (battery?.present && battery.charging) {
+  if (show === "none") {
+    right = null;
+  } else if (show === "battery" && pct !== null && !battery?.charging && pct > 20) {
+    right = (
+      <span className="flex items-center gap-1 text-[12px] font-semibold tabular-nums text-white/80">
+        <BatteryMedium size={14} />
+        {pct}%
+      </span>
+    );
+  } else if ((auto || show === "battery") && battery?.present && battery.charging) {
     right = (
       <span className="flex items-center gap-1 text-[12px] font-semibold tabular-nums text-[#4ade80]">
         <Zap size={12} className="fill-current" />
         {pct}%
       </span>
     );
-  } else if (pct !== null && pct <= 20) {
+  } else if ((auto || show === "battery") && pct !== null && pct <= 20) {
     right = (
       <span className="flex items-center gap-1 text-[12px] font-semibold tabular-nums text-[#f87171]">
         <BatteryLow size={14} />
         {pct}%
       </span>
     );
-  } else if (weather) {
+  } else if ((auto || show === "weather") && weather) {
     right = (
       <span className="flex items-center gap-1 text-[12px] font-semibold tabular-nums text-white/80">
         <WeatherGlyph icon={weather.icon} size={13} />
@@ -46,7 +61,7 @@ export function IdleCompact({ now, h24, battery, weather, temp }: {
   }
 
   return (
-    <div className="flex h-full items-center justify-between px-4">
+    <div className={`flex h-full items-center px-4 ${right ? "justify-between" : "justify-center"}`}>
       <span className="text-[13px] font-semibold tabular-nums tracking-tight text-white">{clock(now, h24)}</span>
       {right}
     </div>

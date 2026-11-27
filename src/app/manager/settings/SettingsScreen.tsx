@@ -8,6 +8,7 @@ import { AppearanceTab } from "./tabs/AppearanceTab";
 import { LayoutTab } from "./tabs/LayoutTab";
 import { WidgetsTab } from "./tabs/WidgetsTab";
 import { SystemTab } from "./tabs/SystemTab";
+import { IslandTab } from "./tabs/IslandTab";
 import { ShortcutsTab } from "./tabs/ShortcutsTab";
 import { AiTab } from "./tabs/AiTab";
 import { BLURB, TABS, type TabId } from "./tabs";
@@ -17,6 +18,7 @@ const PANELS: Record<TabId, () => React.ReactElement> = {
   layout: LayoutTab,
   widgets: WidgetsTab,
   system: SystemTab,
+  island: IslandTab,
   ai: AiTab,
   shortcuts: ShortcutsTab,
   about: AboutTab,

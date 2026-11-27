@@ -12,12 +12,35 @@ export const DEFAULT_ISLAND_CONFIG: IslandConfig = {
   activities: true,
   hideInFullscreen: true,
   style: "pill",
+  align: "center",
+  top: 8,
+  scale: 1,
+  roundness: 1,
+  opacity: 1,
+  earSize: 0.5,
+  openOn: "hover",
+  openDelay: 70,
+  wheelVolume: true,
+  defaultTab: "auto",
+  hiddenTabs: [],
+  idle: "auto",
   weatherPlace: null,
   focus: { focusMin: 25, shortMin: 5, longMin: 15 },
   ai: { provider: "claude", model: "claude-opus-5-5", baseUrl: null, hotkey: "CommandOrControl+Shift+Space" },
 };
 
 const NO_PRIVACY: Privacy = { mic: [], camera: [] };
+
+/** Browser preview only: `island.html?align=left&scale=1.2` tries settings without the manager. */
+function previewConfig(): IslandConfig {
+  const cfg: Record<string, unknown> = { ...DEFAULT_ISLAND_CONFIG };
+  new URLSearchParams(location.search).forEach((v, k) => {
+    if (!(k in cfg)) return;
+    const n = Number(v);
+    cfg[k] = v === "true" ? true : v === "false" ? false : v !== "" && !Number.isNaN(n) ? n : v.includes(",") ? v.split(",") : v;
+  });
+  return cfg as unknown as IslandConfig;
+}
 
 export async function invoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
   const { invoke } = await import("@tauri-apps/api/core");
@@ -52,7 +75,7 @@ export function useTauriEvent<T>(name: string, on: (payload: T) => void) {
  */
 export function useIslandBridge() {
   const live = isTauri();
-  const [cfg, setCfg] = useState<IslandConfig>(DEFAULT_ISLAND_CONFIG);
+  const [cfg, setCfg] = useState<IslandConfig>(() => (live ? DEFAULT_ISLAND_CONFIG : previewConfig()));
   const [nativeHover, setNativeHover] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const [volume, setVolume] = useState<Volume | undefined>(live ? undefined : SAMPLE_VOLUME);

@@ -11,11 +11,12 @@ import type { Focus, FocusMode } from "../data/useFocus";
 import type { VolumeCtl } from "../data/useVolume";
 import type { AskState } from "../data/useAsk";
 import type { AiTarget } from "@/shared/ai/client";
+import type { IslandTab } from "@/shared/types/settings";
 import { AskPanel } from "./AskPanel";
 import { Art, Bar, Equalizer, Ring, Slider } from "./parts";
 import { CAMERA_TONE, MIC_TONE, VolumeGlyph, WeatherGlyph } from "./glyphs";
 
-export type Tab = "media" | "focus" | "system" | "today" | "ask";
+export type Tab = IslandTab;
 
 const TABS: { id: Tab; icon: typeof Music; label: string }[] = [
   { id: "media", icon: Music, label: "Now playing" },
@@ -25,8 +26,13 @@ const TABS: { id: Tab; icon: typeof Music; label: string }[] = [
   { id: "ask", icon: Sparkles, label: "Ask AI" },
 ];
 
+/** Every tab, in the order the strip shows them. */
+export const TAB_ORDER: Tab[] = TABS.map((t) => t.id);
+
 export interface ExpandedProps {
   tab: Tab;
+  /** the tabs switched on */
+  tabs: Tab[];
   setTab: (t: Tab) => void;
   now: number;
   h24: boolean;
@@ -51,7 +57,7 @@ export interface ExpandedProps {
 
 export function Expanded(p: ExpandedProps) {
   const d = new Date(p.now);
-  const tabs = p.ai ? TABS : TABS.filter((t) => t.id !== "ask");
+  const tabs = TABS.filter((t) => p.tabs.includes(t.id) && (t.id !== "ask" || p.ai));
   const i = tabs.findIndex((t) => t.id === p.tab);
   return (
     <div className="flex h-full flex-col px-4 pt-3 pb-4">

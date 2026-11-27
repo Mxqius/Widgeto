@@ -5,15 +5,20 @@
  * island reads for itself.
  */
 import type { AiTarget } from "@/shared/ai/client";
-import type { IslandStyle } from "@/shared/types/settings";
+import type { IslandAlign, IslandIdle, IslandStyle, IslandTab } from "@/shared/types/settings";
 
 export const ISLAND_LABEL = "island";
 
-/** The OS window is fixed at the largest shape; the island morphs inside it. */
-export const ISLAND_WINDOW = { width: 520, height: 300 } as const;
+/**
+ * The OS window is fixed at the largest the island can get — a stretched-out
+ * Ask chat at the biggest scale — and the island morphs inside it. Everything
+ * outside the island's shape is click-through, so the spare room costs nothing
+ * but a little transparent surface.
+ */
+export const ISLAND_WINDOW = { width: 820, height: 600 } as const;
 
-/** Gap between the top of the screen and the pill. */
-export const ISLAND_TOP = 8;
+/** Room kept between the island and the window's side when it hugs one: enough for the notch's widest corner. */
+export const ISLAND_SIDE_PAD = 36;
 
 export const ISLAND_EVT = {
   /** manager -> island: here is your config */
@@ -55,6 +60,21 @@ export interface IslandConfig {
   hideInFullscreen: boolean;
   /** a floating pill, or a notch hanging from the top edge */
   style: IslandStyle;
+  /** which side of its window the island hugs; the window itself is placed by the manager */
+  align: IslandAlign;
+  /** gap above the pill, in island units */
+  top: number;
+  scale: number;
+  roundness: number;
+  opacity: number;
+  earSize: number;
+  openOn: "hover" | "click";
+  openDelay: number;
+  wheelVolume: boolean;
+  defaultTab: "auto" | IslandTab;
+  /** tabs the user switched off; Ask is governed by `ai` */
+  hiddenTabs: IslandTab[];
+  idle: IslandIdle;
   /** the Weather widget's place, reused so the island needs no setting of its own */
   weatherPlace: string | null;
   focus: { focusMin: number; shortMin: number; longMin: number };

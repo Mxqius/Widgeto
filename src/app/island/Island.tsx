@@ -3,7 +3,8 @@ import {
   fetchBattery, fetchNet, fetchSystem, fetchWeather,
   type BatteryStats,
 } from "@/shared/ipc/commands";
-import { ISLAND_EVT, ISLAND_TOP, ISLAND_WINDOW, type Privacy } from "@/shared/island/protocol";
+import { ISLAND_EVT, ISLAND_SIDE_PAD, ISLAND_WINDOW, type Privacy } from "@/shared/island/protocol";
+import type { IslandAlign } from "@/shared/types/settings";
 import { isTauri } from "@/shared/lib/env";
 import { invoke, useIslandBridge, useTauriEvent, type Simulate } from "./data/bridge";
 import { useVolume } from "./data/useVolume";
@@ -19,7 +20,7 @@ import { IdleCompact, MediaCompact, PrivacyDots, TimerBubble, TimerCompact, Volu
 import { CAMERA_TONE, MIC_TONE } from "./views/glyphs";
 import { Toast } from "./views/Toast";
 import { TuckHandle } from "./views/TuckHandle";
-import { Expanded, type Tab } from "./views/Expanded";
+import { Expanded, TAB_ORDER, type Tab } from "./views/Expanded";
 
 type Mode = "hidden" | "tucked" | "idle" | "media" | "timer" | "volume" | "toast" | "expanded";
 
@@ -63,11 +64,10 @@ const readTucked = () => {
   }
 };
 
-/** Notch style: how far the top corners flare into the screen edge, as a share of the bottom radius. */
-const EAR_RATIO = 0.5;
-const EAR_MIN = 5;
-const EAR_MAX = 20;
-const earOf = (s: Shape) => Math.round(Math.min(EAR_MAX, Math.max(EAR_MIN, s.r * EAR_RATIO)));
+/** Notch style: how far the top corners flare into the screen edge, from a share of the bottom radius. */
+const EAR_MIN = 4;
+const EAR_MAX = 32;
+const earOf = (s: Shape, ratio: number) => Math.round(Math.min(EAR_MAX, Math.max(EAR_MIN, s.r * ratio)));
 
 const BUBBLE = 34;
 const BUBBLE_GAP = 8;
@@ -75,9 +75,12 @@ const BUBBLE_GAP = 8;
 /** Bigger shapes grow with a little bounce; smaller ones settle flat. */
 const area = (s: Shape) => s.w * s.h;
 
-/** Hover in: open almost at once. Hover out: close quickly, with just enough grace to forgive a pointer grazing the edge. */
-const OPEN_DELAY = 70;
+/** Hover out: close quickly, with just enough grace to forgive a pointer grazing the edge. (Hover in is a setting.) */
 const CLOSE_DELAY = 120;
+
+/** Where the island (and the bubble beside it) starts, in island units across its window. */
+const leftOf = (align: IslandAlign, width: number, room: number) =>
+  align === "left" ? ISLAND_SIDE_PAD : align === "right" ? room - ISLAND_SIDE_PAD - width : (room - width) / 2;
 
 export default function Island() {
   const live = isTauri();
@@ -92,6 +95,12 @@ export default function Island() {
   hoverRef.current = hover;
   const [expanded, setExpanded] = useState(false);
   const [tab, setTab] = useState<Tab>("today");
+  // set to click-to-open, a click opens it and it stays until the pointer leaves
+  const clickOnly = cfg.openOn === "click";
+  const [clicked, setClicked] = useState(false);
+  useEffect(() => {
+    if (!hover) setClicked(false);
+  }, [hover]);
 
   /* ----------------------------------------------------------------- tuck */
   // Tucked, the island shrinks to a slim handle on the top edge and stays out
@@ -145,9 +154,18 @@ export default function Island() {
     const t = setTimeout(() => setAskHold(false), ASK_HOLD_MS);
     return () => clearTimeout(t);
   }, [askHold]);
+
+  // the tabs switched on, in their usual order; Ask needs AI switched on too
+  const hasAi = !!ai;
+  const hiddenKey = cfg.hiddenTabs.join(",");
+  const tabs = useMemo<Tab[]>(() => {
+    const off = hiddenKey.split(",");
+    const on = TAB_ORDER.filter((t) => (t === "ask" ? hasAi : !off.includes(t)));
+    return on.length ? on : ["today"];
+  }, [hasAi, hiddenKey]);
   useEffect(() => {
-    if (!ai && tab === "ask") setTab("today");
-  }, [ai, tab]);
+    if (!tabs.includes(tab)) setTab(tabs[0]);
+  }, [tabs, tab]);
 
   const openAsk = useCallback(() => {
     // the Ask hotkey always brings it back
@@ -172,11 +190,19 @@ export default function Island() {
     setExpanded(false);
   }, []);
 
-  const want = ((hover && !hoverHold) || pinned) && !tucked;
+  const byPointer = clickOnly ? clicked && hover : hover && !hoverHold;
+  const want = (byPointer || pinned) && !tucked;
+  const openDelay = clickOnly ? 0 : cfg.openDelay;
   useEffect(() => {
-    const t = setTimeout(() => setExpanded(want), want ? OPEN_DELAY : CLOSE_DELAY);
+    const t = setTimeout(() => setExpanded(want), want ? openDelay : CLOSE_DELAY);
     return () => clearTimeout(t);
+    // the delay only matters on the way in
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [want]);
+  const open = useCallback(() => {
+    setClicked(true);
+    setExpanded(true);
+  }, []);
 
   /* ----------------------------------------------------------------- feeds */
   const track = useIslandMedia();
@@ -258,7 +284,7 @@ export default function Island() {
   // scroll anywhere on the island to change the volume
   const wheelAcc = useRef(0);
   const onWheel = (e: React.WheelEvent) => {
-    if (tucked) return;
+    if (tucked || !cfg.wheelVolume) return;
     // the Ask tab scrolls its answer instead
     if (expanded && tab === "ask") return;
     wheelAcc.current += e.deltaY;
@@ -307,7 +333,14 @@ export default function Island() {
     }
     // a conversation still being read keeps its place
     if (tab === "ask" && (ask.turns.length > 0 || ask.streaming)) return;
-    setTab(track.media?.playing ? "media" : focus.active ? "focus" : track.media?.title ? "media" : "today");
+    if (cfg.defaultTab !== "auto" && tabs.includes(cfg.defaultTab)) return setTab(cfg.defaultTab);
+    const wanted: Tab[] = [
+      ...(track.media?.playing ? (["media"] as const) : []),
+      ...(focus.active ? (["focus"] as const) : []),
+      ...(track.media?.title ? (["media"] as const) : []),
+      "today",
+    ];
+    setTab(wanted.find((t) => tabs.includes(t)) ?? tabs[0]);
     // only on open
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [expanded]);
@@ -339,6 +372,13 @@ export default function Island() {
   const compact = mode === "idle" || mode === "media" || mode === "timer";
   const extra = compact ? (camOn ? DOT_W : 0) + (micOn ? DOT_W : 0) + (camOn || micOn ? 4 : 0) : 0;
   const base = mode === "tucked" && hover ? TUCKED_HOVER : SHAPES[mode];
+
+  // the window, in island units: everything inside is drawn at `scale`
+  const scale = cfg.scale;
+  const room = { w: ISLAND_WINDOW.width / scale, h: ISLAND_WINDOW.height / scale };
+  const notch = cfg.style === "notch";
+  const top = notch ? 0 : cfg.top;
+
   const shape = useMemo<Shape>(
     () => ({
       w: base.w + extra,
@@ -356,13 +396,15 @@ export default function Island() {
   }, [shape]);
 
   // the notch hangs from the top edge itself, and flares into it at the corners
-  const notch = cfg.style === "notch";
-  const ear = notch ? earOf(shape) : 0;
+  const ear = notch ? earOf(shape, cfg.earSize) : 0;
+  // the island and its bubble are placed as a pair on the chosen side
+  const pairW = shape.w + (bubble ? BUBBLE_GAP + BUBBLE : 0);
+  const x = leftOf(cfg.align, pairW, room.w);
 
   /* ------------------------------------------------------ native hit area */
   const shapeRef = useRef<HTMLDivElement>(null);
   const bubbleRef = useRef<HTMLDivElement>(null);
-  useHitReport({ live, mode, shape, bubble, notch, ear, shapeRef, bubbleRef });
+  useHitReport({ live, mode, shape, x, pairW, top, ear, scale, shapeRef, bubbleRef });
 
   /* ---------------------------------------------------------------- render */
   const temp = useCallback(
@@ -377,6 +419,7 @@ export default function Island() {
       content = (
         <Expanded
           tab={tab}
+          tabs={tabs}
           setTab={setTab}
           onTuck={() => setTucked(true)}
           now={now}
@@ -431,17 +474,23 @@ export default function Island() {
       break;
     default:
       content = (
-        <IdleCompact now={new Date(now)} h24={cfg.clock24h} battery={battery} weather={weather} temp={temp} />
+        <IdleCompact
+          now={new Date(now)}
+          h24={cfg.clock24h}
+          show={cfg.idle}
+          battery={battery}
+          weather={weather}
+          temp={temp}
+        />
       );
   }
 
   const transition = `${motion.ms}ms ${motion.easing}`;
+  const radius = Math.round(shape.r * cfg.roundness);
   // tucked, or as a notch, it hangs from the top edge: square on top, round underneath
-  const corner = mode === "tucked" || notch ? 0 : shape.r;
-  const lift =
-    mode === "tucked" && !notch ? ` translateY(${-ISLAND_TOP}px)` : hidden ? " translateY(-56px) scale(0.7)" : "";
-  // when a bubble sits beside it, the pair is centred together
-  const placement = `translateX(calc(-50% - ${bubble ? (BUBBLE + BUBBLE_GAP) / 2 : 0}px))${lift}`;
+  const corner = mode === "tucked" || notch ? 0 : radius;
+  const lift = mode === "tucked" && !notch ? `translateY(${-top}px)` : hidden ? "translateY(-56px) scale(0.7)" : "none";
+  const moves = `width ${transition}, height ${transition}, left ${transition}, transform ${transition}`;
 
   return (
     <div
@@ -450,22 +499,31 @@ export default function Island() {
       data-mode={mode}
       data-tuck={tuckAnim}
       data-reduce={cfg.reduceMotion || undefined}
+      style={{
+        // drawn in island units and zoomed, so the hit maths stays in one space
+        zoom: scale,
+        width: `${100 / scale}%`,
+        height: `${100 / scale}%`,
+        ["--island-bg" as string]: `rgba(0, 0, 0, ${cfg.opacity})`,
+      }}
     >
       <div
         ref={shapeRef}
         className="island-shape"
         style={{
+          top,
+          left: x,
           width: shape.w,
           height: shape.h,
-          borderRadius: `${corner}px ${corner}px ${shape.r}px ${shape.r}px`,
-          transition: `width ${transition}, height ${transition}, border-radius ${transition}, transform ${transition}, opacity 260ms ease, box-shadow 400ms ease`,
-          transform: placement,
+          borderRadius: `${corner}px ${corner}px ${radius}px ${radius}px`,
+          transition: `${moves}, border-radius ${transition}, opacity 260ms ease, box-shadow 400ms ease`,
+          transform: lift,
         }}
         onMouseEnter={live ? undefined : () => setDomHover(true)}
         onMouseLeave={live ? undefined : () => setDomHover(false)}
         onClick={() => {
           if (tucked) setTucked(false);
-          else if (!expanded) setExpanded(true);
+          else if (!expanded) open();
         }}
         // right-click tucks it into the top edge, and brings it back
         onContextMenu={(e) => {
@@ -487,10 +545,11 @@ export default function Island() {
           className="island-ears"
           aria-hidden
           style={{
+            left: x,
             width: shape.w,
             height: ear,
-            transition: `width ${transition}, height ${transition}, transform ${transition}, opacity 260ms ease`,
-            transform: placement,
+            transition: `${moves}, opacity 260ms ease`,
+            transform: lift,
           }}
         >
           <i />
@@ -502,15 +561,16 @@ export default function Island() {
         ref={bubbleRef}
         className="island-bubble"
         style={{
-          transition: `transform ${transition}, opacity 220ms ease`,
+          top,
+          // tucked in behind the island's end until it has something to show
+          left: bubble ? x + shape.w + BUBBLE_GAP : x + shape.w - BUBBLE,
+          transition: `left ${transition}, transform ${transition}, opacity 220ms ease`,
           opacity: bubble ? 1 : 0,
-          transform: bubble
-            ? `translateX(${(shape.w + BUBBLE_GAP - BUBBLE) / 2}px) scale(1)`
-            : `translateX(${shape.w / 2 - BUBBLE}px) scale(0.4)`,
+          transform: bubble ? "scale(1)" : "scale(0.4)",
         }}
         onMouseEnter={live ? undefined : () => setDomHover(true)}
         onMouseLeave={live ? undefined : () => setDomHover(false)}
-        onClick={() => setExpanded(true)}
+        onClick={open}
       >
         {focus.active && <TimerBubble focus={focus} />}
       </div>
@@ -668,15 +728,20 @@ function usePresenceTriggers({ allow, push, privacy, caps }: {
  * Tells the native watcher where the island is, so the window passes clicks
  * through everywhere else. Reports the union of where the shape is now and
  * where it is heading, extended to the very top of the screen so throwing the
- * pointer at the top edge counts.
+ * pointer at the top edge counts. The page is zoomed, so island units are
+ * turned into window pixels on the way out.
  */
-function useHitReport({ live, mode, shape, bubble, notch, ear, shapeRef, bubbleRef }: {
+function useHitReport({ live, mode, shape, x, pairW, top, ear, scale, shapeRef, bubbleRef }: {
   live: boolean;
   mode: Mode;
   shape: Shape;
-  bubble: boolean;
-  notch: boolean;
+  /** left of the island, in island units */
+  x: number;
+  /** the island plus its bubble, in island units */
+  pairW: number;
+  top: number;
   ear: number;
+  scale: number;
   shapeRef: React.RefObject<HTMLDivElement | null>;
   bubbleRef: React.RefObject<HTMLDivElement | null>;
 }) {
@@ -690,20 +755,17 @@ function useHitReport({ live, mode, shape, bubble, notch, ear, shapeRef, bubbleR
       frame.current = requestAnimationFrame(() => {
         let rect: { x: number; y: number; w: number; h: number } | null = null;
         if (mode !== "hidden") {
-          const W = ISLAND_WINDOW.width;
-          const shift = bubble ? (BUBBLE + BUBBLE_GAP) / 2 : 0;
-          let x0 = (W - shape.w) / 2 - shift - ear;
-          let x1 = x0 + shape.w + ear * 2;
           const tuck = mode === "tucked";
-          let y1 = (tuck || notch ? 0 : ISLAND_TOP) + shape.h;
-          for (const el of [shapeRef.current, bubble ? bubbleRef.current : null]) {
+          let x0 = (x - ear) * scale;
+          let x1 = (x + pairW + ear) * scale;
+          let y1 = ((tuck ? 0 : top) + shape.h) * scale;
+          for (const el of [shapeRef.current, bubbleRef.current]) {
             const r = el?.getBoundingClientRect();
-            if (!r || r.width === 0) continue;
+            if (!r || r.width === 0 || el?.style.opacity === "0") continue;
             x0 = Math.min(x0, r.left);
             x1 = Math.max(x1, r.right);
             y1 = Math.max(y1, r.bottom);
           }
-          if (bubble) x1 = Math.max(x1, W / 2 + (shape.w + BUBBLE_GAP + BUBBLE) / 2);
           // the handle is thin; give the pointer a little more to land on
           const pad = tuck ? 6 : 4;
           rect = { x: Math.round(x0 - pad), y: 0, w: Math.round(x1 - x0 + pad * 2), h: Math.round(y1 + pad) };
@@ -714,7 +776,7 @@ function useHitReport({ live, mode, shape, bubble, notch, ear, shapeRef, bubbleR
         void invoke("island_hit", { rect }).catch(() => {});
       });
     },
-    [live, mode, shape, bubble, notch, ear, shapeRef, bubbleRef],
+    [live, mode, shape, x, pairW, top, ear, scale, shapeRef, bubbleRef],
   );
 
   useEffect(() => {

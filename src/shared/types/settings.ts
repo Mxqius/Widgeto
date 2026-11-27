@@ -5,6 +5,12 @@ export type PowerSaver = "off" | "onBattery" | "always";
 
 /** A floating pill below the top edge, or a notch hanging from it. */
 export type IslandStyle = "pill" | "notch";
+/** Which side of the screen the island hugs. */
+export type IslandAlign = "left" | "center" | "right";
+/** The island's open panels. */
+export type IslandTab = "media" | "focus" | "system" | "today" | "ask";
+/** What the resting pill shows beside the clock; "auto" picks whatever is most useful. */
+export type IslandIdle = "auto" | "weather" | "battery" | "date" | "none";
 
 export interface Settings {
   accent: string;
@@ -48,6 +54,32 @@ export interface Settings {
   islandHideFullscreen: boolean;
   /** the island's outline: a floating pill, or a notch attached to the top edge */
   islandStyle: IslandStyle;
+  /** the monitor it shows on, by name; null follows the primary display */
+  islandMonitor: string | null;
+  islandAlign: IslandAlign;
+  /** nudge sideways from the chosen side, in logical pixels */
+  islandOffsetX: number;
+  /** gap between the top of the screen and the pill (the notch always touches it) */
+  islandTop: number;
+  /** overall size, 1 = as designed */
+  islandScale: number;
+  /** 0 = square-ish corners, 1 = fully rounded */
+  islandRoundness: number;
+  /** how solid the black is, 0.5..1 */
+  islandOpacity: number;
+  /** how far the notch's top corners flare, as a share of its bottom radius */
+  islandEarSize: number;
+  /** open the island when the pointer rests on it, or only on a click */
+  islandOpenOn: "hover" | "click";
+  /** how long the pointer rests before it opens, in ms */
+  islandOpenDelay: number;
+  /** scroll over the island to change the volume */
+  islandWheelVolume: boolean;
+  /** the tab it opens on; "auto" follows what is going on */
+  islandDefaultTab: "auto" | IslandTab;
+  /** tabs switched off (Ask follows `aiEnabled` instead) */
+  islandHiddenTabs: IslandTab[];
+  islandIdle: IslandIdle;
   /** global shortcut that tucks the island into the top edge and back; empty disables it */
   islandTuckHotkey: string;
   /** the Ask tab in the island */

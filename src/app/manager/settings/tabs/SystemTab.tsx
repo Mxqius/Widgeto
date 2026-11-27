@@ -1,7 +1,6 @@
 import { RotateCcw } from "lucide-react";
-import { Picker, Segmented, SettingGroup, SettingRow, Toggle } from "@/app/manager/ui";
+import { Picker, SettingGroup, SettingRow, Toggle } from "@/app/manager/ui";
 import { useApp, DEFAULT_SETTINGS } from "@/app/manager/store";
-import type { IslandStyle } from "@/shared/types/settings";
 import { setAlwaysOnTop } from "@/app/manager/lib/window";
 import { setStartInTray } from "@/app/manager/desktop/startup";
 import { AutostartToggle } from "../controls/AutostartToggle";
@@ -41,53 +40,6 @@ export function SystemTab() {
           <button className="btn" onClick={closeAll}>
             Hide all
           </button>
-        </SettingRow>
-      </SettingGroup>
-
-      <SettingGroup title="Dynamic Island">
-        <SettingRow
-          title="Show the island"
-          hint="A live strip at the top of your main display: music, focus timer, system and today."
-        >
-          <Toggle checked={s.island} onChange={(v) => update({ island: v })} />
-        </SettingRow>
-        <SettingRow
-          title="Shape"
-          hint="Pill floats just below the top edge. Notch hangs from it, with its corners flaring into the edge."
-        >
-          <Segmented<IslandStyle>
-            value={s.islandStyle}
-            onChange={(v) => update({ islandStyle: v })}
-            layoutId="island-style"
-            options={[
-              { value: "pill", label: "Pill" },
-              { value: "notch", label: "Notch" },
-            ]}
-          />
-        </SettingRow>
-        <SettingRow
-          title="Live activities"
-          hint="Pops out briefly for a new track, the charger, a finished timer or a captured note."
-        >
-          <Toggle
-            checked={s.islandActivities}
-            onChange={(v) => update({ islandActivities: v })}
-          />
-        </SettingRow>
-        <SettingRow
-          title="Hide in full screen"
-          hint="Tucks the island away while a game, video or presentation is full screen."
-        >
-          <Toggle
-            checked={s.islandHideFullscreen}
-            onChange={(v) => update({ islandHideFullscreen: v })}
-          />
-        </SettingRow>
-        <SettingRow
-          title="Tuck away hotkey"
-          hint="Folds the island into a slim handle on the top edge, out of the way of tabs and title bars. Press again, click the handle or right-click it to bring it back."
-        >
-          <HotkeyField field="islandTuckHotkey" />
         </SettingRow>
       </SettingGroup>
 
