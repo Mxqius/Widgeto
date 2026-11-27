@@ -162,6 +162,16 @@ pub fn run() {
     tune_webview();
 
     tauri::Builder::default()
+        // Must be registered first: a second launch hands its arguments to the
+        // running instance and exits before anything else is set up, so there
+        // is never a second tray icon or a second set of widgets. Opening the
+        // app again brings the manager forward — unless it was the login
+        // launch, which should stay in the tray.
+        .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
+            if !args.iter().any(|a| a == "--startup") {
+                show_manager(app);
+            }
+        }))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
