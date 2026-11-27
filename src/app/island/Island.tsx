@@ -11,7 +11,7 @@ import { useIslandMedia } from "./data/useMedia";
 import { useFocus, type FocusMode } from "./data/useFocus";
 import { useActivities, type Activity } from "./data/useActivities";
 import { useAsk } from "./data/useAsk";
-import { useNow, usePoll } from "./data/usePoll";
+import { useNow, usePoll, useSettled } from "./data/usePoll";
 import { SAMPLE_BATTERY, SAMPLE_NET, SAMPLE_SYSTEM, SAMPLE_WEATHER } from "./data/sample";
 import { CALM, GROW, SETTLE } from "./lib/spring";
 import { chime } from "./lib/chime";
@@ -175,9 +175,16 @@ export default function Island() {
   /* ----------------------------------------------------------------- feeds */
   const track = useIslandMedia();
   const { data: battery } = usePoll(fetchBattery, 20_000, live, live ? undefined : SAMPLE_BATTERY);
-  const place = cfg.weatherPlace;
+  // the Weather widget's city: follow it as soon as it changes, once typing settles
+  const place = useSettled(cfg.weatherPlace, 800);
   const weatherFn = useCallback(() => fetchWeather(place ?? ""), [place]);
-  const { data: weatherRaw } = usePoll(weatherFn, 15 * 60_000, live && !!place, live ? undefined : SAMPLE_WEATHER);
+  const { data: weatherRaw } = usePoll(
+    weatherFn,
+    15 * 60_000,
+    live && !!place,
+    live ? undefined : SAMPLE_WEATHER,
+    place,
+  );
   const weather = live && !place ? undefined : weatherRaw;
 
   // tucked, pop-outs wait (and go stale) instead of covering the top of the screen
