@@ -1,9 +1,11 @@
 import type { ReactNode } from "react";
 import {
   ArrowBigUp,
+  ClipboardCheck,
   Clock,
   Mic,
   Music2,
+  Radio,
   StickyNote,
   Timer,
   Video,
@@ -32,6 +34,8 @@ function Chip({ onClick, active, children }: { onClick: () => void; active?: boo
 
 const POPS: { kind: ToastKind; label: string; icon: ReactNode }[] = [
   { kind: "track", label: "New track", icon: <Music2 size={14} /> },
+  { kind: "radio", label: "Radio song", icon: <Radio size={14} /> },
+  { kind: "copy", label: "Copied", icon: <ClipboardCheck size={14} /> },
   { kind: "charging", label: "Charger in", icon: <Zap size={14} /> },
   { kind: "focus", label: "Focus done", icon: <Timer size={14} /> },
   { kind: "note", label: "Note captured", icon: <StickyNote size={14} /> },
@@ -44,9 +48,12 @@ const STATES = [
   ["Idle", "The time, plus one quiet fact: charging, low battery, or the outside temperature."],
   ["Music", "The album cover and a live equaliser tinted with the cover's own colour."],
   ["Focus timer", "A progress ring and the time left, splitting into its own bubble beside music."],
-  ["Hover", "Opens into a panel: Now playing, Focus, System, Today — and Ask AI."],
+  ["Hover", "Opens into a panel: Now playing, Radio, Focus, System, Today — and Ask AI."],
+  ["Radio", "Online stations from a free directory of thousands, playing on even with the island closed."],
+  ["Pill or notch", "Float it below the top edge, or hang it from the edge like a notch, on whichever display you like."],
   ["Volume", "Change it from the keyboard, the mixer, or by scrolling over the island."],
   ["Privacy", "A green dot while an app uses the camera, an orange one for the microphone."],
+  ["Clipboard", "A peek at what you just copied. Anything a password manager marks private stays hidden."],
 ];
 
 export function IslandSection() {

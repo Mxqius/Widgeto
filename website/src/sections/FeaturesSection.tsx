@@ -261,8 +261,8 @@ export function FeaturesSection() {
             text={
               <>
                 An Ask tab that streams answers from Claude, any OpenAI-compatible API, or a local model through Ollama or
-                LM Studio. Requests run in the native core; API keys live in Windows Credential Manager and never reach a
-                web view.
+                LM Studio, with highlighted code and a chat you can drag bigger. Requests run in the native core; API keys
+                live in Windows Credential Manager and never reach a web view.
               </>
             }
           >
@@ -277,7 +277,7 @@ export function FeaturesSection() {
           <Card className="md:col-span-4" icon={<Sparkles size={18} />} title="Make every tile yours" text="Per-widget accent colour, dark or light ground, size, transparency and refresh rate — plus settings of its own for each kind." delay={0.05}>
             <AppearanceDemo />
           </Card>
-          <Card className="md:col-span-3" icon={<PanelTop size={18} />} title="Lives in the tray" text="Close the manager and it parks in the tray. The widgets stay on the desktop, and it can start with Windows.">
+          <Card className="md:col-span-3" icon={<PanelTop size={18} />} title="Lives in the tray" text="Close the manager and it parks in the tray. The widgets stay on the desktop, it can start with Windows, and opening it again never starts a second copy.">
             <TrayDemo />
           </Card>
           <Card className="md:col-span-3" icon={<RefreshCw size={18} />} title="Signed auto-updates" text="Checks GitHub Releases at launch and every few hours, with no telemetry. When a version is ready, the island tells you — even with Widgeto tucked in the tray." delay={0.05}>

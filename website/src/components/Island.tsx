@@ -4,6 +4,7 @@ import {
   ArrowBigUp,
   Calendar,
   Check,
+  ClipboardCheck,
   CloudSun,
   Cpu,
   Gauge,
@@ -11,6 +12,7 @@ import {
   Music2,
   Pause,
   Play,
+  Radio,
   Repeat,
   Shuffle,
   SkipBack,
@@ -31,8 +33,8 @@ import { Cover, Equalizer } from "../widgets/ui";
 /* ------------------------------------------------------------- the model -- */
 
 type Base = "idle" | "media" | "timer";
-export type ToastKind = "track" | "charging" | "focus" | "note" | "mic" | "camera" | "caps";
-type Tab = "music" | "focus" | "system" | "today";
+export type ToastKind = "track" | "radio" | "copy" | "charging" | "focus" | "note" | "mic" | "camera" | "caps";
+type Tab = "music" | "radio" | "focus" | "system" | "today";
 
 /** The app's own shape table, in px. */
 const SHAPES = {
@@ -322,6 +324,18 @@ const TOASTS: Record<ToastKind, { icon: ReactNode; title: string; sub: string; t
     sub: "Video call",
     trailing: <span className="size-2.5 rounded-full bg-[#4ade80] shadow-[0_0_10px_#4ade80]" />,
   },
+  radio: {
+    icon: <StationTile name="Jazz Lounge" hue={262} size={44} radius={12} />,
+    title: "Sunset Avenue",
+    sub: "Jazz Lounge · Radio",
+    trailing: <Equalizer color="#a78bff" height={16} />,
+  },
+  copy: {
+    icon: <Bubble bg="rgba(96,165,250,0.16)"><ClipboardCheck size={19} className="text-[#60a5fa]" /></Bubble>,
+    title: "github.com/Mxqius/Widgeto",
+    sub: "Link copied",
+    trailing: <Check size={18} className="text-[#60a5fa]" />,
+  },
   caps: {
     icon: <Bubble bg="rgba(255,255,255,0.1)"><ArrowBigUp size={20} /></Bubble>,
     title: "Caps Lock",
@@ -356,6 +370,7 @@ function ToastView({ kind }: { kind: ToastKind; s: IslandState }) {
 
 const TABS: { id: Tab; icon: typeof Music2; label: string }[] = [
   { id: "music", icon: Music2, label: "Now playing" },
+  { id: "radio", icon: Radio, label: "Radio" },
   { id: "focus", icon: Timer, label: "Focus" },
   { id: "system", icon: Gauge, label: "System" },
   { id: "today", icon: Calendar, label: "Today" },
@@ -399,6 +414,7 @@ function ExpandedView({ api }: { api: IslandApi }) {
             transition={{ duration: 0.16 }}
           >
             {s.tab === "music" && <MusicTab api={api} />}
+            {s.tab === "radio" && <RadioTab />}
             {s.tab === "focus" && <FocusTab api={api} />}
             {s.tab === "system" && <SystemTab />}
             {s.tab === "today" && <TodayTab />}
@@ -463,6 +479,100 @@ function MusicTab({ api }: { api: IslandApi }) {
             aria-label="Volume"
           />
         </div>
+      </div>
+    </div>
+  );
+}
+
+/** A station without an icon: its initial on a gradient, as the app draws it. */
+function StationTile({ name, hue, size, radius }: { name: string; hue: number; size: number; radius: number }) {
+  return (
+    <span
+      className="grid shrink-0 place-items-center font-extrabold text-white/90"
+      style={{
+        width: size,
+        height: size,
+        borderRadius: radius,
+        fontSize: Math.round(size * 0.44),
+        background: `linear-gradient(135deg, hsl(${hue} 55% 42%), hsl(${(hue + 40) % 360} 60% 30%))`,
+      }}
+    >
+      {name[0]}
+    </span>
+  );
+}
+
+const STATIONS = [
+  { name: "Jazz Lounge", hue: 262 },
+  { name: "Persian Classics", hue: 18 },
+  { name: "Lo-fi Beats", hue: 190 },
+  { name: "Morning News", hue: 210 },
+  { name: "Golden Oldies", hue: 42 },
+  { name: "Chill Wave", hue: 320 },
+];
+
+function RadioTab() {
+  const [on, setOn] = useState(0);
+  const [playing, setPlaying] = useState(true);
+  const [source, setSource] = useState("Favorites");
+  const st = STATIONS[on];
+  return (
+    <div className="flex h-full flex-col gap-2.5">
+      <div className="flex items-center gap-3">
+        <StationTile name={st.name} hue={st.hue} size={40} radius={11} />
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-[14px] font-semibold">{st.name}</div>
+          <div className="truncate text-[12px] text-white/55">{playing ? "Sunset Avenue" : "Stopped"}</div>
+        </div>
+        <Equalizer playing={playing} color="#a78bff" height={14} />
+        <div className="flex items-center gap-3 text-white/85">
+          <button aria-label="Previous station" onClick={() => setOn((on + STATIONS.length - 1) % STATIONS.length)}>
+            <SkipBack size={15} className="fill-current" />
+          </button>
+          <button
+            onClick={() => setPlaying(!playing)}
+            className="grid size-8 place-items-center rounded-full bg-white text-black transition-transform active:scale-90"
+            aria-label={playing ? "Stop" : "Play"}
+          >
+            {playing ? <Pause size={14} className="fill-current" /> : <Play size={14} className="ml-0.5 fill-current" />}
+          </button>
+          <button aria-label="Next station" onClick={() => setOn((on + 1) % STATIONS.length)}>
+            <SkipForward size={15} className="fill-current" />
+          </button>
+        </div>
+      </div>
+      <div className="flex gap-1.5">
+        {["Favorites", "Popular", "Iran", "Persian"].map((c) => (
+          <button
+            key={c}
+            onClick={() => setSource(c)}
+            className={clsx(
+              "rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors",
+              source === c ? "bg-[#7c5cff] text-white" : "bg-white/8 text-white/60",
+            )}
+          >
+            {c}
+          </button>
+        ))}
+      </div>
+      <div className="grid grid-cols-6 gap-2">
+        {STATIONS.map((x, i) => (
+          <button
+            key={x.name}
+            onClick={() => {
+              setOn(i);
+              setPlaying(true);
+            }}
+            className="flex min-w-0 flex-col items-center gap-1"
+          >
+            <span className="rounded-[10px]" style={{ outline: i === on ? "2px solid #a78bff" : undefined, outlineOffset: 1.5 }}>
+              <StationTile name={x.name} hue={x.hue} size={30} radius={9} />
+            </span>
+            <span className={clsx("w-full truncate text-center text-[9.5px] font-semibold", i === on ? "text-white" : "text-white/55")}>
+              {x.name}
+            </span>
+          </button>
+        ))}
       </div>
     </div>
   );

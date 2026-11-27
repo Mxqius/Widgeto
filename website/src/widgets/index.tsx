@@ -28,7 +28,7 @@ export const WIDGETS: WidgetInfo[] = [
   { kind: "system", name: "System", blurb: "CPU, memory, disk and uptime read straight from your machine.", source: "machine", theme: "dark", accent: PINK, Body: SystemWidget },
   { kind: "calendar", name: "Calendar", blurb: "This week at a glance, the ISO week, and days left in the month.", source: "local", theme: "light", accent: PINK, Body: CalendarWidget },
   { kind: "tasks", name: "Tasks", blurb: "A short, local to-do list with a progress bar you can feel good about.", source: "local", theme: "light", accent: PINK, Body: TasksWidget },
-  { kind: "music", name: "Now Playing", blurb: "Whatever's playing in any app — cover, title and controls.", source: "machine", theme: "dark", accent: PINK, Body: MusicWidget },
+  { kind: "music", name: "Now Playing", blurb: "Whatever's playing in any app, or Widgeto's own online radio — cover, title and controls.", source: "machine", theme: "dark", accent: PINK, Body: MusicWidget },
   { kind: "notes", name: "Notes", blurb: "A sticky note that keeps whatever you throw at it, offline.", source: "local", theme: "light", accent: PINK, Body: NotesWidget },
   { kind: "pomodoro", name: "Focus Timer", blurb: "Focus, short and long breaks, with a chime when a session ends.", source: "local", theme: "dark", accent: PINK, Body: PomodoroWidget },
   { kind: "markets", name: "Markets", blurb: "Live prices and daily change for the tickers you follow.", source: "live", theme: "dark", accent: "#3ddc84", Body: MarketsWidget },
