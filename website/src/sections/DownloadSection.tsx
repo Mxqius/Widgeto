@@ -61,7 +61,7 @@ export function DownloadSection() {
             </a>
           </div>
           <p className="mt-3 text-[13px] text-ink-400">
-            The first release is on its way — until then, the Releases page will be empty.
+            Windows 10 and 11 · 64-bit installer · keeps itself up to date.
           </p>
 
           <div className="mt-10">

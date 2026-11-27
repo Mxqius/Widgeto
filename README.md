@@ -31,10 +31,9 @@ sizes, docks, shows and hides them.
 
 ## Download
 
-Grab the latest installer for your platform from the
-**[Releases page](https://github.com/mxqius/widgeto/releases)**.
-
-> The project is not published there yet — this link will work once the first release goes out.
+Grab the latest Windows installer (`Widgeto_<version>_x64-setup.exe`) from the
+**[latest release](https://github.com/Mxqius/Widgeto/releases/latest)** and run it. Once it is
+installed, Widgeto keeps itself up to date — see [Updating](#updating).
 
 ## Run it from source
 

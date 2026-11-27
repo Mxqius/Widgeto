@@ -4,6 +4,10 @@ name: Release
 # Windows installers, sign them for the updater, and publish a GitHub Release
 # with the latest.json manifest the in-app updater reads.
 #
+# The tag's message becomes the release notes, which the app's update dialog
+# shows as "what's new" — so write it for users:
+#   git tag -a v0.1.1 -m "Faster weather, and the island shows updates"
+#
 # Needs two repository secrets:
 #   TAURI_SIGNING_PRIVATE_KEY           the contents of src-tauri/updater.key
 #   TAURI_SIGNING_PRIVATE_KEY_PASSWORD  that key's password
@@ -38,6 +42,19 @@ jobs:
 
       - run: npm ci
 
+      # the annotated tag's message, as the release notes
+      - id: notes
+        shell: bash
+        run: |
+          git fetch --force origin "refs/tags/${GITHUB_REF_NAME}:refs/tags/${GITHUB_REF_NAME}" || true
+          body=$(git tag -l --format='%(contents)' "${GITHUB_REF_NAME}" | sed '/-----BEGIN PGP SIGNATURE-----/,$d')
+          [ -n "$body" ] || body="Bug fixes and improvements."
+          {
+            echo "body<<NOTES_EOF"
+            echo "$body"
+            echo "NOTES_EOF"
+          } >> "$GITHUB_OUTPUT"
+
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -46,10 +63,8 @@ jobs:
         with:
           tagName: v__VERSION__
           releaseName: Widgeto v__VERSION__
-          releaseBody: |
-            Download the **`_x64-setup.exe`** installer below and run it.
-
-            Already installed? Widgeto checks for updates on its own and will offer this version — or use **Settings → Desktop & system → Updates → Check for updates now**.
+          releaseBody: ${{ steps.notes.outputs.body }}
           releaseDraft: false
           prerelease: false
           includeUpdaterJson: true
+          updaterJsonPreferNsis: true
