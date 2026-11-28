@@ -3,16 +3,12 @@ import { Check, ListX, Pencil, X } from "lucide-react";
 import { Pad, Stat } from "../ui";
 import { useLocal } from "../lib/hooks";
 import { isSm } from "../lib/scale";
+import { useTauriEvent } from "../lib/useTauriEvent";
 import { cx } from "@/shared/lib/cx";
 import { uid } from "@/shared/lib/math";
+import { INBOX_EVT, type Task } from "@/shared/widgets/inbox";
 import type { WidgetBodyProps } from "./props";
 import { digits, t as tr, useT } from "../i18n";
-
-interface Task {
-  id: string;
-  text: string;
-  done: boolean;
-}
 
 /** Example tasks for a first run, in whichever language the app speaks then. */
 const seed = (): Task[] => [
@@ -25,11 +21,17 @@ const seed = (): Task[] => [
 /** Headed by a big done/total fraction, as on the watched-movies card. */
 export default function TasksWidget({ kind, size }: WidgetBodyProps) {
   const t = useT();
-  const [tasks, setTasks] = useLocal<Task[]>(`widgeto.tasks.${kind}`, seed());
+  const [tasks, setTasks, reload] = useLocal<Task[]>(`widgeto.tasks.${kind}`, seed());
   const [draft, setDraft] = useState("");
   const [editing, setEditing] = useState<string | null>(null);
   const list = useRef<HTMLDivElement>(null);
   const added = useRef(false);
+
+  // quick capture (Ctrl+Enter, or its checkbox button) has already stored it
+  useTauriEvent(INBOX_EVT.task, () => {
+    added.current = true;
+    reload();
+  });
 
   // a new task lands at the bottom: bring it into view
   useEffect(() => {

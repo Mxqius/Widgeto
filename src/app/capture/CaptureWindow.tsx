@@ -2,17 +2,19 @@ import { useEffect, useRef, useState } from "react";
 import { CornerDownLeft, ListChecks, StickyNote } from "lucide-react";
 import { isTauri } from "@/shared/lib/env";
 import { setLang, storedLang } from "@/shared/i18n/locale";
+import { INBOX_EVT, appendNote, appendTask } from "@/shared/widgets/inbox";
 import { useT } from "./i18n";
 
 /**
  * Quick capture. A single line, opened by the global hotkey from wherever you
- * were, appended to the Notes widget, and gone again — the point is to write
+ * were, appended to the Notes widget (or, as a task, to Tasks), and gone again — the point is to write
  * the thought down without changing what you were doing.
  */
 export default function CaptureWindow() {
   const [text, setText] = useState("");
   const [asTask, setAsTask] = useState(false);
-  const [saved, setSaved] = useState(false);
+  /** what the last line was saved as, while the "saved" message shows */
+  const [saved, setSaved] = useState<"note" | "task" | null>(null);
   const ref = useRef<HTMLInputElement>(null);
   const t = useT();
 
@@ -30,20 +32,24 @@ export default function CaptureWindow() {
 
   const close = async () => {
     setText("");
-    setSaved(false);
+    setSaved(null);
     if (!isTauri()) return;
     const { getCurrentWindow } = await import("@tauri-apps/api/window");
     await getCurrentWindow().hide();
   };
 
-  const commit = async () => {
+  const commit = async (task: boolean) => {
     const line = text.trim();
     if (!line) return void close();
+    // stored here, so it is kept even with that widget off the desktop; the
+    // event lets an open widget show it at once, and the island announce it
+    if (task) appendTask(line);
+    else appendNote(line);
     if (isTauri()) {
       const { emit } = await import("@tauri-apps/api/event");
-      await emit("notes:append", asTask ? `- [ ] ${line}` : line);
+      await emit(task ? INBOX_EVT.task : INBOX_EVT.note, line);
     }
-    setSaved(true);
+    setSaved(task ? "task" : "note");
     setTimeout(close, 420);
   };
 
@@ -59,10 +65,9 @@ export default function CaptureWindow() {
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Enter") void commit();
+            // Ctrl+Enter files it as a task, whatever the toggle says
+            if (e.key === "Enter") void commit(asTask || e.ctrlKey || e.metaKey);
             if (e.key === "Escape") void close();
-            // Ctrl+Enter files it as a checkbox instead
-            if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) setAsTask(true);
           }}
           placeholder={t("Jot something down…")}
           dir="auto"
@@ -82,7 +87,7 @@ export default function CaptureWindow() {
       </div>
 
       <div className="flex items-center justify-between text-[10px] font-semibold text-white/35">
-        <span>{saved ? t("Saved to Notes") : asTask ? t("Saves as a task") : t("Saves as a line")}</span>
+        <span>{saved === "task" ? t("Added to Tasks") : saved ? t("Saved to Notes") : asTask ? t("Saves as a task") : t("Saves as a line")}</span>
         <span className="flex items-center gap-1">
           <CornerDownLeft size={10} className="rtl:-scale-x-100" /> {t("enter · esc to dismiss")}
         </span>

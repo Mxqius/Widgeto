@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { usePageVisible } from "./visibility";
 
 /**
@@ -50,6 +50,7 @@ function write<T>(key: string, value: T) {
  * Writes are debounced: the notes widget re-serialises its whole body on every
  * keystroke otherwise. Anything still pending is flushed on unmount and on
  * `pagehide`, so closing a widget mid-sentence does not lose the sentence.
+ * A write to the same key from another window is picked up as it lands.
  */
 export function useLocal<T>(key: string, initial: T) {
   const [v, setV] = useState<T>(() => read(key, initial));
@@ -67,6 +68,22 @@ export function useLocal<T>(key: string, initial: T) {
     return () => clearTimeout(t);
   }, [key, v]);
 
+  /** Take whatever is stored now — another window (quick capture) wrote it. */
+  const reload = useCallback(() => {
+    const next = read(key, latest.current);
+    stored.current = next;
+    latest.current = next;
+    setV(next);
+  }, [key]);
+
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === key) reload();
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, [key, reload]);
+
   useEffect(() => {
     const flush = () => {
       if (Object.is(latest.current, stored.current)) return;
@@ -80,5 +97,5 @@ export function useLocal<T>(key: string, initial: T) {
     };
   }, [key]);
 
-  return [v, setV] as const;
+  return [v, setV, reload] as const;
 }

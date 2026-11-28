@@ -1,8 +1,8 @@
-import { useEffect } from "react";
 import { Pad } from "../ui";
 import { useLocal } from "../lib/hooks";
 import { useWidgetConfig } from "../prefs";
-import { isTauri } from "@/shared/lib/env";
+import { useTauriEvent } from "../lib/useTauriEvent";
+import { INBOX_EVT } from "@/shared/widgets/inbox";
 import type { WidgetBodyProps } from "./props";
 import { t as tr, useT } from "../i18n";
 
@@ -11,28 +11,10 @@ const hint = () => tr("Drag a widget near a corner and it docks itself.\n\nDoubl
 export default function NotesWidget({ kind, size }: WidgetBodyProps) {
   const t = useT();
   const cfg = useWidgetConfig("notes");
-  const [text, setText] = useLocal(`widgeto.notes.${kind}`, hint());
+  const [text, setText, reload] = useLocal(`widgeto.notes.${kind}`, hint());
 
-  // the capture hotkey appends here rather than opening the manager
-  useEffect(() => {
-    if (!isTauri()) return;
-    let un: (() => void) | undefined;
-    let alive = true;
-    (async () => {
-      const { listen } = await import("@tauri-apps/api/event");
-      const off = await listen<string>("notes:append", (e) => {
-        const line = (e.payload || "").trim();
-        if (line) setText((prev) => (prev ? `${prev}\n${line}` : line));
-      });
-      // the widget may already be gone by the time listen() resolves
-      if (alive) un = off;
-      else off();
-    })();
-    return () => {
-      alive = false;
-      un?.();
-    };
-  }, [setText]);
+  // quick capture has already stored the line; this only shows it straight away
+  useTauriEvent(INBOX_EVT.note, reload);
 
   const words = text.trim() ? text.trim().split(/\s+/).length : 0;
 
