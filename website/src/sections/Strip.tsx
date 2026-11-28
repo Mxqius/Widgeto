@@ -8,6 +8,7 @@ const ITEMS = [
   "Multi-monitor aware",
   "Lives in the tray",
   "Global capture hotkey",
+  "English & فارسی",
   "Profiles",
   "Ask AI",
   "Low-memory mode",

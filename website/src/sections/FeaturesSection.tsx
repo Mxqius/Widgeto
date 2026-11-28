@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Bot, Check, Command, KeyRound, Moon, PanelTop, RefreshCw, Sparkles, StickyNote, Sun, Users } from "lucide-react";
+import { Bot, Check, Command, Compass, KeyRound, Languages, Moon, PanelTop, RefreshCw, Sparkles, StickyNote, Sun, Users } from "lucide-react";
 import clsx from "clsx";
 import { Reveal, SectionHead } from "../components/Reveal";
 import { LogoMark } from "../components/Logo";
@@ -237,6 +237,92 @@ function TrayDemo() {
   );
 }
 
+/* --------------------------------------------------------------- language -- */
+
+const FA_DATE = new Intl.DateTimeFormat("fa-IR-u-ca-persian", { weekday: "long", day: "numeric", month: "long" });
+const FA_TIME = new Intl.DateTimeFormat("fa-IR", { hour: "2-digit", minute: "2-digit", hour12: false });
+
+function LanguageDemo() {
+  const [fa, setFa] = useState(true);
+  useEffect(() => {
+    const id = setInterval(() => setFa((v) => !v), 3200);
+    return () => clearInterval(id);
+  }, []);
+  const now = new Date();
+  return (
+    <div className="flex w-full flex-wrap items-end justify-between gap-4">
+      <div className="flex rounded-lg bg-white/[0.05] p-1 text-[12.5px] ring-1 ring-white/10">
+        {["System", "English", "فارسی"].map((l, i) => (
+          <span
+            key={l}
+            className={clsx(
+              "rounded-md px-2.5 py-1 transition-colors",
+              (fa ? i === 2 : i === 1) ? "bg-white/[0.12] font-semibold text-white" : "text-ink-400",
+            )}
+          >
+            {l}
+          </span>
+        ))}
+      </div>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={fa ? "fa" : "en"}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -6 }}
+          transition={{ duration: 0.25 }}
+          dir={fa ? "rtl" : "ltr"}
+          lang={fa ? "fa" : "en"}
+          className="w-44 rounded-2xl bg-[#fbfbfa] p-3.5 text-black shadow-xl"
+        >
+          <div className="text-[26px] leading-none font-bold tabular-nums">
+            {fa ? FA_TIME.format(now) : now.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
+          </div>
+          <div className="mt-1.5 text-[11.5px] font-semibold text-black/55">
+            {fa ? FA_DATE.format(now) : now.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}
+          </div>
+        </motion.div>
+      </AnimatePresence>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------- tour -- */
+
+const TOUR = ["Widgets", "Look", "Island", "Done"];
+
+function TourDemo() {
+  const [step, setStep] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setStep((s) => (s + 1) % TOUR.length), 1600);
+    return () => clearInterval(id);
+  }, []);
+  return (
+    <div className="w-full">
+      <div className="grid grid-cols-4 gap-1.5">
+        {TOUR.map((t, i) => (
+          <div key={t}>
+            <div className="h-1 overflow-hidden rounded-full bg-white/[0.08]">
+              <motion.div
+                className="h-full rounded-full bg-[#ff4dd8]"
+                animate={{ width: i <= step ? "100%" : "0%" }}
+                transition={{ duration: 0.4 }}
+              />
+            </div>
+            <div className={clsx("mt-1.5 text-[11.5px]", i === step ? "font-semibold text-white" : "text-ink-400")}>{t}</div>
+          </div>
+        ))}
+      </div>
+      <div className="mt-4 flex items-center justify-between rounded-xl bg-white/[0.04] px-3.5 py-2.5 ring-1 ring-white/10">
+        <span className="text-[12.5px] text-ink-300">{step === TOUR.length - 1 ? "Your widgets are on the desktop" : "Pick what you want on screen"}</span>
+        <span className="rounded-full bg-[#ff4dd8] px-2.5 py-1 text-[11.5px] font-semibold text-white">
+          {step === TOUR.length - 1 ? "Done" : "Continue"}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export function FeaturesSection() {
   return (
     <section id="features" className="relative py-28 sm:py-36">
@@ -268,7 +354,7 @@ export function FeaturesSection() {
           >
             <AskDemo />
           </Card>
-          <Card className="md:col-span-2" icon={<KeyRound size={18} />} title="Capture from anywhere" text="A global hotkey opens a quick bar. Type, hit Enter, and the note lands in your Notes widget." delay={0.05}>
+          <Card className="md:col-span-2" icon={<KeyRound size={18} />} title="Capture from anywhere" text="A global hotkey opens a quick bar. Type, hit Enter, and the note lands in your Notes widget; Ctrl+Enter makes it a task instead. Nothing is lost if the widget isn't on screen." delay={0.05}>
             <CaptureDemo />
           </Card>
           <Card className="md:col-span-2" icon={<Users size={18} />} title="Profiles" text="Save the desktop as Work, Focus or Gaming, and switch the whole set in one click.">
@@ -282,6 +368,12 @@ export function FeaturesSection() {
           </Card>
           <Card className="md:col-span-3" icon={<RefreshCw size={18} />} title="Signed auto-updates" text="Checks GitHub Releases at launch and every few hours, with no telemetry. When a version is ready, the island tells you — even with Widgeto tucked in the tray." delay={0.05}>
             <UpdateDemo />
+          </Card>
+          <Card className="md:col-span-3" icon={<Languages size={18} />} title="English and Persian" text="Every window speaks Persian too, right to left, in the Vazirmatn font, with Jalali dates and Persian digits. By default it follows your Windows display language.">
+            <LanguageDemo />
+          </Card>
+          <Card className="md:col-span-3" icon={<Compass size={18} />} title="A short welcome tour" text="A first run walks you through picking widgets, the look and the island, then puts everything on the desktop at once. Replay it any time from About." delay={0.05}>
+            <TourDemo />
           </Card>
         </div>
 
