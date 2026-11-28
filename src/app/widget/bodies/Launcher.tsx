@@ -5,6 +5,7 @@ import { useWidgetConfig } from "../prefs";
 import { launch } from "@/shared/ipc/commands";
 import { bySize, isSm } from "../lib/scale";
 import type { WidgetBodyProps } from "./props";
+import { useT } from "../i18n";
 
 const WEB = /^https?:\/\//i;
 const BARE_HOST = /^[\w.-]+\.[a-z]{2,}/i;
@@ -22,6 +23,7 @@ function faviconFor(url: string) {
 }
 
 export default function LauncherWidget({ size }: WidgetBodyProps) {
+  const t = useT();
   const { links } = useWidgetConfig("launcher");
   const count = bySize(size, 4, 6, 9);
   const cols = isSm(size) ? 2 : 3;
@@ -36,11 +38,11 @@ export default function LauncherWidget({ size }: WidgetBodyProps) {
 
   return (
     <Pad size={size} className="justify-between">
-      <div className="text-[12.5px] font-bold tracking-tight">Launch</div>
+      <div className="text-[12.5px] font-bold tracking-tight">{t("Launch")}</div>
 
       {shown.length === 0 ? (
         <div className="dim flex flex-1 items-center text-[11px] font-medium">
-          Add sites or apps in this widget&rsquo;s settings.
+          {t("Add sites or apps in this widget’s settings.")}
         </div>
       ) : (
         <div

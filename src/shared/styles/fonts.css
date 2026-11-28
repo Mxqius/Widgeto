@@ -1,0 +1,21 @@
+/*
+ * Vazirmatn, bundled so it works offline. Two families from one file set:
+ *
+ * "Vazirmatn Persian" covers only the Arabic-script range and sits first in the
+ * sans and mono stacks (Persian digits in a number readout included), so Persian text the user brings in — a note, a station name, a
+ * reply from the AI — renders in Vazirmatn without touching the Latin UI font.
+ * The browser fetches it only when such a glyph is on screen.
+ *
+ * "Vazirmatn Variable" (Latin included) leads the stack in Persian mode, so
+ * Latin words inside Persian sentences match the Persian letterforms.
+ */
+@import "@fontsource-variable/vazirmatn/index.css";
+
+@font-face {
+  font-family: "Vazirmatn Persian";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url("@fontsource-variable/vazirmatn/files/vazirmatn-arabic-wght-normal.woff2") format("woff2-variations");
+  unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+200C-200E, U+FB50-FDFF, U+FE70-FEFC;
+}

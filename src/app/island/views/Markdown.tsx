@@ -1,11 +1,15 @@
 import { Check, Copy } from "lucide-react";
 import { Fragment, useMemo, useState, type ReactNode } from "react";
 import { highlight, languageLabel } from "../lib/highlight";
+import { useT } from "../i18n";
 
 /**
  * Just enough Markdown for short answers: paragraphs, bullet and numbered
  * lists, fenced code (highlighted), **bold**, *italic* and `code`. Built as
  * elements, never as HTML, so nothing in an answer can inject markup.
+ *
+ * Every text block picks its own direction, so a Persian answer reads right
+ * to left whatever language the UI is in; code always reads left to right.
  */
 export function Markdown({ text }: { text: string }) {
   const blocks: ReactNode[] = [];
@@ -33,7 +37,7 @@ export function Markdown({ text }: { text: string }) {
       while (i < lines.length && re.test(lines[i])) items.push(lines[i++].match(re)![1]);
       const List = ordered ? "ol" : "ul";
       blocks.push(
-        <List key={blocks.length}>
+        <List key={blocks.length} dir="auto">
           {items.map((it, k) => (
             <li key={k}>{inline(it)}</li>
           ))}
@@ -55,7 +59,11 @@ export function Markdown({ text }: { text: string }) {
     ) {
       para.push(lines[i++].replace(/^#{1,6}\s+/, ""));
     }
-    blocks.push(<p key={blocks.length}>{inline(para.join(" "))}</p>);
+    blocks.push(
+      <p key={blocks.length} dir="auto">
+        {inline(para.join(" "))}
+      </p>,
+    );
   }
   return <>{blocks}</>;
 }
@@ -74,15 +82,16 @@ function inline(s: string): ReactNode {
 function CodeBlock({ code, lang, live }: { code: string; lang: string; live: boolean }) {
   const tokens = useMemo(() => highlight(code, lang), [code, lang]);
   const [copied, setCopied] = useState(false);
+  const t = useT();
   return (
-    <div className="island-code">
+    <div className="island-code" dir="ltr">
       <div className="island-code-head">
-        <span>{lang ? languageLabel(lang) : "Code"}</span>
+        <span>{lang ? languageLabel(lang) : t("Code")}</span>
         {!live && (
           <button
             type="button"
             className="island-code-copy"
-            title="Copy code"
+            title={t("Copy code")}
             onClick={(e) => {
               e.stopPropagation();
               void navigator.clipboard?.writeText(code).then(() => {
@@ -92,7 +101,7 @@ function CodeBlock({ code, lang, live }: { code: string; lang: string; live: boo
             }}
           >
             {copied ? <Check size={11} /> : <Copy size={11} />}
-            {copied ? "Copied" : "Copy"}
+            {copied ? t("Copied") : t("Copy")}
           </button>
         )}
       </div>

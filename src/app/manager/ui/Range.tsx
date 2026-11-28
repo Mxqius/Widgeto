@@ -1,4 +1,5 @@
 import { Slider } from "@base-ui/react/slider";
+import { digits } from "@/shared/i18n/format";
 
 export function Range({
   value,
@@ -23,6 +24,8 @@ export function Range({
         max={max}
         step={step}
         onValueChange={(v) => onChange(Array.isArray(v) ? v[0] : v)}
+        // sliders keep low-to-high left to right in every language
+        dir="ltr"
         className="w-full"
       >
         <Slider.Control className="flex h-5 w-full items-center">
@@ -39,8 +42,8 @@ export function Range({
           </Slider.Track>
         </Slider.Control>
       </Slider.Root>
-      <span className="w-11 shrink-0 text-right font-mono text-[11px] text-ink-400 tabular-nums">
-        {format ? format(value) : value}
+      <span className="min-w-11 shrink-0 text-end font-mono text-[11px] whitespace-nowrap text-ink-400 tabular-nums">
+        {digits(format ? format(value) : value)}
       </span>
     </div>
   );

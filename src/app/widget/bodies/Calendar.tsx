@@ -8,8 +8,19 @@ import { hhmm } from "../lib/format";
 import { bySize, isSm } from "../lib/scale";
 import { cx } from "@/shared/lib/cx";
 import type { WidgetBodyProps } from "./props";
+import { dayOfMonth, daysInMonth, monthOf, weekStart } from "@/shared/i18n/calendar";
+import { fmtDate } from "@/shared/i18n/format";
+import { getLang } from "@/shared/i18n/locale";
+import { digits, useT } from "../i18n";
 
 const DOW = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+
+/** Column heading for a day: two letters in English, the one-letter Persian form in Persian. */
+const dowLabel = (d: Date, small: boolean) => {
+  if (getLang() === "fa") return fmtDate(d, { weekday: "narrow" });
+  const s = DOW[d.getDay()];
+  return small ? s[0] : s;
+};
 
 const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
 
@@ -25,59 +36,61 @@ function isoWeek(d: Date) {
 }
 
 /**
- * A real week strip around today, with the live date facts underneath. It
+ * A real week strip around today — Sunday-first and Gregorian in English,
+ * Saturday-first and Solar Hijri in Persian — with the live date facts underneath. It
  * tracks midnight rollover rather than freezing on the date it mounted.
  */
 export default function CalendarWidget({ size }: WidgetBodyProps) {
+  const t = useT();
   const cfg = useWidgetConfig("calendar");
   const { events } = useEvents(cfg.sources, cfg.days);
   const now = useNow(60_000);
   const [offset, setOffset] = useState(0);
 
   const todayMs = startOfDay(now).getTime();
+  const first = weekStart();
   const week = useMemo(() => {
     const base = new Date(todayMs);
-    base.setDate(base.getDate() - base.getDay() + offset * 7);
+    base.setDate(base.getDate() - ((base.getDay() - first + 7) % 7) + offset * 7);
     return Array.from({ length: 7 }, (_, i) => {
       const d = new Date(base);
       d.setDate(base.getDate() + i);
       return d;
     });
-  }, [todayMs, offset]);
+  }, [todayMs, offset, first]);
 
   const busyDays = useMemo(() => new Set(events.map((e) => e.date)), [events]);
   const todayKey = ymd(new Date(todayMs));
   // today first, then whatever is coming up
   const agenda = useMemo(() => events.filter((e) => e.date >= todayKey), [events, todayKey]);
 
-  const label = week[3].toLocaleDateString(undefined, { month: "long", year: "numeric" });
-  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-  const left = daysInMonth - now.getDate();
+  const label = fmtDate(week[3], { month: "long", year: "numeric" });
+  const left = daysInMonth(now) - dayOfMonth(now);
   const small = isSm(size);
 
   return (
     <Pad size={size} className="justify-between gap-2">
       <div className="flex items-center justify-between" data-nodrag>
-        <button onClick={() => setOffset((o) => o - 1)} className="dim hover:opacity-100">
-          <ChevronLeft size={13} />
+        <button onClick={() => setOffset((o) => o - 1)} className="dim hover:opacity-100" title={t("Previous week")}>
+          <ChevronLeft size={13} className="rtl:-scale-x-100" />
         </button>
         <span className="text-[11.5px] font-bold tracking-tight">
           {small ? label.split(" ")[0] : label}
         </span>
-        <button onClick={() => setOffset((o) => o + 1)} className="dim hover:opacity-100">
-          <ChevronRight size={13} />
+        <button onClick={() => setOffset((o) => o + 1)} className="dim hover:opacity-100" title={t("Next week")}>
+          <ChevronRight size={13} className="rtl:-scale-x-100" />
         </button>
       </div>
 
       <div className="grid grid-cols-7 gap-y-1" data-nodrag>
-        {DOW.map((d, i) => (
+        {week.map((d, i) => (
           <div key={i} className="dimmer text-center text-[9px] font-semibold">
-            {small ? d[0] : d}
+            {dowLabel(d, small)}
           </div>
         ))}
         {week.map((d) => {
           const isToday = d.getTime() === todayMs;
-          const otherMonth = d.getMonth() !== week[3].getMonth();
+          const otherMonth = monthOf(d) !== monthOf(week[3]);
           const busy = busyDays.has(ymd(d));
           return (
             <div key={d.toISOString()} className="relative flex justify-center">
@@ -93,7 +106,7 @@ export default function CalendarWidget({ size }: WidgetBodyProps) {
                   background: isToday ? "var(--accent)" : undefined,
                 }}
               >
-                {d.getDate()}
+                {digits(dayOfMonth(d))}
               </span>
               {busy && !isToday && (
                 <span
@@ -116,9 +129,9 @@ export default function CalendarWidget({ size }: WidgetBodyProps) {
                 className="numeral shrink-0 text-[10px]"
                 style={{ color: "var(--accent)", minWidth: 30 }}
               >
-                {e.allDay ? "all" : hhmm(e.startMin ?? 0)}
+                {e.allDay ? t("all") : digits(hhmm(e.startMin ?? 0))}
               </span>
-              <span className="truncate text-[11px] font-medium">{e.summary}</span>
+              <span dir="auto" className="truncate text-[11px] font-medium">{e.summary}</span>
             </div>
           ))}
         </div>
@@ -127,17 +140,17 @@ export default function CalendarWidget({ size }: WidgetBodyProps) {
           <div className="rule h-px w-full" />
           <div className="flex items-baseline justify-between pt-1">
             <span className="dim text-[10px] font-semibold">
-              {now.toLocaleDateString(undefined, { weekday: "long" }).toUpperCase()}
+              {fmtDate(now, { weekday: "long" }).toUpperCase()}
             </span>
-            <span className="numeral text-[12px]">W{isoWeek(now)}</span>
+            <span className="numeral text-[12px]">{t("W{n}", { n: isoWeek(now) })}</span>
           </div>
           {!small && (
             <div className="flex items-baseline justify-between">
               <span className="dim text-[10px] font-semibold">
-                {cfg.sources.length ? "NO EVENTS" : "LEFT IN MONTH"}
+                {cfg.sources.length ? t("NO EVENTS") : t("LEFT IN MONTH")}
               </span>
               <span className="numeral text-[12px]">
-                {cfg.sources.length ? "—" : `${left}d`}
+                {cfg.sources.length ? "—" : t("{n}d", { n: left })}
               </span>
             </div>
           )}

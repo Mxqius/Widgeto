@@ -6,9 +6,10 @@ import { StationIcon } from "@/shared/radio/StationIcon";
 import { useStationSearch } from "@/shared/radio/useRadio";
 import type { RadioRemote } from "../data/useIslandRadio";
 import { Equalizer, Slider } from "./parts";
+import { useT } from "../i18n";
 
 /** The quick ways in: what you saved, then a few directory shortcuts. */
-const SOURCES = [{ id: "fav", label: "Favorites" }, ...RADIO_PRESETS.slice(0, 3)];
+const SOURCES = [{ id: "fav", label: "Favorites" } as const, ...RADIO_PRESETS.slice(0, 3)];
 
 /**
  * Online radio. The player itself is in the manager window, so it carries on
@@ -19,6 +20,7 @@ export function RadioPanel({ radio, onFocusChange }: {
   /** typing in the search holds the island open, as it does for Ask */
   onFocusChange: (focused: boolean) => void;
 }) {
+  const t = useT();
   const { state: r, send } = radio;
   const st = r.station;
   const fav = isFavorite(r, st?.id);
@@ -34,7 +36,7 @@ export function RadioPanel({ radio, onFocusChange }: {
 
   const line =
     r.error ??
-    (r.buffering ? "Connecting…" : r.playing ? (r.nowTitle ?? "Live") : st ? stationMeta(st) || "Stopped" : null);
+    (r.buffering ? t("Connecting…") : r.playing ? (r.nowTitle ?? t("Live")) : st ? stationMeta(st) || t("Stopped") : null);
   const VolIcon = r.volume === 0 ? VolumeX : r.volume < 0.5 ? Volume1 : Volume2;
 
   return (
@@ -51,13 +53,13 @@ export function RadioPanel({ radio, onFocusChange }: {
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <div dir="auto" className="truncate text-start text-[14px] font-bold tracking-tight text-white">
-              {st?.name ?? "Radio"}
+              {st?.name ?? t("Radio")}
             </div>
             {st && (
               <button
                 className="shrink-0 transition-colors"
                 style={{ color: fav ? "var(--accent)" : "rgba(255,255,255,0.35)" }}
-                title={fav ? "Remove from favorites" : "Add to favorites"}
+                title={fav ? t("Remove from favorites") : t("Add to favorites")}
                 onClick={() => send({ type: "favorite", station: st })}
               >
                 <Heart size={12} className={fav ? "fill-current" : ""} />
@@ -69,14 +71,14 @@ export function RadioPanel({ radio, onFocusChange }: {
             className="truncate text-start text-[11.5px] font-medium"
             style={{ color: r.error ? "#fca5a5" : "rgba(255,255,255,0.5)" }}
           >
-            {line ?? "Pick a station below"}
+            {line ?? t("Pick a station below")}
           </div>
         </div>
         {r.playing && <Equalizer playing height={14} />}
-        <div className="flex shrink-0 items-center gap-1">
+        <div dir="ltr" className="flex shrink-0 items-center gap-1">
           <button
             className="island-icon-btn island-icon-sm"
-            title="Previous favorite"
+            title={t("Previous favorite")}
             disabled={r.favorites.length < 2}
             onClick={() => send({ type: "prev" })}
           >
@@ -84,7 +86,7 @@ export function RadioPanel({ radio, onFocusChange }: {
           </button>
           <button
             className="island-play island-play-sm"
-            title={r.playing || r.buffering ? "Stop" : "Play"}
+            title={r.playing || r.buffering ? t("Stop") : t("Play")}
             disabled={!st && !r.favorites.length}
             onClick={() => send({ type: "toggle" })}
           >
@@ -98,7 +100,7 @@ export function RadioPanel({ radio, onFocusChange }: {
           </button>
           <button
             className="island-icon-btn island-icon-sm"
-            title="Next favorite"
+            title={t("Next favorite")}
             disabled={r.favorites.length < 2}
             onClick={() => send({ type: "next" })}
           >
@@ -107,11 +109,11 @@ export function RadioPanel({ radio, onFocusChange }: {
         </div>
         <div
           className="flex w-[84px] shrink-0 items-center gap-1.5"
-          title={`Radio volume ${Math.round(r.volume * 100)}%`}
+          title={t("Radio volume {n}%", { n: Math.round(r.volume * 100) })}
         >
           <VolIcon size={13} className="shrink-0 text-white/60" />
           <div className="flex-1">
-            <Slider label="Radio volume" value={r.volume} onChange={(v) => send({ type: "volume", volume: v })} />
+            <Slider label={t("Radio volume")} value={r.volume} onChange={(v) => send({ type: "volume", volume: v })} />
           </div>
         </div>
       </div>
@@ -125,15 +127,15 @@ export function RadioPanel({ radio, onFocusChange }: {
             className={`island-chip ${source === s.id ? "is-on" : ""}`}
             style={{ padding: "4px 10px" }}
           >
-            {s.label}
+            {t(s.label)}
           </button>
         ))}
-        <label className="island-ask-field ml-auto min-w-0 flex-1" style={{ height: 26, paddingLeft: 9 }}>
+        <label className="island-ask-field ms-auto min-w-0 flex-1" style={{ height: 26, paddingInlineStart: 9 }}>
           <Search size={11} className="shrink-0 text-white/45" />
           <input
             value={text}
             dir="auto"
-            placeholder="Search stations"
+            placeholder={t("Search stations")}
             onChange={(e) => setText(e.target.value)}
             onFocus={() => onFocusChange(true)}
             onBlur={() => onFocusChange(false)}
@@ -147,12 +149,12 @@ export function RadioPanel({ radio, onFocusChange }: {
       <div className="island-ask-scroll min-h-0 flex-1 overflow-y-auto">
         {searching && res.loading && list.length === 0 ? (
           <Note>
-            <Loader2 size={12} className="animate-spin" /> Looking…
+            <Loader2 size={12} className="animate-spin" /> {t("Looking…")}
           </Note>
         ) : searching && res.error ? (
-          <Note>Couldn&apos;t reach the station directory</Note>
+          <Note>{t("Couldn’t reach the station directory")}</Note>
         ) : list.length === 0 ? (
-          <Note>{searching ? "No stations match" : "No favorites yet. Tap the heart on a station"}</Note>
+          <Note>{searching ? t("No stations match") : t("No favorites yet. Tap the heart on a station")}</Note>
         ) : (
           <div className="grid grid-cols-6 gap-x-2 gap-y-2.5 pt-0.5 pb-1">
             {list.map((s) => {

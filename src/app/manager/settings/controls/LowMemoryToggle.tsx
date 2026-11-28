@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Toggle } from "@/app/manager/ui";
 import { useApp } from "@/app/manager/store";
 import { setLowMemory } from "@/app/manager/desktop/startup";
+import { useT } from "@/app/manager/i18n";
 
 /**
  * The frontend half takes effect immediately — the blur goes, the polls
@@ -14,13 +15,14 @@ import { setLowMemory } from "@/app/manager/desktop/startup";
  * anything the JavaScript side can give back.
  */
 export function LowMemoryToggle() {
+  const t = useT();
   const on = useApp((st) => st.settings.lowMemory);
   const update = useApp((st) => st.update);
   const [pending, setPending] = useState(false);
 
   return (
     <div className="flex items-center gap-2">
-      {pending && <span className="text-[11px] font-semibold text-ink-400">restart to finish</span>}
+      {pending && <span className="text-[11px] font-semibold text-ink-400">{t("restart to finish")}</span>}
       <Toggle
         checked={on}
         onChange={(v) => {

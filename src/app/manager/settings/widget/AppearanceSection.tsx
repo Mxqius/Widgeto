@@ -5,6 +5,7 @@ import { lookOf } from "@/shared/widgets/kinds";
 import { cn } from "@/app/manager/ui";
 import type { WidgetKind } from "@/shared/types/widget";
 import { Field } from "./Field";
+import { useT } from "@/app/manager/i18n";
 
 const SWATCHES = [
   "#ff4dd8", "#ff5b2e", "#ffb020", "#3ddc84",
@@ -15,6 +16,7 @@ const RAINBOW = "conic-gradient(#ff4dd8,#ff5b2e,#ffb020,#3ddc84,#4aa8ff,#7c6cff,
 
 /** Colour and ground, offered for every widget. */
 export function AppearanceSection({ kind }: { kind: WidgetKind }) {
+  const t = useT();
   // Two narrow selectors rather than the widget record: this section is open
   // while the widget is being dragged around the desktop, and subscribing to
   // the whole object re-rendered it on every frame of the drag.
@@ -42,7 +44,7 @@ export function AppearanceSection({ kind }: { kind: WidgetKind }) {
 
   return (
     <>
-      <Field label="Colour" hint="Tints meters, highlights and progress." stack>
+      <Field label={t("Colour")} hint={t("Tints meters, highlights and progress.")} stack>
         <div className="flex flex-wrap items-center gap-1.5">
           {SWATCHES.map((c) => (
             <button
@@ -59,7 +61,7 @@ export function AppearanceSection({ kind }: { kind: WidgetKind }) {
           ))}
           <label
             className="relative size-5.5 cursor-pointer overflow-hidden rounded-full border border-white/15"
-            title="Custom colour"
+            title={t("Custom colour")}
             style={{ background: RAINBOW }}
           >
             <input
@@ -75,24 +77,24 @@ export function AppearanceSection({ kind }: { kind: WidgetKind }) {
           </label>
           {accentOverride && (
             <button className="btn h-6 px-2 text-[11px]" onClick={() => pick(undefined)}>
-              Reset
+              {t("Reset")}
             </button>
           )}
         </div>
       </Field>
 
-      <Field label="Ground" hint="Flat black or flat white tile.">
+      <Field label={t("Ground")} hint={t("Flat black or flat white tile.")}>
         <div className="flex items-center gap-0.5 rounded-lg border border-white/6 bg-white/3 p-0.5">
-          {(["dark", "light"] as const).map((t) => (
+          {(["dark", "light"] as const).map((g) => (
             <button
-              key={t}
-              onClick={() => setAppearance(kind, { theme: t })}
+              key={g}
+              onClick={() => setAppearance(kind, { theme: g })}
               className={cn(
                 "h-6 rounded-md px-2.5 text-[11px] font-semibold capitalize transition-colors",
-                theme === t ? "bg-white/12 text-white" : "text-ink-500 hover:text-ink-300",
+                theme === g ? "bg-white/12 text-white" : "text-ink-500 hover:text-ink-300",
               )}
             >
-              {t}
+              {t(g)}
             </button>
           ))}
         </div>

@@ -4,6 +4,7 @@ import { useApp } from "@/app/manager/store";
 import { configOf } from "@/shared/widgets/config";
 import { ISLAND_EVT, ISLAND_LABEL, ISLAND_WINDOW, type IslandConfig } from "@/shared/island/protocol";
 import { isTauri } from "@/shared/lib/env";
+import { resolveLang } from "@/shared/i18n/locale";
 import { bindHotkey } from "./hotkeys";
 
 /**
@@ -81,6 +82,7 @@ function islandConfig(
   const weather = configOf("weather", weatherCfg);
   const pomo = configOf("pomodoro", focusCfg);
   return {
+    language: resolveLang(st.language),
     accent: st.accent,
     clock24h: st.clock24h,
     temperatureUnit: st.temperatureUnit,

@@ -1,19 +1,21 @@
 import { useApp } from "@/app/manager/store";
+import { useT } from "@/app/manager/i18n";
 
 /** Manual "check now", separate from the silent check that runs at startup. */
 export function UpdateStatus() {
+  const t = useT();
   const pendingUpdate = useApp((st) => st.pendingUpdate);
   const status = useApp((st) => st.updateCheckStatus);
   const checkForUpdates = useApp((st) => st.checkForUpdates);
 
   const label = pendingUpdate
-    ? `update available · ${pendingUpdate.version}`
+    ? t("update available · {version}", { version: pendingUpdate.version })
     : status === "checking"
-      ? "checking…"
+      ? t("checking…")
       : status === "upToDate"
-        ? "up to date"
+        ? t("up to date")
         : status === "error"
-          ? "couldn't check"
+          ? t("couldn’t check")
           : null;
 
   return (
@@ -35,7 +37,7 @@ export function UpdateStatus() {
         </span>
       )}
       <button className="btn" onClick={() => void checkForUpdates({ manual: true })}>
-        Check
+        {t("Check")}
       </button>
     </div>
   );

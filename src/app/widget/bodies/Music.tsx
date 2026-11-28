@@ -9,6 +9,7 @@ import { useWidgetConfig } from "../prefs";
 import { saveConfig } from "../lib/saveConfig";
 import type { WidgetBodyProps } from "./props";
 import RadioView from "./RadioView";
+import { useT } from "../i18n";
 
 /** Turns "Spotify.exe" / an AUMID into something worth showing. */
 function appLabel(id: string | null) {
@@ -23,6 +24,7 @@ function appLabel(id: string | null) {
  * radio. The corner button flips between the two.
  */
 export default function MusicWidget({ size }: WidgetBodyProps) {
+  const t = useT();
   const cfg = useWidgetConfig("music");
   const radio = cfg.source === "radio";
   return (
@@ -31,8 +33,8 @@ export default function MusicWidget({ size }: WidgetBodyProps) {
       <button
         data-nodrag
         onClick={() => void saveConfig("music", { source: radio ? "media" : "radio" })}
-        title={radio ? "Follow system media" : "Switch to radio"}
-        className="absolute top-2.5 left-2.5 z-10 grid size-6 place-items-center rounded-full opacity-45 transition-opacity hover:opacity-100"
+        title={radio ? t("Follow system media") : t("Switch to radio")}
+        className="absolute top-2.5 start-2.5 z-10 grid size-6 place-items-center rounded-full opacity-45 transition-opacity hover:opacity-100"
         style={radio ? { color: "var(--accent)" } : undefined}
       >
         {radio ? <Radio size={13} /> : <Music size={12} />}
@@ -43,6 +45,7 @@ export default function MusicWidget({ size }: WidgetBodyProps) {
 
 /** The system media session, with working transport. */
 function MediaView({ size, refreshSec }: Pick<WidgetBodyProps, "size"> & { refreshSec: number }) {
+  const t = useT();
   const { data, refetch } = useMedia(refreshSec);
   const small = isSm(size);
 
@@ -82,13 +85,14 @@ function MediaView({ size, refreshSec }: Pick<WidgetBodyProps, "size"> & { refre
               <Music size={small ? 15 : 18} className="dim mb-1 shrink-0" />
             )}
             <div
+              dir="auto"
               className="line-clamp-2 w-full font-bold tracking-tight"
               style={{ fontSize: small ? 12 : 13.5, lineHeight: 1.25 }}
             >
               {title}
             </div>
             {data?.artist && (
-              <div className="dim w-full truncate text-[10.5px] font-medium">{data.artist}</div>
+              <div dir="auto" className="dim w-full truncate text-[10.5px] font-medium">{data.artist}</div>
             )}
             {!small && data?.app && (
               <div className="dimmer w-full truncate text-[9.5px] font-semibold">
@@ -99,16 +103,16 @@ function MediaView({ size, refreshSec }: Pick<WidgetBodyProps, "size"> & { refre
         ) : (
           <>
             <Music size={small ? 16 : 20} className="dimmer mb-1" />
-            <div className="dim text-[11.5px] font-semibold">Nothing playing</div>
+            <div className="dim text-[11.5px] font-semibold">{t("Nothing playing")}</div>
             {!small && (
-              <div className="dimmer text-[10px] font-medium">Start a track to control it here</div>
+              <div className="dimmer text-[10px] font-medium">{t("Start a track to control it here")}</div>
             )}
           </>
         )}
       </div>
 
       {hasTrack && dur > 0 && (
-        <div className="mb-2" data-nodrag>
+        <div dir="ltr" className="mb-2" data-nodrag>
           <Line value={pct} accent="#fff" />
           <div className="dimmer mt-1 flex justify-between text-[9px] font-semibold tabular-nums">
             <span>{mmss(pos)}</span>
@@ -117,12 +121,13 @@ function MediaView({ size, refreshSec }: Pick<WidgetBodyProps, "size"> & { refre
         </div>
       )}
 
-      <div className="flex shrink-0 items-center justify-center gap-2" data-nodrag>
+      {/* transport reads left to right in every language */}
+      <div dir="ltr" className="flex shrink-0 items-center justify-center gap-2" data-nodrag>
         <button
           onClick={() => send("prev")}
           className="dim transition-opacity hover:opacity-100 disabled:opacity-20"
           disabled={!hasTrack}
-          title="Previous"
+          title={t("Previous")}
         >
           <SkipBack size={small ? 13 : 15} className="fill-current" />
         </button>
@@ -131,7 +136,7 @@ function MediaView({ size, refreshSec }: Pick<WidgetBodyProps, "size"> & { refre
           className="grid place-items-center rounded-full bg-white text-black transition-transform active:scale-95 disabled:opacity-20"
           style={{ width: small ? 26 : 30, height: small ? 26 : 30 }}
           disabled={!hasTrack}
-          title={data?.playing ? "Pause" : "Play"}
+          title={data?.playing ? t("Pause") : t("Play")}
         >
           {data?.playing ? (
             <Pause size={small ? 12 : 13} className="fill-current" />
@@ -143,7 +148,7 @@ function MediaView({ size, refreshSec }: Pick<WidgetBodyProps, "size"> & { refre
           onClick={() => send("next")}
           className="dim transition-opacity hover:opacity-100 disabled:opacity-20"
           disabled={!hasTrack}
-          title="Next"
+          title={t("Next")}
         >
           <SkipForward size={small ? 13 : 15} className="fill-current" />
         </button>

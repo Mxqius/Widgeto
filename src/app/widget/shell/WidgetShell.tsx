@@ -8,6 +8,7 @@ import { cx } from "@/shared/lib/cx";
 import { widgetBody } from "../bodies";
 import { PrefsContext } from "../prefs";
 import { ShellChip } from "./ShellChip";
+import { useT } from "../i18n";
 
 export function WidgetShell({
   widget,
@@ -35,6 +36,7 @@ export function WidgetShell({
   onAction: (a: ActionPayload["action"]) => void;
   onBattery: boolean;
 }) {
+  const t = useT();
   const look = lookOf(widget.kind);
   const Body = widgetBody(widget.kind);
   const accent = widget.accent ?? look.accent;
@@ -105,20 +107,20 @@ export function WidgetShell({
         className={cx(
           "absolute z-20 flex items-center gap-0.5 rounded-full p-0.5 transition-all duration-150",
           theme === "dark" ? "bg-white/12 text-white" : "bg-black/8 text-black",
-          circle ? "top-2 left-1/2 -translate-x-1/2" : "top-2 right-2",
+          circle ? "top-2 left-1/2 -translate-x-1/2" : "top-2 end-2",
           hovered && !dragging
             ? "pointer-events-auto opacity-100"
             : "pointer-events-none opacity-0",
         )}
         style={{ backdropFilter: settings.lowMemory ? undefined : "blur(8px)" }}
       >
-        <ShellChip title="Resize" onClick={() => onAction("cycle-size")}>
+        <ShellChip title={t("Resize")} onClick={() => onAction("cycle-size")}>
           <Maximize2 size={11} />
         </ShellChip>
-        <ShellChip title={locked ? "Unlock" : "Lock"} onClick={() => onAction("lock")}>
+        <ShellChip title={locked ? t("Unlock") : t("Lock")} onClick={() => onAction("lock")}>
           {locked ? <Lock size={11} /> : <LockOpen size={11} />}
         </ShellChip>
-        <ShellChip title="Remove" onClick={() => onAction("hide")}>
+        <ShellChip title={t("Remove")} onClick={() => onAction("hide")}>
           <X size={12} />
         </ShellChip>
       </div>

@@ -93,6 +93,51 @@ fn show_manager(app: &tauri::AppHandle) {
     }
 }
 
+/// The tray menu's items, kept so their labels can follow the UI language.
+struct TrayItems {
+    open: MenuItem<tauri::Wry>,
+    show_all: MenuItem<tauri::Wry>,
+    hide_all: MenuItem<tauri::Wry>,
+    tuck_island: MenuItem<tauri::Wry>,
+    quit: MenuItem<tauri::Wry>,
+}
+
+/// Tray labels in English and Persian, in menu order.
+fn tray_labels(lang: &str) -> [&'static str; 5] {
+    match lang {
+        "fa" => [
+            "باز کردن ویجتو",
+            "نمایش همه‌ی ویجت‌ها",
+            "پنهان کردن همه‌ی ویجت‌ها",
+            "جمع یا باز کردن جزیره",
+            "خروج",
+        ],
+        _ => [
+            "Open Widgeto",
+            "Show all widgets",
+            "Hide all widgets",
+            "Tuck or show the island",
+            "Quit",
+        ],
+    }
+}
+
+/// The manager calls this whenever the UI language changes.
+#[tauri::command]
+fn set_tray_language(items: tauri::State<'_, TrayItems>, lang: String) -> Result<(), String> {
+    let [open, show_all, hide_all, tuck, quit] = tray_labels(&lang);
+    for (item, text) in [
+        (&items.open, open),
+        (&items.show_all, show_all),
+        (&items.hide_all, hide_all),
+        (&items.tuck_island, tuck),
+        (&items.quit, quit),
+    ] {
+        item.set_text(text).map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
 /// Bring the manager forward on a settings tab — the island's "Open settings".
 #[tauri::command]
 fn manager_open_settings(app: tauri::AppHandle, tab: String) {
@@ -193,6 +238,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             host_info,
             set_startup_prefs,
+            set_tray_language,
             data::weather,
             data::markets,
             data::quote,
@@ -230,22 +276,23 @@ pub fn run() {
         .setup(|app| {
             let handle = app.handle();
 
-            let open = MenuItem::with_id(handle, "open", "Open Widgeto", true, None::<&str>)?;
-            let show_all =
-                MenuItem::with_id(handle, "show_all", "Show all widgets", true, None::<&str>)?;
-            let hide_all =
-                MenuItem::with_id(handle, "hide_all", "Hide all widgets", true, None::<&str>)?;
-            let tuck_island = MenuItem::with_id(
-                handle,
-                "tuck_island",
-                "Tuck or show the island",
-                true,
-                None::<&str>,
-            )?;
-            let quit = MenuItem::with_id(handle, "quit", "Quit", true, None::<&str>)?;
+            // English until the manager says otherwise (`set_tray_language`)
+            let [l_open, l_show, l_hide, l_tuck, l_quit] = tray_labels("en");
+            let open = MenuItem::with_id(handle, "open", l_open, true, None::<&str>)?;
+            let show_all = MenuItem::with_id(handle, "show_all", l_show, true, None::<&str>)?;
+            let hide_all = MenuItem::with_id(handle, "hide_all", l_hide, true, None::<&str>)?;
+            let tuck_island = MenuItem::with_id(handle, "tuck_island", l_tuck, true, None::<&str>)?;
+            let quit = MenuItem::with_id(handle, "quit", l_quit, true, None::<&str>)?;
             let sep = PredefinedMenuItem::separator(handle)?;
 
             let menu = Menu::with_items(handle, &[&open, &sep, &show_all, &hide_all, &tuck_island, &sep, &quit])?;
+            app.manage(TrayItems {
+                open: open.clone(),
+                show_all: show_all.clone(),
+                hide_all: hide_all.clone(),
+                tuck_island: tuck_island.clone(),
+                quit: quit.clone(),
+            });
 
             TrayIconBuilder::with_id("widgeto-tray")
                 .icon(app.default_window_icon().unwrap().clone())

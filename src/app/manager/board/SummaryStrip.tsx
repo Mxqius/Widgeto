@@ -3,6 +3,7 @@ import { ArrowDownUp, Layers, Lock, LockOpen, Magnet, Settings2 } from "lucide-r
 import { Picker, Tip } from "@/app/manager/ui";
 import { useApp } from "@/app/manager/store";
 import { WIDGETS } from "@/app/manager/widgets/catalogue";
+import { digits, useT } from "@/app/manager/i18n";
 
 /**
  * Memoised: it holds a Base UI select and a tooltip, and nothing here changes
@@ -16,6 +17,7 @@ export const SummaryStrip = memo(function SummaryStrip({
   live: number;
   onOpenSettings: () => void;
 }) {
+  const t = useT();
   const lockAll = useApp((s) => s.settings.lockAll);
   const layer = useApp((s) => s.settings.layer);
   const update = useApp((s) => s.update);
@@ -30,22 +32,22 @@ export const SummaryStrip = memo(function SummaryStrip({
     <div className="flex flex-wrap items-end gap-x-6 gap-y-3 px-6 pt-5 pb-4">
       <div>
         <div className="flex items-baseline gap-2">
-          <span className="numeral text-[40px] leading-none text-white">{live}</span>
+          <span className="numeral text-[40px] leading-none text-white">{digits(live)}</span>
           <span className="text-[13px] font-semibold text-ink-500">
-            of {WIDGETS.length} on your desktop
+            {t("of {n} on your desktop", { n: WIDGETS.length })}
           </span>
         </div>
         <div className="mt-1.5 text-[12px] text-ink-500">
-          Drag a widget on screen to move it — it snaps to corners, edges and its neighbours.
+          {t("Drag a widget on screen to move it — it snaps to corners, edges and its neighbours.")}
         </div>
       </div>
 
       <div className="flex flex-1 flex-wrap items-center justify-end gap-1.5">
         <button className="btn" onClick={() => autoArrangeNow()}>
-          <ArrowDownUp size={13} /> Arrange
+          <ArrowDownUp size={13} /> {t("Arrange")}
         </button>
         <button className="btn" onClick={redock}>
-          <Magnet size={13} /> Dock
+          <Magnet size={13} /> {t("Dock")}
         </button>
         <button
           className="btn"
@@ -53,22 +55,22 @@ export const SummaryStrip = memo(function SummaryStrip({
           onClick={() => update({ lockAll: !lockAll })}
         >
           {lockAll ? <Lock size={13} /> : <LockOpen size={13} />}
-          {lockAll ? "Locked" : "Lock"}
+          {lockAll ? t("Locked") : t("Lock")}
         </button>
         <button className="btn" onClick={() => (all ? closeAll() : openAll())}>
-          <Layers size={13} /> {all ? "Hide all" : "Show all"}
+          <Layers size={13} /> {all ? t("Hide all") : t("Show all")}
         </button>
         <div className="mx-1 h-5 w-px bg-white/8" />
         <Picker
           value={layer}
           onChange={(v) => update({ layer: v })}
           options={[
-            { value: "desktop", label: "On the desktop" },
-            { value: "normal", label: "Like a window" },
-            { value: "top", label: "Above everything" },
+            { value: "desktop", label: t("On the desktop") },
+            { value: "normal", label: t("Like a window") },
+            { value: "top", label: t("Above everything") },
           ]}
         />
-        <Tip label="App settings">
+        <Tip label={t("App settings")}>
           <button className="btn size-8 px-0" onClick={onOpenSettings}>
             <Settings2 size={15} />
           </button>

@@ -8,6 +8,14 @@ import { Art, Equalizer, Ring } from "./parts";
 import { CAMERA_TONE, MIC_TONE, VolumeGlyph, WeatherGlyph } from "./glyphs";
 import type { RadioRemote } from "../data/useIslandRadio";
 import { StationIcon } from "@/shared/radio/StationIcon";
+import { fmtDate } from "@/shared/i18n/format";
+import { digits, useT } from "../i18n";
+
+/*
+ * The resting pill keeps one physical layout in every language: it shares the
+ * pill with the privacy dots on its right and with the detached timer bubble,
+ * so only its words and digits change, never the order of what is in it.
+ */
 
 /**
  * Nothing going on: the time, and one quiet fact on the right — the one the
@@ -30,21 +38,21 @@ export function IdleCompact({ now, h24, show, battery, weather, temp }: {
     right = (
       <span className="flex items-center gap-1 text-[12px] font-semibold tabular-nums text-white/80">
         <BatteryMedium size={14} />
-        {pct}%
+        {digits(`${pct}%`)}
       </span>
     );
   } else if ((auto || show === "battery") && battery?.present && battery.charging) {
     right = (
       <span className="flex items-center gap-1 text-[12px] font-semibold tabular-nums text-[#4ade80]">
         <Zap size={12} className="fill-current" />
-        {pct}%
+        {digits(`${pct ?? 0}%`)}
       </span>
     );
   } else if ((auto || show === "battery") && pct !== null && pct <= 20) {
     right = (
       <span className="flex items-center gap-1 text-[12px] font-semibold tabular-nums text-[#f87171]">
         <BatteryLow size={14} />
-        {pct}%
+        {digits(`${pct}%`)}
       </span>
     );
   } else if ((auto || show === "weather") && weather) {
@@ -57,13 +65,13 @@ export function IdleCompact({ now, h24, show, battery, weather, temp }: {
   } else {
     right = (
       <span className="text-[11.5px] font-semibold text-white/55">
-        {now.toLocaleDateString(undefined, { weekday: "short", day: "numeric" })}
+        {fmtDate(now, { weekday: "short", day: "numeric" })}
       </span>
     );
   }
 
   return (
-    <div className={`flex h-full items-center px-4 ${right ? "justify-between" : "justify-center"}`}>
+    <div dir="ltr" className={`flex h-full items-center px-4 ${right ? "justify-between" : "justify-center"}`}>
       <span className="text-[13px] font-semibold tabular-nums tracking-tight text-white">{clock(now, h24)}</span>
       {right}
     </div>
@@ -73,7 +81,7 @@ export function IdleCompact({ now, h24, show, battery, weather, temp }: {
 /** Music is playing: the cover on the left, the bars on the right. */
 export function MediaCompact({ track }: { track: Track }) {
   return (
-    <div className="flex h-full items-center justify-between pl-1.5 pr-3.5">
+    <div dir="ltr" className="flex h-full items-center justify-between pl-1.5 pr-3.5">
       <Art src={track.art} size={24} radius={8} className={track.media?.playing ? "" : "opacity-60"} />
       <Equalizer playing={!!track.media?.playing} colour={track.tint ?? undefined} />
     </div>
@@ -84,7 +92,7 @@ export function MediaCompact({ track }: { track: Track }) {
 export function RadioCompact({ radio }: { radio: RadioRemote }) {
   const r = radio.state;
   return (
-    <div className="flex h-full items-center justify-between pl-1.5 pr-3.5">
+    <div dir="ltr" className="flex h-full items-center justify-between pl-1.5 pr-3.5">
       <StationIcon station={r.station} size={24} radius={8} className={r.playing ? "" : "opacity-60"} />
       <Equalizer playing={r.playing} />
     </div>
@@ -93,12 +101,13 @@ export function RadioCompact({ radio }: { radio: RadioRemote }) {
 
 /** A focus session is running and nothing else is. */
 export function TimerCompact({ focus }: { focus: Focus }) {
+  const t = useT();
   return (
-    <div className="flex h-full items-center justify-between pl-2 pr-4">
+    <div dir="ltr" className="flex h-full items-center justify-between pl-2 pr-4">
       <span className="flex items-center gap-2">
         <Ring value={focus.progress} size={22} stroke={3} />
         <span className="text-[11.5px] font-semibold capitalize text-white/60">
-          {focus.mode === "focus" ? "Focus" : "Break"}
+          {focus.mode === "focus" ? t("Focus") : t("Break")}
         </span>
       </span>
       <span
@@ -123,8 +132,9 @@ export function TimerBubble({ focus }: { focus: Focus }) {
 /** The volume pop-out: what the keys, the mixer or a scroll just did. */
 export function VolumeHud({ v }: { v: Volume | undefined }) {
   const level = v ? (v.muted ? 0 : v.level) : 0;
+  const t = useT();
   return (
-    <div className="flex h-full items-center gap-3 px-4">
+    <div dir="ltr" className="flex h-full items-center gap-3 px-4">
       <VolumeGlyph v={v} size={16} className="shrink-0 text-white" />
       <div className="h-[5px] flex-1 overflow-hidden rounded-full bg-white/15">
         <div
@@ -133,7 +143,7 @@ export function VolumeHud({ v }: { v: Volume | undefined }) {
         />
       </div>
       <span className="w-7 text-right text-[12px] font-bold tabular-nums text-white">
-        {v?.muted ? "Off" : Math.round(level * 100)}
+        {v?.muted ? t("Off") : digits(Math.round(level * 100))}
       </span>
     </div>
   );
@@ -141,8 +151,9 @@ export function VolumeHud({ v }: { v: Volume | undefined }) {
 
 /** Green for the camera, orange for the mic — at the right end of the pill. */
 export function PrivacyDots({ camera, mic }: { camera: boolean; mic: boolean }) {
+  const t = useT();
   return (
-    <span className="island-privacy" aria-label={[camera && "Camera in use", mic && "Microphone in use"].filter(Boolean).join(", ")}>
+    <span className="island-privacy" aria-label={[camera && t("Camera in use"), mic && t("Microphone in use")].filter(Boolean).join("، ")}>
       {camera && <i className="island-privacy-dot" style={{ background: CAMERA_TONE, color: CAMERA_TONE }} />}
       {mic && <i className="island-privacy-dot" style={{ background: MIC_TONE, color: MIC_TONE }} />}
     </span>

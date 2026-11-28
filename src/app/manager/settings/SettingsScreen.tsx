@@ -12,6 +12,7 @@ import { IslandTab } from "./tabs/IslandTab";
 import { ShortcutsTab } from "./tabs/ShortcutsTab";
 import { AiTab } from "./tabs/AiTab";
 import { BLURB, TABS, type TabId } from "./tabs";
+import { useT } from "@/app/manager/i18n";
 
 const PANELS: Record<TabId, () => React.ReactElement> = {
   appearance: AppearanceTab,
@@ -31,6 +32,7 @@ export default function SettingsScreen({
   onBack: () => void;
   initialTab?: TabId;
 }) {
+  const t = useT();
   const [tab, setTab] = useState<TabId>(initialTab);
   const Panel = PANELS[tab];
 
@@ -43,19 +45,19 @@ export default function SettingsScreen({
       className="flex h-full w-full overflow-hidden bg-ink-950/92 backdrop-blur-2xl"
     >
       {/* ---------------------------------------------------------- sidebar */}
-      <aside className="flex w-54.5 shrink-0 flex-col border-r border-white/6 p-3">
+      <aside className="flex w-54.5 shrink-0 flex-col border-e border-white/6 p-3">
         <button onClick={onBack} className="btn mb-4 justify-start gap-2 px-2">
-          <ArrowLeft size={14} /> Back to board
+          <ArrowLeft size={14} className="rtl:-scale-x-100" /> {t("Back to board")}
         </button>
 
         <nav className="flex flex-col gap-0.5">
-          {TABS.map((t) => {
-            const Icon = t.icon;
-            const active = tab === t.id;
+          {TABS.map((item) => {
+            const Icon = item.icon;
+            const active = tab === item.id;
             return (
               <button
-                key={t.id}
-                onClick={() => setTab(t.id)}
+                key={item.id}
+                onClick={() => setTab(item.id)}
                 className={cn(
                   "relative flex h-8 items-center gap-2.5 rounded-lg px-2.5 text-[13px] transition-colors",
                   active ? "text-white" : "text-ink-400 hover:bg-white/4 hover:text-ink-200",
@@ -69,7 +71,7 @@ export default function SettingsScreen({
                   />
                 )}
                 <Icon size={14} className="relative z-10 shrink-0" />
-                <span className="relative z-10">{t.label}</span>
+                <span className="relative z-10">{t(item.label)}</span>
               </button>
             );
           })}
@@ -89,9 +91,9 @@ export default function SettingsScreen({
             transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
           >
             <h2 className="mb-1 text-[19px] font-semibold tracking-tight text-white">
-              {TABS.find((t) => t.id === tab)!.label}
+              {t(TABS.find((x) => x.id === tab)!.label)}
             </h2>
-            <p className="mb-7 text-[12.5px] text-ink-500">{BLURB[tab]}</p>
+            <p className="mb-7 text-[12.5px] text-ink-500">{t(BLURB[tab])}</p>
 
             <Panel />
           </motion.div>

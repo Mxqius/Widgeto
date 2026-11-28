@@ -2,6 +2,7 @@ import { memo } from "react";
 import { Search } from "lucide-react";
 import { motion } from "motion/react";
 import { cn } from "@/app/manager/ui";
+import { useT } from "@/app/manager/i18n";
 
 export type BoardTab = "active" | "all";
 
@@ -18,6 +19,7 @@ export const CatalogueFilters = memo(function CatalogueFilters({
   tab: BoardTab;
   onTab: (v: BoardTab) => void;
 }) {
+  const t = useT();
   return (
     <div className="flex items-center gap-2 px-6 pt-3 pb-3">
       <div className="flex h-8 w-full max-w-70 items-center gap-2 rounded-lg border border-white/6 bg-white/3 px-2.5">
@@ -25,29 +27,29 @@ export const CatalogueFilters = memo(function CatalogueFilters({
         <input
           value={query}
           onChange={(e) => onQuery(e.target.value)}
-          placeholder="Search widgets…"
+          placeholder={t("Search widgets…")}
           className="min-w-0 flex-1 bg-transparent text-[12.5px] text-ink-100 outline-none placeholder:text-ink-600"
         />
       </div>
       {!query && (
         <div className="flex items-center gap-0.5 rounded-lg border border-white/6 bg-white/3 p-0.5">
-          {(["all", "active"] as const).map((t) => (
+          {(["all", "active"] as const).map((id) => (
             <button
-              key={t}
-              onClick={() => onTab(t)}
+              key={id}
+              onClick={() => onTab(id)}
               className={cn(
                 "relative h-7 rounded-md px-3 text-[11.5px] font-medium capitalize transition-colors",
-                tab === t ? "text-white" : "text-ink-500 hover:text-ink-300",
+                tab === id ? "text-white" : "text-ink-500 hover:text-ink-300",
               )}
             >
-              {tab === t && (
+              {tab === id && (
                 <motion.span
                   layoutId="mgr-tab"
                   transition={{ type: "spring", stiffness: 520, damping: 38 }}
                   className="absolute inset-0 rounded-md bg-white/9"
                 />
               )}
-              <span className="relative z-10">{t}</span>
+              <span className="relative z-10">{t(id)}</span>
             </button>
           ))}
         </div>

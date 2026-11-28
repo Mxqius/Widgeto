@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState, type PointerEvent } from "react";
+import { t } from "../i18n";
 import type { IslandAlign } from "@/shared/types/settings";
 
 export interface Size {
@@ -109,7 +110,7 @@ export function ResizeHandles({ size, max, align, scale, onSize, onDone, onActiv
           onPointerCancel={up}
           onClick={(e) => e.stopPropagation()}
           onDoubleClick={edge === "s" ? () => onDone(fit(ASK_DEFAULT)) : undefined}
-          title={edge === "s" ? "Drag to resize · double-click to reset" : undefined}
+          title={edge === "s" ? t("Drag to resize · double-click to reset") : undefined}
           aria-hidden
         />
       ))}

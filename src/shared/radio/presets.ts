@@ -10,7 +10,7 @@ export interface RadioPreset {
   query: RadioQuery;
 }
 
-export const RADIO_PRESETS: RadioPreset[] = [
+export const RADIO_PRESETS = [
   { id: "popular", label: "Popular", query: {} },
   { id: "iran", label: "Iran", query: { countryCode: "IR" } },
   { id: "persian", label: "Persian", query: { language: "persian" } },
@@ -19,4 +19,4 @@ export const RADIO_PRESETS: RadioPreset[] = [
   { id: "lofi", label: "Lo-fi", query: { tag: "lofi" } },
   { id: "classical", label: "Classical", query: { tag: "classical" } },
   { id: "news", label: "News", query: { tag: "news" } },
-];
+] as const satisfies readonly RadioPreset[];

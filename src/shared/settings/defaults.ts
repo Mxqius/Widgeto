@@ -53,6 +53,7 @@ export const DEFAULT_SETTINGS: Settings = {
   aiModels: { claude: "claude-opus-5-5", openai: "", local: "" },
   aiBaseUrls: { openai: "https://api.openai.com/v1", local: "http://localhost:11434/v1" },
   aiHotkey: "CommandOrControl+Shift+Space",
+  language: "system",
   clock24h: true,
   temperatureUnit: "C",
   wallpaper: "aurora",

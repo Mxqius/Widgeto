@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Dialog } from "@base-ui/react/dialog";
 import { Download, SkipForward } from "lucide-react";
 import { useApp } from "@/app/manager/store";
+import { useT } from "@/app/manager/i18n";
 
 /**
  * Mounted once in ManagerApp. Renders nothing until a background or manual
@@ -9,6 +10,7 @@ import { useApp } from "@/app/manager/store";
  * in the store) — this component is purely presentational.
  */
 export default function UpdateDialog() {
+  const t = useT();
   const pendingUpdate = useApp((s) => s.pendingUpdate);
   const dismiss = useApp((s) => s.dismissUpdateDialog);
   const skip = useApp((s) => s.skipUpdateVersion);
@@ -47,46 +49,46 @@ export default function UpdateDialog() {
                      shadow-[0_30px_80px_-20px_rgba(0,0,0,0.9)] outline-none"
         >
           <Dialog.Title className="text-[15px] font-semibold text-white">
-            Widgeto {pendingUpdate.version} is available
+            {t("Widgeto {version} is available", { version: pendingUpdate.version })}
           </Dialog.Title>
           <Dialog.Description className="mt-1 text-[12px] text-ink-500">
-            You're on {pendingUpdate.currentVersion}.
+            {t("You’re on {version}.", { version: pendingUpdate.currentVersion })}
           </Dialog.Description>
 
           {pendingUpdate.body && (
-            <div className="mt-3 max-h-32 overflow-y-auto rounded-lg border border-white/6 bg-black/20 p-2.5 text-[11.5px] leading-relaxed whitespace-pre-wrap text-ink-400">
+            <div dir="auto" className="mt-3 max-h-32 overflow-y-auto rounded-lg border border-white/6 bg-black/20 p-2.5 text-[11.5px] leading-relaxed whitespace-pre-wrap text-ink-400">
               {pendingUpdate.body}
             </div>
           )}
 
           {installing ? (
             <div className="mt-4">
-              <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/8">
+              <div dir="ltr" className="h-1.5 w-full overflow-hidden rounded-full bg-white/8">
                 <div
                   className="h-full rounded-full transition-[width] duration-200"
                   style={{ width: `${progress}%`, background: "var(--accent)" }}
                 />
               </div>
               <p className="mt-2 text-[11px] text-ink-500">
-                {progress > 0 ? `Downloading… ${progress}%` : "Starting download…"}
+                {progress > 0 ? t("Downloading… {n}%", { n: progress }) : t("Starting download…")}
               </p>
             </div>
           ) : (
             <>
               {error && (
                 <p className="mt-3 text-[11.5px] text-red-300/90">
-                  Couldn't download the update. Try again later.
+                  {t("Couldn’t download the update. Try again later.")}
                 </p>
               )}
               <div className="mt-4 flex flex-wrap justify-end gap-1.5">
                 <button className="btn" onClick={skip}>
-                  <SkipForward size={13} /> Skip this version
+                  <SkipForward size={13} /> {t("Skip this version")}
                 </button>
                 <button className="btn" onClick={dismiss}>
-                  Remind me later
+                  {t("Remind me later")}
                 </button>
                 <button className="btn btn-primary" onClick={runInstall}>
-                  <Download size={13} /> Download &amp; Install
+                  <Download size={13} /> {t("Download & Install")}
                 </button>
               </div>
             </>

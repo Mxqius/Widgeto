@@ -4,6 +4,7 @@ import { useRadio } from "@/shared/radio/useRadio";
 import { isFavorite, stationMeta } from "@/shared/radio/protocol";
 import { StationIcon } from "@/shared/radio/StationIcon";
 import type { SizeKey } from "@/shared/types/widget";
+import { useT } from "../i18n";
 
 /**
  * A remote for the radio that plays in the manager window: closing this
@@ -11,6 +12,7 @@ import type { SizeKey } from "@/shared/types/widget";
  * settings; here they are played and stepped through.
  */
 export default function RadioView({ size }: { size: SizeKey }) {
+  const t = useT();
   const { state: r, send } = useRadio();
   const small = isSm(size);
   const st = r.station;
@@ -18,7 +20,7 @@ export default function RadioView({ size }: { size: SizeKey }) {
   const fav = isFavorite(r, st?.id);
   const canStep = r.favorites.length > 1 || (r.favorites.length === 1 && r.favorites[0].id !== st?.id);
 
-  const line = r.error ?? (r.buffering ? "Connecting…" : r.playing ? (r.nowTitle ?? "Live") : st ? "Stopped" : null);
+  const line = r.error ?? (r.buffering ? t("Connecting…") : r.playing ? (r.nowTitle ?? t("Live")) : st ? t("Stopped") : null);
 
   return (
     <div className="flex h-full w-full flex-col p-4">
@@ -49,9 +51,9 @@ export default function RadioView({ size }: { size: SizeKey }) {
         ) : (
           <>
             <Radio size={small ? 16 : 20} className="dimmer mb-1" />
-            <div className="dim text-[11.5px] font-semibold">No station yet</div>
+            <div className="dim text-[11.5px] font-semibold">{t("No station yet")}</div>
             {!small && (
-              <div className="dimmer text-[10px] font-medium">Find stations in this widget's settings</div>
+              <div className="dimmer text-[10px] font-medium">{t("Find stations in this widget’s settings")}</div>
             )}
           </>
         )}
@@ -77,12 +79,13 @@ export default function RadioView({ size }: { size: SizeKey }) {
         </div>
       )}
 
-      <div className="flex shrink-0 items-center justify-center gap-2" data-nodrag>
+      {/* transport reads left to right in every language */}
+      <div dir="ltr" className="flex shrink-0 items-center justify-center gap-2" data-nodrag>
         <button
           onClick={() => send({ type: "prev" })}
           className="dim transition-opacity hover:opacity-100 disabled:opacity-20"
           disabled={!canStep}
-          title="Previous favorite"
+          title={t("Previous favorite")}
         >
           <SkipBack size={small ? 13 : 15} className="fill-current" />
         </button>
@@ -91,7 +94,7 @@ export default function RadioView({ size }: { size: SizeKey }) {
           className="grid place-items-center rounded-full bg-white text-black transition-transform active:scale-95 disabled:opacity-20"
           style={{ width: small ? 26 : 30, height: small ? 26 : 30 }}
           disabled={!st && r.favorites.length === 0}
-          title={on ? "Stop" : "Play"}
+          title={on ? t("Stop") : t("Play")}
         >
           {r.buffering ? (
             <Loader2 size={small ? 12 : 13} className="animate-spin" />
@@ -105,16 +108,16 @@ export default function RadioView({ size }: { size: SizeKey }) {
           onClick={() => send({ type: "next" })}
           className="dim transition-opacity hover:opacity-100 disabled:opacity-20"
           disabled={!canStep}
-          title="Next favorite"
+          title={t("Next favorite")}
         >
           <SkipForward size={small ? 13 : 15} className="fill-current" />
         </button>
         {!small && st && (
           <button
             onClick={() => send({ type: "favorite", station: st })}
-            className="absolute right-4 bottom-4 transition-opacity hover:opacity-100"
+            className="absolute bottom-4 transition-opacity [inset-inline-end:1rem] hover:opacity-100"
             style={{ color: fav ? "var(--accent)" : undefined, opacity: fav ? 1 : 0.45 }}
-            title={fav ? "Remove from favorites" : "Add to favorites"}
+            title={fav ? t("Remove from favorites") : t("Add to favorites")}
           >
             <Heart size={13} className={fav ? "fill-current" : ""} />
           </button>

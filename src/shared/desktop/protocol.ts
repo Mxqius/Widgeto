@@ -2,6 +2,7 @@ import type { DockZone } from "@/shared/types/geometry";
 import type { Settings } from "@/shared/types/settings";
 import type { WidgetInstance, WidgetKind } from "@/shared/types/widget";
 import type { Area } from "./area";
+import { resolveLang, type Lang } from "@/shared/i18n/locale";
 
 /** One widget per kind, so the kind is the window label. */
 export const labelFor = (kind: WidgetKind) => `w-${kind}`;
@@ -25,6 +26,8 @@ export const EVT = {
  * preference — re-pushed config to all thirteen windows and re-rendered them.
  */
 export interface WidgetSettings {
+  /** resolved by the manager, so "system" is never sent */
+  language: Lang;
   accent: string;
   widgetAlpha: number;
   blur: number;
@@ -45,7 +48,7 @@ export interface WidgetSettings {
 }
 
 export const WIDGET_SETTING_KEYS = [
-  "accent", "widgetAlpha", "blur", "radius", "margin", "gridSize",
+  "language", "accent", "widgetAlpha", "blur", "radius", "margin", "gridSize",
   "snapToGrid", "autoDock", "dockThreshold", "alignGuides", "lockAll",
   "clock24h", "temperatureUnit", "powerSaver", "lowMemory", "reduceMotion",
 ] as const satisfies readonly (keyof WidgetSettings)[];
@@ -53,6 +56,7 @@ export const WIDGET_SETTING_KEYS = [
 /** Narrow the full settings object down to the slice widgets consume. */
 export function widgetSettingsOf(s: Settings): WidgetSettings {
   return {
+    language: resolveLang(s.language),
     accent: s.accent,
     widgetAlpha: s.widgetAlpha,
     blur: s.blur,

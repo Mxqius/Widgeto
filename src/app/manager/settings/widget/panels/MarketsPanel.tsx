@@ -2,10 +2,12 @@ import { useApp } from "@/app/manager/store";
 import { configOf } from "@/shared/widgets/config";
 import type { WidgetKind } from "@/shared/types/widget";
 import { Field } from "../Field";
+import { useT } from "@/app/manager/i18n";
 
 const MARKET_SYMBOLS = ["BTC", "ETH", "SOL", "ADA", "DOGE", "XRP", "DOT", "LINK", "AVAX", "MATIC"];
 
 export function MarketsPanel({ kind }: { kind: WidgetKind }) {
+  const t = useT();
   const stored = useApp((s) => s.widgets.find((w) => w.kind === kind)?.config);
   const setConfig = useApp((s) => s.setConfig);
   const c = configOf("markets", stored);
@@ -17,7 +19,7 @@ export function MarketsPanel({ kind }: { kind: WidgetKind }) {
   };
 
   return (
-    <Field label="Watchlist" hint="Up to six. The first one leads the tile." stack>
+    <Field label={t("Watchlist")} hint={t("Up to six. The first one leads the tile.")} stack>
       <div className="flex flex-wrap gap-1">
         {MARKET_SYMBOLS.map((sym) => {
           const on = c.symbols.includes(sym);

@@ -3,6 +3,7 @@ import { useApp } from "@/app/manager/store";
 import { bindCaptureHotkey } from "@/app/manager/desktop/captureWindow";
 import { bindHotkey } from "@/app/manager/desktop/hotkeys";
 import { askIsland, bindTuckHotkey } from "@/app/manager/desktop/island";
+import { useT } from "@/app/manager/i18n";
 
 type Field = "captureHotkey" | "aiHotkey" | "islandTuckHotkey";
 
@@ -24,6 +25,7 @@ const PLACEHOLDER: Record<Field, string> = {
  * worse than saying so.
  */
 export function HotkeyField({ field = "captureHotkey" }: { field?: Field }) {
+  const t = useT();
   const saved = useApp((st) => st.settings[field]);
   const update = useApp((st) => st.update);
   const [draft, setDraft] = useState(saved);
@@ -40,13 +42,14 @@ export function HotkeyField({ field = "captureHotkey" }: { field?: Field }) {
 
   return (
     <div className="flex items-center gap-2">
-      {state === "taken" && <span className="text-[11px] font-semibold text-red-300">in use</span>}
+      {state === "taken" && <span className="text-[11px] font-semibold text-red-300">{t("in use")}</span>}
       {state === "ok" && (
         <span className="text-[11px] font-semibold" style={{ color: "#3ddc84" }}>
-          bound
+          {t("bound")}
         </span>
       )}
       <input
+        dir="ltr"
         className="field h-8 w-47.5 font-mono text-[12px]"
         value={draft}
         placeholder={PLACEHOLDER[field]}

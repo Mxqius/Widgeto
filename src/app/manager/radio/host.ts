@@ -1,4 +1,5 @@
 import { useEffect, useSyncExternalStore } from "react";
+import { t } from "@/app/manager/i18n";
 import { useApp } from "../store";
 import { isTauri } from "@/shared/lib/env";
 import { radioClick, radioNowTitle } from "@/shared/ipc/commands";
@@ -95,7 +96,7 @@ function release() {
 
 function fail() {
   release();
-  Object.assign(live, { playing: false, buffering: false, nowTitle: null, error: "Couldn't play this station" });
+  Object.assign(live, { playing: false, buffering: false, nowTitle: null, error: t("Couldn’t play this station") });
   changed();
 }
 

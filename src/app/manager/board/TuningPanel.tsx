@@ -2,6 +2,7 @@ import { memo } from "react";
 import { X } from "lucide-react";
 import WidgetSettingsPanel from "@/app/manager/settings/widget/WidgetSettingsPanel";
 import type { WidgetDef } from "@/app/manager/widgets/catalogue";
+import { useT } from "@/app/manager/i18n";
 
 /**
  * Always mounted, collapsed to zero width when closed. Deliberately not
@@ -20,10 +21,11 @@ export const TuningPanel = memo(function TuningPanel({
   tuned: WidgetDef | null;
   onClose: () => void;
 }) {
+  const t = useT();
   return (
     <aside
-      className="shrink-0 overflow-hidden border-l border-white/6 bg-white/1.5"
-      style={{ width: tuned ? 320 : 0, borderLeftWidth: tuned ? 1 : 0 }}
+      className="shrink-0 overflow-hidden border-s border-white/6 bg-white/1.5"
+      style={{ width: tuned ? 320 : 0, borderInlineStartWidth: tuned ? 1 : 0 }}
       aria-hidden={!tuned}
     >
       {tuned && (
@@ -41,7 +43,7 @@ export const TuningPanel = memo(function TuningPanel({
             <span className="flex-1 truncate text-[13px] font-semibold text-ink-100">
               {tuned.name}
             </span>
-            <button className="btn size-7 px-0" onClick={onClose} title="Close">
+            <button className="btn size-7 px-0" onClick={onClose} title={t("Close")}>
               <X size={13} />
             </button>
           </div>

@@ -1,27 +1,29 @@
 import { Segmented, SettingGroup, SettingRow, Toggle } from "@/app/manager/ui";
 import { useApp } from "@/app/manager/store";
 import { DataStatus } from "../controls/DataStatus";
+import { useT } from "@/app/manager/i18n";
 
 export function WidgetsTab() {
+  const t = useT();
   const s = useApp((st) => st.settings);
   const update = useApp((st) => st.update);
 
   return (
     <>
-      <SettingGroup title="Data">
+      <SettingGroup title={t("Data")}>
         <SettingRow
-          title="Weather and Markets"
-          hint="Updates automatically in the background — nothing to install or run."
+          title={t("Weather and Markets")}
+          hint={t("Updates automatically in the background — nothing to install or run.")}
         >
           <DataStatus />
         </SettingRow>
       </SettingGroup>
 
-      <SettingGroup title="Formats">
-        <SettingRow title="24-hour clock">
+      <SettingGroup title={t("Formats")}>
+        <SettingRow title={t("24-hour clock")}>
           <Toggle checked={s.clock24h} onChange={(v) => update({ clock24h: v })} />
         </SettingRow>
-        <SettingRow title="Temperature unit">
+        <SettingRow title={t("Temperature unit")}>
           <Segmented
             layoutId="unit"
             value={s.temperatureUnit}

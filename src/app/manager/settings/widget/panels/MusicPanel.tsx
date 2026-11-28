@@ -10,23 +10,25 @@ import { StationIcon } from "@/shared/radio/StationIcon";
 import { useStationSearch } from "@/shared/radio/useRadio";
 import type { WidgetKind } from "@/shared/types/widget";
 import { Field } from "../Field";
+import { useT } from "@/app/manager/i18n";
 
 /** What the Music widget follows, and the radio's stations. */
 export function MusicPanel({ kind }: { kind: WidgetKind }) {
+  const t = useT();
   const stored = useApp((s) => s.widgets.find((w) => w.kind === kind)?.config);
   const setConfig = useApp((s) => s.setConfig);
   const c = configOf("music", stored);
 
   return (
     <>
-      <Field label="Plays" hint="Whatever is playing on this PC, or Widgeto's own radio.">
+      <Field label={t("Plays")} hint={t("Whatever is playing on this PC, or Widgeto's own radio.")}>
         <Segmented
           value={c.source}
           onChange={(v) => setConfig(kind, { source: v })}
           layoutId="music-source"
           options={[
-            { value: "media", label: "System media" },
-            { value: "radio", label: "Radio" },
+            { value: "media", label: t("System media") },
+            { value: "radio", label: t("Radio") },
           ]}
         />
       </Field>
@@ -40,12 +42,13 @@ export function MusicPanel({ kind }: { kind: WidgetKind }) {
 }
 
 function PlayButton({ station }: { station: Station }) {
+  const t = useT();
   const r = useRadioLocal();
   const here = r.station?.id === station.id;
   const on = here && (r.playing || r.buffering);
   return (
     <button
-      title={on ? "Stop" : "Play"}
+      title={on ? t("Stop") : t("Play")}
       onClick={() => handleRadio(on ? { type: "stop" } : { type: "play", station })}
       className="grid size-6 shrink-0 place-items-center rounded-full transition-colors"
       style={on ? { background: "var(--accent)", color: "#fff" } : { background: "rgba(255,255,255,0.07)" }}
@@ -62,6 +65,7 @@ function PlayButton({ station }: { station: Station }) {
 }
 
 function StationRow({ station, children }: { station: Station; children?: ReactNode }) {
+  const t = useT();
   const r = useRadioLocal();
   const fav = isFavorite(r, station.id);
   const meta = stationMeta(station);
@@ -76,7 +80,7 @@ function StationRow({ station, children }: { station: Station; children?: ReactN
       </div>
       {children}
       <button
-        title={fav ? "Remove from favorites" : "Add to favorites"}
+        title={fav ? t("Remove from favorites") : t("Add to favorites")}
         onClick={() => handleRadio({ type: "favorite", station })}
         className="shrink-0 transition-colors"
         style={{ color: fav ? "var(--accent)" : "var(--color-ink-600)" }}
@@ -89,10 +93,11 @@ function StationRow({ station, children }: { station: Station; children?: ReactN
 }
 
 function NowPlaying() {
+  const t = useT();
   const r = useRadioLocal();
   if (!r.station) return null;
   return (
-    <Field label="On air" stack>
+    <Field label={t("On air")} stack>
       <div className="flex items-center gap-2.5">
         <StationIcon station={r.station} size={34} radius={8} />
         <div className="min-w-0 flex-1">
@@ -100,7 +105,7 @@ function NowPlaying() {
             {r.station.name}
           </div>
           <div dir="auto" className="truncate text-start text-[10.5px] text-ink-500">
-            {r.error ?? (r.buffering ? "Connecting…" : r.playing ? (r.nowTitle ?? "Live") : "Stopped")}
+            {r.error ?? (r.buffering ? t("Connecting…") : r.playing ? (r.nowTitle ?? t("Live")) : t("Stopped"))}
           </div>
         </div>
         <PlayButton station={r.station} />
@@ -110,19 +115,20 @@ function NowPlaying() {
 }
 
 function Favorites() {
+  const t = useT();
   const r = useRadioLocal();
   return (
     <div className="py-1.5">
       <div className="mb-1.5 text-[12px] font-medium text-ink-100">
-        Favorites
-        <span className="ml-1.5 text-[10.5px] text-ink-500">next and previous step through these</span>
+        {t("Favorites")}
+        <span className="ms-1.5 text-[10.5px] text-ink-500">{t("next and previous step through these")}</span>
       </div>
       <div className="space-y-1">
         {r.favorites.map((s, i) => (
           <StationRow key={s.id} station={s}>
             <div className="flex shrink-0 flex-col">
               <button
-                title="Move up"
+                title={t("Move up")}
                 disabled={i === 0}
                 onClick={() => handleRadio({ type: "move", id: s.id, by: -1 })}
                 className="text-ink-600 hover:text-ink-200 disabled:opacity-25"
@@ -130,7 +136,7 @@ function Favorites() {
                 <ChevronUp size={11} />
               </button>
               <button
-                title="Move down"
+                title={t("Move down")}
                 disabled={i === r.favorites.length - 1}
                 onClick={() => handleRadio({ type: "move", id: s.id, by: 1 })}
                 className="text-ink-600 hover:text-ink-200 disabled:opacity-25"
@@ -142,7 +148,7 @@ function Favorites() {
         ))}
         {r.favorites.length === 0 && (
           <div className="px-1 py-2 text-[11px] text-ink-500">
-            No favorites yet. Find stations below and tap the heart.
+            {t("No favorites yet. Find stations below and tap the heart.")}
           </div>
         )}
       </div>
@@ -151,6 +157,7 @@ function Favorites() {
 }
 
 function AddCustom() {
+  const t = useT();
   const [name, setName] = useState("");
   const [url, setUrl] = useState("");
   const ok = /^https?:\/\/\S+$/i.test(url.trim());
@@ -161,24 +168,25 @@ function AddCustom() {
     setUrl("");
   };
   return (
-    <Field label="Add a stream" hint="Any Icecast or Shoutcast link, or an .mp3 / .aac stream." stack>
+    <Field label={t("Add a stream")} hint={t("Any Icecast or Shoutcast link, or an .mp3 / .aac stream.")} stack>
       <div className="flex items-center gap-1.5">
         <input
           className="field h-7 w-24 text-[12px]"
-          placeholder="Name"
+          placeholder={t("Name")}
           value={name}
           dir="auto"
           onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && add()}
         />
         <input
+          dir="ltr"
           className="field h-7 flex-1 text-[12px]"
           placeholder="https://stream.example.com/live"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && add()}
         />
-        <button className="btn h-7 px-2" onClick={add} disabled={!ok} title="Add to favorites">
+        <button className="btn h-7 px-2" onClick={add} disabled={!ok} title={t("Add to favorites")}>
           <Plus size={13} />
         </button>
       </div>
@@ -187,18 +195,19 @@ function AddCustom() {
 }
 
 function Browse() {
+  const t = useT();
   const [text, setText] = useState("");
   const [preset, setPreset] = useState("popular");
   const p = RADIO_PRESETS.find((x) => x.id === preset) ?? RADIO_PRESETS[0];
   const res = useStationSearch({ ...p.query, name: text.trim() || undefined, limit: 40 });
 
   return (
-    <Field label="Find stations" hint="From the free Radio Browser directory." stack>
+    <Field label={t("Find stations")} hint={t("From the free Radio Browser directory.")} stack>
       <div className="relative mb-2">
-        <Search size={12} className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-ink-500" />
+        <Search size={12} className="pointer-events-none absolute top-1/2 start-2.5 -translate-y-1/2 text-ink-500" />
         <input
-          className="field h-7 pl-7 text-[12px]"
-          placeholder="Search by name"
+          className="field h-7 ps-7 text-[12px]"
+          placeholder={t("Search by name")}
           value={text}
           dir="auto"
           onChange={(e) => setText(e.target.value)}
@@ -212,19 +221,19 @@ function Browse() {
             className="chip transition-colors"
             style={x.id === preset ? { background: "var(--accent)", color: "#fff", borderColor: "transparent" } : undefined}
           >
-            {x.label}
+            {t(x.label)}
           </button>
         ))}
       </div>
-      <div className="max-h-72 space-y-1 overflow-y-auto pr-0.5">
+      <div className="max-h-72 space-y-1 overflow-y-auto pe-0.5">
         {res.loading && res.stations.length === 0 && (
           <div className="flex items-center gap-2 px-1 py-2 text-[11px] text-ink-500">
-            <Loader2 size={12} className="animate-spin" /> Looking…
+            <Loader2 size={12} className="animate-spin" /> {t("Looking…")}
           </div>
         )}
         {res.error && <div className="px-1 py-2 text-[11px] text-red-300/80">{res.error}</div>}
         {!res.loading && !res.error && res.stations.length === 0 && (
-          <div className="px-1 py-2 text-[11px] text-ink-500">No stations match.</div>
+          <div className="px-1 py-2 text-[11px] text-ink-500">{t("No stations match.")}</div>
         )}
         {res.stations.map((s) => (
           <StationRow key={s.id} station={s} />

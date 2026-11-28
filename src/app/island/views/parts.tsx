@@ -97,6 +97,8 @@ export function Slider({ value, onChange, onCommit, colour = "#fff", disabled, l
     <div
       ref={ref}
       role="slider"
+      // seek and volume read left to right in every language
+      dir="ltr"
       aria-label={label}
       aria-valuemin={0}
       aria-valuemax={100}

@@ -5,10 +5,12 @@ import { useMarkets } from "../data/useRemote";
 import { money } from "../lib/format";
 import { bySize, isSm } from "../lib/scale";
 import type { WidgetBodyProps } from "./props";
+import { digits, useT } from "../i18n";
 
 const DOWN = "#ff6b6b";
 
 export default function MarketsWidget({ size }: WidgetBodyProps) {
+  const t = useT();
   const cfg = useWidgetConfig("markets");
   const { assets: rows, live } = useMarkets(cfg.symbols, cfg.refreshSec);
 
@@ -22,7 +24,7 @@ export default function MarketsWidget({ size }: WidgetBodyProps) {
       <div>
         <div className="dim text-[11px] font-semibold">
           {lead.symbol}
-          {!live && <span className="dimmer"> · sample</span>}
+          {!live && <span className="dimmer"> · {t("sample")}</span>}
         </div>
         <Stat value={money(lead.price)} size={bySize(size, 25, 31, 39)} />
         <div
@@ -30,8 +32,10 @@ export default function MarketsWidget({ size }: WidgetBodyProps) {
           style={{ color: up ? "var(--accent)" : DOWN }}
         >
           {up ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
-          {up ? "+" : ""}
-          {lead.change24h.toFixed(2)}%
+          <span dir="ltr">
+            {up ? "+" : ""}
+            {digits(`${lead.change24h.toFixed(2)}%`)}
+          </span>
         </div>
       </div>
 
@@ -43,14 +47,16 @@ export default function MarketsWidget({ size }: WidgetBodyProps) {
             title={r.symbol}
             meta={isSm(size) ? undefined : r.name}
             right={
-              <div className="text-right">
+              <div className="text-end">
                 <div className="numeral text-[12px]">{money(r.price)}</div>
                 <div
                   className="text-[10px] font-semibold tabular-nums"
                   style={{ color: r.change24h >= 0 ? "var(--accent)" : DOWN }}
                 >
-                  {r.change24h >= 0 ? "+" : ""}
-                  {r.change24h.toFixed(2)}%
+                  <span dir="ltr">
+                    {r.change24h >= 0 ? "+" : ""}
+                    {digits(`${r.change24h.toFixed(2)}%`)}
+                  </span>
                 </div>
               </div>
             }

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { t as tr } from "../i18n";
 import { askAi, type AiTarget, type AiTurn } from "@/shared/ai/client";
 import { isTauri } from "@/shared/lib/env";
 
@@ -26,10 +27,15 @@ export interface AskState {
  */
 const MAX_TURNS = 11;
 
-const STOP_NOTES: Record<string, string> = {
+const STOP_NOTES = {
   refusal: "The model declined to answer this.",
   max_tokens: "The answer was cut short.",
   length: "The answer was cut short.",
+} as const;
+
+const stopNote = (stop: string | undefined) => {
+  const n = STOP_NOTES[(stop ?? "") as keyof typeof STOP_NOTES];
+  return n ? tr(n) : null;
 };
 
 /**
@@ -100,7 +106,7 @@ export function useAsk(target: AiTarget | null): AskState {
             out += e.text;
             setDraft(out);
           } else if (e.kind === "done") {
-            finish({ note: e.stop === "cancelled" ? null : (STOP_NOTES[e.stop ?? ""] ?? null) });
+            finish({ note: e.stop === "cancelled" ? null : stopNote(e.stop ?? undefined) });
           } else if (e.kind === "error") {
             finish({ error: { message: e.message, setup: e.setup } });
           }

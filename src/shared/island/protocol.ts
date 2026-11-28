@@ -5,6 +5,7 @@
  * island reads for itself.
  */
 import type { AiTarget } from "@/shared/ai/client";
+import type { Lang } from "@/shared/i18n/locale";
 import type { IslandAlign, IslandIdle, IslandStyle, IslandTab } from "@/shared/types/settings";
 
 export const ISLAND_LABEL = "island";
@@ -65,6 +66,8 @@ export interface Privacy {
 }
 
 export interface IslandConfig {
+  /** the UI language, already resolved by the manager */
+  language: Lang;
   accent: string;
   clock24h: boolean;
   temperatureUnit: "C" | "F";

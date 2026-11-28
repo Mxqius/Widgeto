@@ -3,15 +3,16 @@ import { Picker, Range, Segmented, SettingGroup, SettingRow, Toggle, cn } from "
 import { useApp, DEFAULT_SETTINGS } from "@/app/manager/store";
 import type { IslandAlign, IslandIdle, IslandStyle, IslandTab as Tab, Settings } from "@/shared/types/settings";
 import { HotkeyField } from "../controls/HotkeyField";
+import { digits, useT } from "@/app/manager/i18n";
 
-const TABS: { id: Tab; label: string; icon: typeof Music }[] = [
+const TABS = [
   { id: "media", label: "Music", icon: Music },
   { id: "radio", label: "Radio", icon: Radio },
   { id: "focus", label: "Focus", icon: Timer },
   { id: "system", label: "System", icon: Gauge },
   { id: "today", label: "Today", icon: CalendarDays },
   { id: "ask", label: "Ask AI", icon: Sparkles },
-];
+] as const satisfies readonly { id: Tab; label: string; icon: typeof Music }[];
 
 /** Every island setting, so "Reset island" can put just these back. */
 const ISLAND_KEYS = [
@@ -27,34 +28,35 @@ const pct = (v: number) => `${Math.round(v * 100)}%`;
 const px = (v: number) => `${v > 0 ? "+" : ""}${v}px`;
 
 export function IslandTab() {
+  const t = useT();
   const s = useApp((st) => st.settings);
   const update = useApp((st) => st.update);
   const areas = useApp((st) => st.areas);
   const notch = s.islandStyle === "notch";
 
   // Ask has its own switch in the AI tab; this chip is the same switch
-  const shown = (t: Tab) => (t === "ask" ? s.aiEnabled : !s.islandHiddenTabs.includes(t));
-  const visible = TABS.filter((t) => shown(t.id));
-  const toggleTab = (t: Tab) => {
-    const on = shown(t);
+  const shown = (id: Tab) => (id === "ask" ? s.aiEnabled : !s.islandHiddenTabs.includes(id));
+  const visible = TABS.filter((x) => shown(x.id));
+  const toggleTab = (id: Tab) => {
+    const on = shown(id);
     // keep at least one tab, or opening the island would show nothing
     if (on && visible.length <= 1) return;
-    if (t === "ask") return update({ aiEnabled: !on });
+    if (id === "ask") return update({ aiEnabled: !on });
     update({
-      islandHiddenTabs: on ? [...s.islandHiddenTabs, t] : s.islandHiddenTabs.filter((x) => x !== t),
+      islandHiddenTabs: on ? [...s.islandHiddenTabs, id] : s.islandHiddenTabs.filter((x) => x !== id),
     });
   };
 
   const monitorOptions = [
-    { value: MAIN, label: "Main display" },
+    { value: MAIN, label: t("Main display") },
     ...areas.map((a, i) => ({
       value: a.name,
-      label: `Display ${i + 1}${i === 0 ? " (main)" : ""} · ${a.w}×${a.h}`,
+      label: `${i === 0 ? t("Display {n} (main)", { n: i + 1 }) : t("Display {n}", { n: i + 1 })} · ${digits(`${a.w}×${a.h}`)}`,
     })),
   ];
   // a monitor that is unplugged right now still shows as chosen
   if (s.islandMonitor && !areas.some((a) => a.name === s.islandMonitor)) {
-    monitorOptions.push({ value: s.islandMonitor, label: "Disconnected display" });
+    monitorOptions.push({ value: s.islandMonitor, label: t("Disconnected display") });
   }
 
   const reset = () =>
@@ -62,62 +64,65 @@ export function IslandTab() {
 
   return (
     <>
-      <SettingGroup title="General">
+      <SettingGroup title={t("General")}>
         <SettingRow
-          title="Show the island"
-          hint="A live strip at the top of your screen: music, focus timer, system, today and Ask AI."
+          title={t("Show the island")}
+          hint={t("A live strip at the top of your screen: music, focus timer, system, today and Ask AI.")}
         >
           <Toggle checked={s.island} onChange={(v) => update({ island: v })} />
         </SettingRow>
         <SettingRow
-          title="Live activities"
-          hint="Pops out briefly for a new track, the charger, a finished timer or a captured note."
+          title={t("Live activities")}
+          hint={t("Pops out briefly for a new track, the charger, a finished timer or a captured note.")}
         >
           <Toggle checked={s.islandActivities} onChange={(v) => update({ islandActivities: v })} />
         </SettingRow>
         {s.islandActivities && (
           <SettingRow
-            title="Copy notifications"
-            hint="Pops out with a peek at what you just copied. Passwords copied from a password manager are never shown."
+            title={t("Copy notifications")}
+            hint={t("Pops out with a peek at what you just copied. Passwords copied from a password manager are never shown.")}
           >
             <Toggle checked={s.islandClipboard} onChange={(v) => update({ islandClipboard: v })} />
           </SettingRow>
         )}
         <SettingRow
-          title="Hide in full screen"
-          hint="Tucks the island away while a game, video or presentation is full screen."
+          title={t("Hide in full screen")}
+          hint={t("Tucks the island away while a game, video or presentation is full screen.")}
         >
           <Toggle checked={s.islandHideFullscreen} onChange={(v) => update({ islandHideFullscreen: v })} />
         </SettingRow>
         <SettingRow
-          title="Tuck away hotkey"
-          hint="Folds the island into a slim handle on the top edge. Press again, click the handle or right-click it to bring it back."
+          title={t("Tuck away hotkey")}
+          hint={t("Folds the island into a slim handle on the top edge. Press again, click the handle or right-click it to bring it back.")}
         >
           <HotkeyField field="islandTuckHotkey" />
         </SettingRow>
       </SettingGroup>
 
-      <SettingGroup title="Position">
-        <SettingRow title="Display" hint="Which monitor the island lives on.">
+      <SettingGroup title={t("Position")}>
+        <SettingRow title={t("Display")} hint={t("Which monitor the island lives on.")}>
           <Picker
             value={s.islandMonitor ?? MAIN}
             onChange={(v) => update({ islandMonitor: v === MAIN ? null : v })}
             options={monitorOptions}
           />
         </SettingRow>
-        <SettingRow title="Side" hint="Where along the top edge it sits, and which way it grows when it opens.">
-          <Segmented<IslandAlign>
-            value={s.islandAlign}
-            onChange={(v) => update({ islandAlign: v, islandOffsetX: 0 })}
-            layoutId="island-align"
-            options={[
-              { value: "left", label: "Left" },
-              { value: "center", label: "Centre" },
-              { value: "right", label: "Right" },
-            ]}
-          />
+        <SettingRow title={t("Side")} hint={t("Where along the top edge it sits, and which way it grows when it opens.")}>
+          {/* sides of the physical screen: left stays on the left in every language */}
+          <div dir="ltr">
+            <Segmented<IslandAlign>
+              value={s.islandAlign}
+              onChange={(v) => update({ islandAlign: v, islandOffsetX: 0 })}
+              layoutId="island-align"
+              options={[
+                { value: "left", label: t("Left") },
+                { value: "center", label: t("Centre") },
+                { value: "right", label: t("Right") },
+              ]}
+            />
+          </div>
         </SettingRow>
-        <SettingRow title="Nudge" hint="Fine-tune it sideways from that spot, say to clear a webcam or a tab strip.">
+        <SettingRow title={t("Nudge")} hint={t("Fine-tune it sideways from that spot, say to clear a webcam or a tab strip.")}>
           <div className="w-47.5">
             <Range
               min={-400}
@@ -130,8 +135,8 @@ export function IslandTab() {
           </div>
         </SettingRow>
         <SettingRow
-          title="Gap from the top"
-          hint={notch ? "The notch always hangs from the edge; this applies to the pill." : "Space between the top of the screen and the pill."}
+          title={t("Gap from the top")}
+          hint={notch ? t("The notch always hangs from the edge; this applies to the pill.") : t("Space between the top of the screen and the pill.")}
         >
           <div className={cn("w-47.5", notch && "pointer-events-none opacity-40")}>
             <Range
@@ -145,22 +150,22 @@ export function IslandTab() {
         </SettingRow>
       </SettingGroup>
 
-      <SettingGroup title="Size & look">
+      <SettingGroup title={t("Size & look")}>
         <SettingRow
-          title="Shape"
-          hint="Pill floats just below the top edge. Notch hangs from it, with its corners flaring into the edge."
+          title={t("Shape")}
+          hint={t("Pill floats just below the top edge. Notch hangs from it, with its corners flaring into the edge.")}
         >
           <Segmented<IslandStyle>
             value={s.islandStyle}
             onChange={(v) => update({ islandStyle: v })}
             layoutId="island-style"
             options={[
-              { value: "pill", label: "Pill" },
-              { value: "notch", label: "Notch" },
+              { value: "pill", label: t("Pill") },
+              { value: "notch", label: t("Notch") },
             ]}
           />
         </SettingRow>
-        <SettingRow title="Size" hint="Scales the whole island, text and all.">
+        <SettingRow title={t("Size")} hint={t("Scales the whole island, text and all.")}>
           <div className="w-47.5">
             <Range
               min={0.8}
@@ -172,7 +177,7 @@ export function IslandTab() {
             />
           </div>
         </SettingRow>
-        <SettingRow title="Roundness" hint="From softly squared corners to a full pill.">
+        <SettingRow title={t("Roundness")} hint={t("From softly squared corners to a full pill.")}>
           <div className="w-47.5">
             <Range
               min={0.3}
@@ -184,7 +189,7 @@ export function IslandTab() {
             />
           </div>
         </SettingRow>
-        <SettingRow title="Opacity" hint="How solid the black is. Lower lets the desktop show through.">
+        <SettingRow title={t("Opacity")} hint={t("How solid the black is. Lower lets the desktop show through.")}>
           <div className="w-47.5">
             <Range
               min={0.5}
@@ -196,7 +201,7 @@ export function IslandTab() {
             />
           </div>
         </SettingRow>
-        <SettingRow title="Notch corners" hint="How far the notch's top corners flare into the edge.">
+        <SettingRow title={t("Notch corners")} hint={t("How far the notch's top corners flare into the edge.")}>
           <div className={cn("w-47.5", !notch && "pointer-events-none opacity-40")}>
             <Range
               min={0.25}
@@ -210,19 +215,19 @@ export function IslandTab() {
         </SettingRow>
       </SettingGroup>
 
-      <SettingGroup title="Behaviour">
-        <SettingRow title="Open on" hint="Hover opens it as the pointer rests on it; click keeps it shut until you click.">
+      <SettingGroup title={t("Behaviour")}>
+        <SettingRow title={t("Open on")} hint={t("Hover opens it as the pointer rests on it; click keeps it shut until you click.")}>
           <Segmented<"hover" | "click">
             value={s.islandOpenOn}
             onChange={(v) => update({ islandOpenOn: v })}
             layoutId="island-open"
             options={[
-              { value: "hover", label: "Hover" },
-              { value: "click", label: "Click" },
+              { value: "hover", label: t("Hover") },
+              { value: "click", label: t("Click") },
             ]}
           />
         </SettingRow>
-        <SettingRow title="Hover delay" hint="How long the pointer rests before it opens.">
+        <SettingRow title={t("Hover delay")} hint={t("How long the pointer rests before it opens.")}>
           <div className={cn("w-47.5", s.islandOpenOn !== "hover" && "pointer-events-none opacity-40")}>
             <Range
               min={0}
@@ -230,30 +235,30 @@ export function IslandTab() {
               step={10}
               value={s.islandOpenDelay}
               onChange={(v) => update({ islandOpenDelay: v })}
-              format={(v) => `${v}ms`}
+              format={(v) => t("{n}ms", { n: v })}
             />
           </div>
         </SettingRow>
-        <SettingRow title="Scroll for volume" hint="Scroll over the island to turn the volume up or down.">
+        <SettingRow title={t("Scroll for volume")} hint={t("Scroll over the island to turn the volume up or down.")}>
           <Toggle checked={s.islandWheelVolume} onChange={(v) => update({ islandWheelVolume: v })} />
         </SettingRow>
-        <SettingRow title="Opens on" hint="Automatic picks music or the radio while it plays, then a running timer, then Today.">
+        <SettingRow title={t("Opens on")} hint={t("Automatic picks music or the radio while it plays, then a running timer, then Today.")}>
           <Picker
             value={s.islandDefaultTab}
             onChange={(v) => update({ islandDefaultTab: v })}
             options={[
-              { value: "auto", label: "Automatic" },
-              ...visible.map((t) => ({ value: t.id, label: t.label })),
+              { value: "auto", label: t("Automatic") },
+              ...visible.map((x) => ({ value: x.id, label: t(x.label) })),
             ]}
           />
         </SettingRow>
       </SettingGroup>
 
-      <SettingGroup title="Tabs & content">
+      <SettingGroup title={t("Tabs & content")}>
         <div className="px-4 py-3">
-          <div className="text-[13px] font-medium text-ink-100">Tabs</div>
+          <div className="text-[13px] font-medium text-ink-100">{t("Tabs")}</div>
           <div className="mt-0.5 text-[11.5px] leading-relaxed text-ink-500">
-            Which panels the open island has. Ask AI is the same switch as in the Ask AI settings.
+            {t("Which panels the open island has. Ask AI is the same switch as in the Ask AI settings.")}
           </div>
           <div className="mt-2.5 flex flex-wrap gap-1.5">
             {TABS.map(({ id, label, icon: I }) => {
@@ -271,31 +276,31 @@ export function IslandTab() {
                   )}
                 >
                   <I size={13} style={on ? { color: "var(--accent)" } : undefined} />
-                  {label}
+                  {t(label)}
                 </button>
               );
             })}
           </div>
         </div>
-        <SettingRow title="Resting pill shows" hint="Beside the clock while nothing else is going on. Automatic switches to the battery when it is low or charging.">
+        <SettingRow title={t("Resting pill shows")} hint={t("Beside the clock while nothing else is going on. Automatic switches to the battery when it is low or charging.")}>
           <Picker<IslandIdle>
             value={s.islandIdle}
             onChange={(v) => update({ islandIdle: v })}
             options={[
-              { value: "auto", label: "Automatic" },
-              { value: "weather", label: "Weather" },
-              { value: "battery", label: "Battery" },
-              { value: "date", label: "Date" },
-              { value: "none", label: "Just the clock" },
+              { value: "auto", label: t("Automatic") },
+              { value: "weather", label: t("Weather") },
+              { value: "battery", label: t("Battery") },
+              { value: "date", label: t("Date") },
+              { value: "none", label: t("Just the clock") },
             ]}
           />
         </SettingRow>
       </SettingGroup>
 
-      <SettingGroup title="Reset">
-        <SettingRow title="Reset the island" hint="Puts position, size, look and behaviour back to how they started.">
+      <SettingGroup title={t("Reset")}>
+        <SettingRow title={t("Reset the island")} hint={t("Puts position, size, look and behaviour back to how they started.")}>
           <button className="btn" onClick={reset}>
-            <RotateCcw size={13} /> Reset island
+            <RotateCcw size={13} /> {t("Reset island")}
           </button>
         </SettingRow>
       </SettingGroup>

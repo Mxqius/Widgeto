@@ -2,11 +2,12 @@ import type { SizeKey, WidgetKind } from "@/shared/types/widget";
 import { BROWSER_AREA } from "@/shared/desktop/area";
 import { widgetSettingsOf, type ConfigPayload } from "@/shared/desktop/protocol";
 import { DEFAULT_SETTINGS } from "@/shared/settings/defaults";
+import { resolveLang, type LangSetting } from "@/shared/i18n/locale";
 
 /**
  * Outside Tauri there is no manager to talk to, so render a default tile.
- * `&size=`, `&accent=` and `&theme=` let the browser preview exercise each
- * tile size and the per-widget appearance overrides.
+ * `&size=`, `&accent=`, `&theme=` and `&lang=` let the browser preview exercise each
+ * tile size, the per-widget appearance overrides and the UI language.
  */
 export function previewConfig(kind: WidgetKind): ConfigPayload {
   const p = new URLSearchParams(window.location.search);
@@ -30,7 +31,10 @@ export function previewConfig(kind: WidgetKind): ConfigPayload {
       accent: accent ? `#${accent.replace(/^#/, "")}` : undefined,
       theme,
     },
-    settings: widgetSettingsOf(DEFAULT_SETTINGS),
+    settings: {
+      ...widgetSettingsOf(DEFAULT_SETTINGS),
+      language: resolveLang((p.get("lang") ?? undefined) as LangSetting | undefined),
+    },
     area: BROWSER_AREA,
     areas: [BROWSER_AREA],
     neighbours: [],

@@ -3,15 +3,17 @@ import { configOf } from "@/shared/widgets/config";
 import type { WidgetKind } from "@/shared/types/widget";
 import { Field } from "../Field";
 import { Range } from "@/app/manager/ui";
+import { useT } from "@/app/manager/i18n";
 
 export function PetPanel({ kind }: { kind: WidgetKind }) {
+  const t = useT();
   const stored = useApp((s) => s.widgets.find((w) => w.kind === kind)?.config);
   const setConfig = useApp((s) => s.setConfig);
   const c = configOf("pet", stored);
 
   return (
     <>
-      <Field label="Species" stack>
+      <Field label={t("Species")} stack>
         <div className="flex gap-1">
           {(["cat", "bun", "blob", "fox"] as const).map((sp) => (
             <button
@@ -24,20 +26,21 @@ export function PetPanel({ kind }: { kind: WidgetKind }) {
                   : { background: "rgba(255,255,255,0.06)", color: "var(--color-ink-400)" }
               }
             >
-              {sp}
+              {t(sp)}
             </button>
           ))}
         </div>
       </Field>
-      <Field label="Name">
+      <Field label={t("Name")}>
         <input
           className="field h-7 w-32 text-[12px]"
+          dir="auto"
           value={c.name}
           maxLength={14}
           onChange={(e) => setConfig(kind, { name: e.target.value })}
         />
       </Field>
-      <Field label="Colour">
+      <Field label={t("Colour")}>
         <div className="w-40">
           <Range
             min={0}

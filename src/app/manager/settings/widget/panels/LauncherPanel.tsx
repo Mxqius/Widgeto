@@ -4,9 +4,11 @@ import { useApp } from "@/app/manager/store";
 import { configOf, type QuickLink } from "@/shared/widgets/config";
 import { normaliseLaunchTarget } from "@/shared/lib/launchTarget";
 import type { WidgetKind } from "@/shared/types/widget";
+import { useT } from "@/app/manager/i18n";
 
 /** Editable list of sites/apps for Quick Launch. */
 export function LauncherPanel({ kind }: { kind: WidgetKind }) {
+  const t = useT();
   const stored = useApp((s) => s.widgets.find((w) => w.kind === kind)?.config);
   const setConfig = useApp((s) => s.setConfig);
   const c = configOf("launcher", stored);
@@ -27,9 +29,9 @@ export function LauncherPanel({ kind }: { kind: WidgetKind }) {
   return (
     <div className="py-1.5">
       <div className="mb-1.5 text-[12px] font-medium text-ink-100">
-        Shortcuts
-        <span className="ml-1.5 text-[10.5px] text-ink-500">
-          a site, an .exe, a folder, or any app:// link
+        {t("Shortcuts")}
+        <span className="ms-1.5 text-[10.5px] text-ink-500">
+          {t("a site, an .exe, a folder, or any app:// link")}
         </span>
       </div>
 
@@ -39,12 +41,12 @@ export function LauncherPanel({ kind }: { kind: WidgetKind }) {
             key={`${l.url}-${i}`}
             className="flex items-center gap-2 rounded-lg border border-white/6 bg-white/2 px-2 py-1.5"
           >
-            <span className="w-24 shrink-0 truncate text-[11.5px] font-medium text-ink-100">
+            <span dir="auto" className="w-24 shrink-0 truncate text-start text-[11.5px] font-medium text-ink-100">
               {l.name}
             </span>
-            <span className="min-w-0 flex-1 truncate text-[10.5px] text-ink-500">{l.url}</span>
+            <span dir="ltr" className="min-w-0 flex-1 truncate text-start text-[10.5px] text-ink-500">{l.url}</span>
             <button
-              title="Remove"
+              title={t("Remove")}
               onClick={() => save(c.links.filter((_, n) => n !== i))}
               className="shrink-0 text-ink-600 transition-colors hover:text-red-300"
             >
@@ -53,26 +55,27 @@ export function LauncherPanel({ kind }: { kind: WidgetKind }) {
           </div>
         ))}
         {c.links.length === 0 && (
-          <div className="px-1 py-2 text-[11px] text-ink-500">Nothing pinned yet.</div>
+          <div className="px-1 py-2 text-[11px] text-ink-500">{t("Nothing pinned yet.")}</div>
         )}
       </div>
 
       <div className="flex items-center gap-1.5">
         <input
           className="field h-7 w-24 text-[12px]"
-          placeholder="Name"
+          placeholder={t("Name")}
           value={name}
           onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && add()}
         />
         <input
+          dir="ltr"
           className="field h-7 flex-1 text-[12px]"
-          placeholder="figma.com or C:\App\app.exe"
+          placeholder={t("figma.com or C:\\App\\app.exe")}
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && add()}
         />
-        <button className="btn h-7 px-2" onClick={add} title="Add shortcut">
+        <button className="btn h-7 px-2" onClick={add} title={t("Add shortcut")}>
           <Plus size={13} />
         </button>
       </div>

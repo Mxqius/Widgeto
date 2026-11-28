@@ -13,7 +13,7 @@ export const TABS = [
 
 export type TabId = (typeof TABS)[number]["id"];
 
-export const BLURB: Record<TabId, string> = {
+export const BLURB = {
   appearance: "Tune the glass, the accent and the density of your widgets.",
   layout: "Control how your widgets snap, dock and arrange themselves.",
   widgets: "Shared formats, and where your live data comes from.",
@@ -22,7 +22,7 @@ export const BLURB: Record<TabId, string> = {
   ai: "Ask Claude, OpenAI or a local model from the island. Keys stay in Windows Credential Manager.",
   shortcuts: "Everything you can do without touching the mouse.",
   about: "Version, what it is built on, and what to send if something breaks.",
-};
+} as const satisfies Record<TabId, string>;
 
 export const SHORTCUTS = [
   { combo: "Ctrl+,", what: "Open settings" },
@@ -31,4 +31,4 @@ export const SHORTCUTS = [
   { combo: "Close window", what: "Keeps Widgeto running in the tray" },
   { combo: "Ctrl+L", what: "Lock / unlock every widget" },
   { combo: "Esc", what: "Close the current overlay" },
-];
+] as const;

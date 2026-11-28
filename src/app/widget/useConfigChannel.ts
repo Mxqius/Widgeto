@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { WidgetKind } from "@/shared/types/widget";
 import { EVT, type ActionPayload, type ConfigPayload } from "@/shared/desktop/protocol";
 import { isTauri } from "@/shared/lib/env";
+import { setLang } from "@/shared/i18n/locale";
 import { previewConfig } from "./previewConfig";
 
 /**
@@ -33,6 +34,12 @@ export function useConfigChannel(kind: WidgetKind) {
       un?.();
     };
   }, [kind]);
+
+  /* ------------------------------------------------------------ language */
+  const language = cfg?.settings.language;
+  useEffect(() => {
+    if (language) void setLang(language);
+  }, [language]);
 
   /* --------------------------------------------------------------- theme */
   const accent = cfg?.settings.accent;

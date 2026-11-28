@@ -7,6 +7,7 @@ import { SummaryStrip } from "./SummaryStrip";
 import { CatalogueFilters, type BoardTab } from "./CatalogueFilters";
 import { WidgetCard } from "./WidgetCard";
 import { TuningPanel } from "./TuningPanel";
+import { useT } from "@/app/manager/i18n";
 
 /**
  * The first screen. A summary strip across the top, then the catalogue as a
@@ -15,6 +16,7 @@ import { TuningPanel } from "./TuningPanel";
  * layout canvas; this screen is about what exists and how it is configured.
  */
 export default function ManagerBoard({ onOpenSettings }: { onOpenSettings: () => void }) {
+  const t = useT();
   const widgets = useApp((s) => s.widgets);
 
   const [query, setQuery] = useState("");
@@ -25,15 +27,16 @@ export default function ManagerBoard({ onOpenSettings }: { onOpenSettings: () =>
   const live = widgets.filter((w) => w.open).length;
 
   const rows = useMemo(() => {
-    const t = query.trim().toLowerCase();
-    if (t) {
-      return WIDGETS.filter(
-        (d) => d.name.toLowerCase().includes(t) || d.description.toLowerCase().includes(t),
+    const q = query.trim().toLowerCase();
+    if (q) {
+      // names are matched in English and in the UI language, whichever was typed
+      return WIDGETS.filter((d) =>
+        [d.name, d.description, d.nameEn, d.descriptionEn].some((s) => s.toLowerCase().includes(q)),
       );
     }
     if (tab === "active") return WIDGETS.filter((d) => state.get(d.kind)?.open);
     return WIDGETS;
-  }, [query, tab, state]);
+  }, [query, tab, state, t]);
 
   const tuned = tuning ? (WIDGETS.find((d) => d.kind === tuning) ?? null) : null;
 
@@ -75,11 +78,11 @@ export default function ManagerBoard({ onOpenSettings }: { onOpenSettings: () =>
           {rows.length === 0 && (
             <div className="px-4 py-16 text-center">
               <div className="text-[13px] font-medium text-ink-300">
-                {query ? `No widget matches “${query}”` : "Nothing on the desktop yet"}
+                {query ? t("No widget matches “{q}”", { q: query }) : t("Nothing on the desktop yet")}
               </div>
               {!query && (
                 <button className="btn btn-primary mx-auto mt-3 px-3" onClick={() => setTab("all")}>
-                  Browse all widgets
+                  {t("Browse all widgets")}
                 </button>
               )}
             </div>

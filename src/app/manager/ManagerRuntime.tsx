@@ -8,6 +8,8 @@ import { bindHotkey } from "./desktop/hotkeys";
 import { bindCaptureHotkey } from "./desktop/captureWindow";
 import { setAlwaysOnTop } from "./lib/window";
 import { isTauri } from "@/shared/lib/env";
+import { resolveLang, setLang } from "@/shared/i18n/locale";
+import { setTrayLanguage } from "@/shared/ipc/commands";
 
 /**
  * Everything the manager does that is not on screen: reconciling widget
@@ -23,6 +25,14 @@ export default function ManagerRuntime() {
   useDesktopSync();
   useIslandSync();
   useRadioHost();
+
+  // the UI language: this window, the tray menu, and (through their configs) the
+  // widget windows and the island
+  const language = useApp((s) => resolveLang(s.settings.language));
+  useEffect(() => {
+    void setLang(language);
+    void setTrayLanguage(language).catch(() => {});
+  }, [language]);
 
   const accent = useApp((s) => s.settings.accent);
   useEffect(() => {

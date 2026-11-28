@@ -3,6 +3,8 @@ import { useWidgetConfig, useWidgetPrefs } from "../prefs";
 import { pad } from "../lib/format";
 import { isSm } from "../lib/scale";
 import type { WidgetBodyProps } from "./props";
+import { digits } from "../i18n";
+import { useLang } from "@/shared/i18n/t";
 
 /**
  * The face never changes, so it is built once at module load rather than
@@ -53,6 +55,7 @@ export default function ClockWidget({ size }: WidgetBodyProps) {
   // with no second hand there is nothing to redraw between minutes
   const now = useNow(cfg.showSeconds ? 1000 : 15_000);
   const { clock24h } = useWidgetPrefs();
+  useLang();
 
   const s = now.getSeconds();
   const m = now.getMinutes();
@@ -86,7 +89,7 @@ export default function ClockWidget({ size }: WidgetBodyProps) {
       >
         <span style={{ color: "var(--accent)" }}>{isSm(size) ? "" : cfg.label}</span>
         <span>
-          {hh}:{pad(m)}
+          {digits(`${hh}:${pad(m)}`)}
         </span>
       </div>
     </div>

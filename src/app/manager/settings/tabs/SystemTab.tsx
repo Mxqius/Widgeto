@@ -6,8 +6,10 @@ import { setStartInTray } from "@/app/manager/desktop/startup";
 import { AutostartToggle } from "../controls/AutostartToggle";
 import { HotkeyField } from "../controls/HotkeyField";
 import { UpdateStatus } from "../controls/UpdateStatus";
+import { useT } from "@/app/manager/i18n";
 
 export function SystemTab() {
+  const t = useT();
   const s = useApp((st) => st.settings);
   const update = useApp((st) => st.update);
   const openAll = useApp((st) => st.openAll);
@@ -16,43 +18,43 @@ export function SystemTab() {
 
   return (
     <>
-      <SettingGroup title="Widgets on the desktop">
-        <SettingRow title="Desktop layer" hint="Where your widgets sit relative to other windows.">
+      <SettingGroup title={t("Widgets on the desktop")}>
+        <SettingRow title={t("Desktop layer")} hint={t("Where your widgets sit relative to other windows.")}>
           <Picker
             value={s.layer}
             onChange={(v) => update({ layer: v })}
             options={[
-              { value: "desktop", label: "On desktop" },
-              { value: "normal", label: "Normal" },
-              { value: "top", label: "Always on top" },
+              { value: "desktop", label: t("On desktop") },
+              { value: "normal", label: t("Normal") },
+              { value: "top", label: t("Always on top") },
             ]}
           />
         </SettingRow>
-        <SettingRow title="Show every widget" hint="Spawn a desktop window for all of them.">
+        <SettingRow title={t("Show every widget")} hint={t("Spawn a desktop window for all of them.")}>
           <button className="btn" onClick={openAll}>
-            Show all
+            {t("Show all")}
           </button>
         </SettingRow>
         <SettingRow
-          title="Clear the desktop"
-          hint="Closes every widget window, so a hidden widget costs no memory. Nothing is deleted."
+          title={t("Clear the desktop")}
+          hint={t("Closes every widget window, so a hidden widget costs no memory. Nothing is deleted.")}
         >
           <button className="btn" onClick={closeAll}>
-            Hide all
+            {t("Hide all")}
           </button>
         </SettingRow>
       </SettingGroup>
 
-      <SettingGroup title="Startup">
+      <SettingGroup title={t("Startup")}>
         <SettingRow
-          title="Launch at login"
-          hint="Registers Widgeto with Windows so your widgets are there on boot."
+          title={t("Launch at login")}
+          hint={t("Registers Widgeto with Windows so your widgets are there on boot.")}
         >
           <AutostartToggle />
         </SettingRow>
         <SettingRow
-          title="Start in the tray"
-          hint="Come up as a tray icon instead of opening this window."
+          title={t("Start in the tray")}
+          hint={t("Come up as a tray icon instead of opening this window.")}
         >
           <Toggle
             checked={s.startInTray}
@@ -64,32 +66,32 @@ export function SystemTab() {
         </SettingRow>
       </SettingGroup>
 
-      <SettingGroup title="Updates">
+      <SettingGroup title={t("Updates")}>
         <SettingRow
-          title="Check for updates automatically"
-          hint="Looks for a new version shortly after Widgeto starts."
+          title={t("Check for updates automatically")}
+          hint={t("Looks for a new version shortly after Widgeto starts.")}
         >
           <Toggle
             checked={s.autoUpdateEnabled}
             onChange={(v) => update({ autoUpdateEnabled: v })}
           />
         </SettingRow>
-        <SettingRow title="Check for updates now">
+        <SettingRow title={t("Check for updates now")}>
           <UpdateStatus />
         </SettingRow>
       </SettingGroup>
 
-      <SettingGroup title="Quick capture">
+      <SettingGroup title={t("Quick capture")}>
         <SettingRow
-          title="Capture hotkey"
-          hint="Opens a one-line bar that appends to your Notes widget."
+          title={t("Capture hotkey")}
+          hint={t("Opens a one-line bar that appends to your Notes widget.")}
         >
           <HotkeyField field="captureHotkey" />
         </SettingRow>
       </SettingGroup>
 
-      <SettingGroup title="Manager window">
-        <SettingRow title="Always on top" hint="Keep this manager above other windows.">
+      <SettingGroup title={t("Manager window")}>
+        <SettingRow title={t("Always on top")} hint={t("Keep this manager above other windows.")}>
           <Toggle
             checked={s.managerAlwaysOnTop}
             onChange={(v) => {
@@ -100,21 +102,21 @@ export function SystemTab() {
         </SettingRow>
       </SettingGroup>
 
-      <SettingGroup title="Danger zone">
+      <SettingGroup title={t("Danger zone")}>
         <SettingRow
-          title="Reset everything"
-          hint="Restore the default widgets and default settings."
+          title={t("Reset everything")}
+          hint={t("Restore the default widgets and default settings.")}
         >
           <button className="btn text-red-300/90 hover:bg-red-500/15" onClick={reset}>
-            <RotateCcw size={13} /> Reset
+            <RotateCcw size={13} /> {t("Reset")}
           </button>
         </SettingRow>
         <SettingRow
-          title="Restore default preferences"
-          hint="Keeps your widgets, resets the sliders."
+          title={t("Restore default preferences")}
+          hint={t("Keeps your widgets, resets the sliders.")}
         >
           <button className="btn" onClick={() => update(DEFAULT_SETTINGS)}>
-            Restore defaults
+            {t("Restore defaults")}
           </button>
         </SettingRow>
       </SettingGroup>

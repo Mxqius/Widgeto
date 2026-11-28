@@ -6,6 +6,7 @@ import { bySize, isSm } from "../lib/scale";
 import { cx } from "@/shared/lib/cx";
 import { uid } from "@/shared/lib/math";
 import type { WidgetBodyProps } from "./props";
+import { digits, t as tr, useT } from "../i18n";
 
 interface Task {
   id: string;
@@ -13,19 +14,21 @@ interface Task {
   done: boolean;
 }
 
-const SEED: Task[] = [
-  { id: "a", text: "Reply to emails", done: true },
-  { id: "b", text: "Plan the week ahead", done: false },
-  { id: "c", text: "Book the dentist appointment", done: false },
-  { id: "d", text: "Buy groceries", done: false },
+/** Example tasks for a first run, in whichever language the app speaks then. */
+const seed = (): Task[] => [
+  { id: "a", text: tr("Reply to emails"), done: true },
+  { id: "b", text: tr("Plan the week ahead"), done: false },
+  { id: "c", text: tr("Book the dentist appointment"), done: false },
+  { id: "d", text: tr("Buy groceries"), done: false },
 ];
 
 /** Headed by a big done/total fraction, as on the watched-movies card. */
 export default function TasksWidget({ kind, size }: WidgetBodyProps) {
-  const [tasks, setTasks] = useLocal<Task[]>(`widgeto.tasks.${kind}`, SEED);
+  const t = useT();
+  const [tasks, setTasks] = useLocal<Task[]>(`widgeto.tasks.${kind}`, seed());
   const [draft, setDraft] = useState("");
 
-  const done = tasks.filter((t) => t.done).length;
+  const done = tasks.filter((x) => x.done).length;
   const pct = tasks.length ? (done / tasks.length) * 100 : 0;
   const limit = bySize(size, 2, 3, 5);
 
@@ -43,41 +46,42 @@ export default function TasksWidget({ kind, size }: WidgetBodyProps) {
     <Pad size={size} className="gap-2">
       <div>
         <div className="flex items-baseline">
-          <Stat value={done} size={isSm(size) ? 24 : 30} />
-          <span className="dim text-[15px] font-semibold">/{tasks.length}</span>
+          <Stat value={digits(done)} size={isSm(size) ? 24 : 30} />
+          <span className="dim text-[15px] font-semibold">/{digits(tasks.length)}</span>
         </div>
-        <div className="dim text-[10.5px] font-semibold">TASKS DONE</div>
+        <div className="dim text-[10.5px] font-semibold">{t("TASKS DONE")}</div>
       </div>
 
       <div className="relative h-0.75 w-full overflow-hidden rounded-full">
         <span className="absolute inset-0 opacity-15" style={{ background: "currentColor" }} />
         <span
-          className="absolute inset-y-0 left-0 rounded-full transition-[width] duration-400"
+          className="absolute inset-y-0 start-0 rounded-full transition-[width] duration-400"
           style={{ width: `${pct}%`, background: "var(--accent)" }}
         />
       </div>
 
-      <div className="-mr-1 min-h-0 flex-1 overflow-y-auto pr-1">
-        {tasks.slice(0, limit).map((t) => (
+      <div className="-me-1 min-h-0 flex-1 overflow-y-auto pe-1">
+        {tasks.slice(0, limit).map((task) => (
           <button
-            key={t.id}
+            key={task.id}
             data-nodrag
-            onClick={() => toggle(t.id)}
-            className="flex w-full items-center gap-2 py-0.75 text-left"
+            onClick={() => toggle(task.id)}
+            className="flex w-full items-center gap-2 py-0.75 text-start"
           >
             <span
               className={cx(
                 "grid size-3.5 shrink-0 place-items-center rounded-sm border transition-colors",
-                t.done ? "border-transparent" : "border-current opacity-30",
+                task.done ? "border-transparent" : "border-current opacity-30",
               )}
-              style={t.done ? { background: "var(--accent)" } : undefined}
+              style={task.done ? { background: "var(--accent)" } : undefined}
             >
-              {t.done && <Check size={9} strokeWidth={3.5} className="text-white" />}
+              {task.done && <Check size={9} strokeWidth={3.5} className="text-white" />}
             </span>
             <span
-              className={cx("truncate text-[11.5px] font-medium", t.done && "dimmer line-through")}
+              dir="auto"
+              className={cx("truncate text-[11.5px] font-medium", task.done && "dimmer line-through")}
             >
-              {t.text}
+              {task.text}
             </span>
           </button>
         ))}
@@ -91,7 +95,8 @@ export default function TasksWidget({ kind, size }: WidgetBodyProps) {
           onKeyDown={(e) => {
             if (e.key === "Enter") add();
           }}
-          placeholder="Add a task…"
+          dir="auto"
+          placeholder={t("Add a task…")}
           className="w-full bg-transparent text-[11.5px] font-medium outline-none placeholder:opacity-30"
         />
       )}

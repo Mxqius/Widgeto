@@ -2,9 +2,11 @@ import { useEffect, useState } from "react";
 import type { Volume } from "@/shared/ipc/commands";
 import { ISLAND_EVT, type IslandConfig, type Privacy } from "@/shared/island/protocol";
 import { isTauri } from "@/shared/lib/env";
+import { setLang, storedLang } from "@/shared/i18n/locale";
 import { SAMPLE_VOLUME } from "./sample";
 
 export const DEFAULT_ISLAND_CONFIG: IslandConfig = {
+  language: storedLang(),
   accent: "#a78bfa",
   clock24h: true,
   temperatureUnit: "C",
@@ -104,6 +106,10 @@ export function useIslandBridge() {
   useEffect(() => {
     document.documentElement.style.setProperty("--accent", cfg.accent);
   }, [cfg.accent]);
+
+  useEffect(() => {
+    void setLang(cfg.language);
+  }, [cfg.language]);
 
   /** browser preview only: stand-ins for what the native watcher would send */
   const simulate = live ? null : { setVolume, setPrivacy, setCaps, setCfg };

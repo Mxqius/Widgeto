@@ -3,18 +3,23 @@ import { useApp } from "@/app/manager/store";
 import { Tip } from "@/app/manager/ui";
 import { isTauri } from "@/shared/lib/env";
 import { setAlwaysOnTop, winClose, winMinimize, winToggleMax } from "@/app/manager/lib/window";
+import { useT } from "@/app/manager/i18n";
 
 export default function ManagerChrome({ onOpenSettings }: { onOpenSettings: () => void }) {
+  const t = useT();
   const s = useApp((st) => st.settings);
   const update = useApp((st) => st.update);
   const live = useApp((st) => st.widgets.filter((w) => w.open).length);
 
   return (
+    // a window title bar: name on the left, window buttons on the right, in
+    // every language — only the words inside it are translated
     <header
+      dir="ltr"
       className="app-drag relative z-600 flex h-11 shrink-0 items-center gap-2 border-b border-white/6
                  bg-ink-950/80 px-2.5 backdrop-blur-xl"
     >
-      <div className="flex items-center gap-2 pl-1">
+      <div className="flex items-center gap-2 ps-1">
         <div
           className="grid size-4.75 place-items-center rounded-md text-[10px] font-bold text-white"
           style={{ background: "var(--accent)", boxShadow: "0 0 16px -4px var(--accent)" }}
@@ -26,10 +31,10 @@ export default function ManagerChrome({ onOpenSettings }: { onOpenSettings: () =
 
       <div className="flex-1" />
 
-      <span className="chip no-drag">{live} on desktop</span>
+      <span dir="auto" className="chip no-drag">{t("{n} on desktop", { n: live })}</span>
 
       <div className="no-drag flex items-center gap-1.5">
-        <Tip label="Keep this manager above other windows">
+        <Tip label={t("Keep this manager above other windows")}>
           <button
             className="btn"
             data-selected={s.managerAlwaysOnTop}
@@ -41,14 +46,14 @@ export default function ManagerChrome({ onOpenSettings }: { onOpenSettings: () =
             {s.managerAlwaysOnTop ? <Pin size={13} /> : <PinOff size={13} />}
           </button>
         </Tip>
-        <Tip label="Settings">
+        <Tip label={t("Settings")}>
           <button className="btn" onClick={onOpenSettings}>
             <Settings2 size={14} />
           </button>
         </Tip>
 
         {isTauri() && (
-          <div className="ml-1 flex items-center gap-0.5 border-l border-white/[0.07] pl-1.5">
+          <div className="ms-1 flex items-center gap-0.5 border-s border-white/[0.07] ps-1.5">
             <WinBtn onClick={winMinimize}>
               <Minus size={13} />
             </WinBtn>

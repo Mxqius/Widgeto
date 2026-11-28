@@ -5,6 +5,7 @@ import { useLocal } from "../lib/hooks";
 import { usePageVisible } from "../lib/visibility";
 import { bySize, isSm } from "../lib/scale";
 import type { WidgetBodyProps } from "./props";
+import { useT } from "../i18n";
 
 type Mood = "idle" | "curious" | "happy" | "excited" | "sleepy" | "asleep";
 export type Species = "cat" | "bun" | "blob" | "fox";
@@ -19,14 +20,14 @@ interface Puff {
   glyph: string;
 }
 
-const STATUS: Record<Mood, string> = {
+const STATUS = {
   asleep: "zzz…",
   sleepy: "sleepy",
   excited: "so happy!!",
   happy: "happy!",
   curious: "hi there",
   idle: "hanging out",
-};
+} as const satisfies Record<Mood, string>;
 
 /**
  * A small resident creature. It breathes and blinks on its own, tracks the
@@ -39,6 +40,7 @@ const STATUS: Record<Mood, string> = {
  * nobody is watching a hidden pet blink.
  */
 export default function PetWidget({ size }: WidgetBodyProps) {
+  const t = useT();
   const cfg = useWidgetConfig("pet");
   const species = cfg.species as Species;
   const visible = usePageVisible();
@@ -171,7 +173,7 @@ export default function PetWidget({ size }: WidgetBodyProps) {
         }}
         onClick={pet}
         className="relative flex w-full flex-1 cursor-pointer items-center justify-center"
-        title={`Pet ${cfg.name}`}
+        title={t("Pet {name}", { name: cfg.name })}
       >
         {puffs.map((p) => (
           <span
@@ -258,12 +260,12 @@ export default function PetWidget({ size }: WidgetBodyProps) {
       </div>
 
       <div className="flex w-full items-baseline justify-between">
-        <span className="truncate text-[12px] font-bold tracking-tight">{cfg.name}</span>
-        <span className="dim shrink-0 text-[10px] font-semibold">{STATUS[mood]}</span>
+        <span dir="auto" className="truncate text-[12px] font-bold tracking-tight">{cfg.name}</span>
+        <span className="dim shrink-0 text-[10px] font-semibold">{t(STATUS[mood])}</span>
       </div>
       {!small && (
         <div className="dimmer w-full text-[9.5px] font-semibold tabular-nums">
-          {pets} {pets === 1 ? "pet" : "pets"}
+          {pets === 1 ? t("{n} pet", { n: pets }) : t("{n} pets", { n: pets })}
         </div>
       )}
     </Pad>

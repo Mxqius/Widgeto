@@ -1,5 +1,6 @@
 import type { ArrangeMode } from "./geometry";
 import type { AiProvider } from "@/shared/ai/client";
+import type { LangSetting } from "@/shared/i18n/locale";
 
 export type PowerSaver = "off" | "onBattery" | "always";
 
@@ -93,6 +94,8 @@ export interface Settings {
   aiBaseUrls: { openai: string; local: string };
   /** global shortcut that opens the island's Ask tab; empty disables it */
   aiHotkey: string;
+  /** UI language; "system" follows the OS display language */
+  language: LangSetting;
   clock24h: boolean;
   temperatureUnit: "C" | "F";
   wallpaper: string;

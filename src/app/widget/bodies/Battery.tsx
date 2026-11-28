@@ -4,8 +4,10 @@ import { useBattery } from "../data/useLocalStats";
 import { useWidgetConfig } from "../prefs";
 import { bySize, isLg, isSm } from "../lib/scale";
 import type { WidgetBodyProps } from "./props";
+import { digits, useT } from "../i18n";
 
 export default function BatteryWidget({ size }: WidgetBodyProps) {
+  const t = useT();
   const cfg = useWidgetConfig("battery");
   const { data } = useBattery(cfg.refreshSec);
   const pct = data?.percent ?? 0;
@@ -16,33 +18,37 @@ export default function BatteryWidget({ size }: WidgetBodyProps) {
     return (
       <Pad size={size} className="justify-between">
         <div>
-          <Stat value="AC" size={small ? 30 : 40} />
-          <div className="dim mt-0.5 text-[10.5px] font-semibold">MAINS POWER</div>
+          <Stat value={t("AC")} size={small ? 30 : 40} />
+          <div className="dim mt-0.5 text-[10.5px] font-semibold">{t("MAINS POWER")}</div>
         </div>
         <div className="flex items-center gap-1.5">
           <Plug size={14} style={{ color: "var(--accent)" }} />
-          <span className="dim text-[11px] font-semibold">No battery detected</span>
+          <span className="dim text-[11px] font-semibold">{t("No battery detected")}</span>
         </div>
       </Pad>
     );
   }
 
   const mins = data?.secsLeft ? Math.round(data.secsLeft / 60) : null;
-  const suffix = data?.charging ? "TO FULL" : "LEFT";
+  const charging = !!data?.charging;
   const left =
     mins === null
       ? data?.full
-        ? "FULL"
-        : "ESTIMATING"
+        ? t("FULL")
+        : t("ESTIMATING")
       : mins >= 60
-        ? `${Math.floor(mins / 60)}H ${mins % 60}M ${suffix}`
-        : `${mins} MIN ${suffix}`;
+        ? charging
+          ? t("{h}H {m}M TO FULL", { h: Math.floor(mins / 60), m: mins % 60 })
+          : t("{h}H {m}M LEFT", { h: Math.floor(mins / 60), m: mins % 60 })
+        : charging
+          ? t("{m} MIN TO FULL", { m: mins })
+          : t("{m} MIN LEFT", { m: mins });
 
   return (
     <Pad size={size} className="justify-between">
       <div className="flex items-start justify-between">
         <div>
-          <Stat value={Math.round(pct)} unit="%" size={bySize(size, 30, 40, 50)} />
+          <Stat value={digits(Math.round(pct))} unit="%" size={bySize(size, 30, 40, 50)} />
           <div className="dim mt-0.5 text-[10.5px] font-semibold">{left}</div>
         </div>
         {data?.charging && (
@@ -60,13 +66,13 @@ export default function BatteryWidget({ size }: WidgetBodyProps) {
         accent="var(--accent)"
         height={bySize(size, 26, 42, 58)}
         ticks={small ? 14 : 24}
-        labels={small ? undefined : ["0", "50", "100"]}
+        labels={small ? undefined : [digits(0), digits(50), digits(100)]}
       />
 
       {isLg(size) && data?.health != null && (
         <div className="flex items-baseline justify-between">
-          <span className="dim text-[10.5px] font-semibold">HEALTH</span>
-          <span className="numeral text-[13px]">{Math.round(data.health)}%</span>
+          <span className="dim text-[10.5px] font-semibold">{t("HEALTH")}</span>
+          <span className="numeral text-[13px]">{digits(`${Math.round(data.health)}%`)}</span>
         </div>
       )}
     </Pad>

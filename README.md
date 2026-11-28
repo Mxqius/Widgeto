@@ -27,6 +27,8 @@ sizes, docks, shows and hides them.
 - **Multi-monitor aware** — every display's work area is tracked independently
 - **Lives in the tray** — closing the manager parks it there; the widgets stay on the desktop
 - **A global capture hotkey**, per-widget settings, profiles, and a keyboard-first manager
+- **English and Persian (فارسی)** — a full right-to-left layout, the Vazirmatn font, Jalali dates
+  and Persian digits; see [Language](#language)
 - **Built-in auto-updates** you can turn off — see [Updating](#updating)
 
 ## Download
@@ -68,6 +70,23 @@ or **Skip this version**. If the manager is parked in the tray at the time, the 
 out to say an update is ready.
 Automatic checking can be turned off entirely in **Settings → Desktop & system → Updates**, which
 also has a manual "Check for updates now" button.
+
+## Language
+
+Settings → Appearance → Language picks **System**, **English** or **فارسی**. System, the default,
+follows the Windows display language. Persian switches every window (the manager, the widgets, the
+island, quick capture and the tray menu) to right-to-left, in Vazirmatn, with Jalali dates, a
+Saturday-first calendar and Persian digits. Things that mirror the physical screen stay
+left-to-right: the island's position, widget placement, media controls, sliders, keyboard
+shortcuts, and URLs, keys and code.
+
+Vazirmatn ships inside the app, so nothing is downloaded. Persian text you bring in yourself, such
+as a note, a station name or an AI answer, renders in Vazirmatn in English mode too.
+
+For contributors: English text is the key. Each window has its own `i18n/fa.ts` dictionary
+(`src/app/*/i18n/`), loaded only in Persian mode, and the key type comes from that file, so
+`npm run build` fails on any English string that has no Persian entry. The shared helpers live in
+`src/shared/i18n/` (locale, `t`, date and number formatting, Jalali calendar maths).
 
 ## Project layout
 

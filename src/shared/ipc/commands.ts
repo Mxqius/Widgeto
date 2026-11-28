@@ -158,3 +158,10 @@ export const radioClick = (id: string) => call<void>("radio_click", { id });
 
 /** The song a stream says it is playing, from its in-band metadata. */
 export const radioNowTitle = (url: string) => call<string | null>("radio_now_title", { url });
+
+/** Relabel the tray menu in the UI's language. */
+export async function setTrayLanguage(lang: "en" | "fa"): Promise<void> {
+  if (!isTauri()) return;
+  const { invoke } = await import("@tauri-apps/api/core");
+  await invoke("set_tray_language", { lang });
+}

@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { fetchHealth } from "@/shared/ipc/commands";
+import { useT } from "@/app/manager/i18n";
 
 /** Reports the Rust cache so the data layer can be sanity-checked in place. */
 export function DataStatus() {
+  const t = useT();
   const [state, setState] = useState<"idle" | "checking" | "up" | "down">("idle");
   const [cached, setCached] = useState(0);
 
@@ -28,14 +30,14 @@ export function DataStatus() {
           }}
         >
           {state === "checking"
-            ? "checking…"
+            ? t("checking…")
             : state === "up"
-              ? `ready · ${cached} cached`
-              : "unavailable"}
+              ? t("ready · {n} cached", { n: cached })
+              : t("unavailable")}
         </span>
       )}
       <button className="btn" onClick={check}>
-        Check
+        {t("Check")}
       </button>
     </div>
   );

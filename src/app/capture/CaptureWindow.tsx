@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { CornerDownLeft, ListChecks, StickyNote } from "lucide-react";
 import { isTauri } from "@/shared/lib/env";
+import { setLang, storedLang } from "@/shared/i18n/locale";
+import { useT } from "./i18n";
 
 /**
  * Quick capture. A single line, opened by the global hotkey from wherever you
@@ -12,9 +14,18 @@ export default function CaptureWindow() {
   const [asTask, setAsTask] = useState(false);
   const [saved, setSaved] = useState(false);
   const ref = useRef<HTMLInputElement>(null);
+  const t = useT();
 
   useEffect(() => {
     ref.current?.focus();
+  }, []);
+
+  // this window is hidden and shown rather than reopened, and has no config
+  // channel: pick up a language change from the manager each time it comes back
+  useEffect(() => {
+    const sync = () => void setLang(storedLang());
+    window.addEventListener("focus", sync);
+    return () => window.removeEventListener("focus", sync);
   }, []);
 
   const close = async () => {
@@ -53,12 +64,13 @@ export default function CaptureWindow() {
             // Ctrl+Enter files it as a checkbox instead
             if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) setAsTask(true);
           }}
-          placeholder="Jot something down…"
+          placeholder={t("Jot something down…")}
+          dir="auto"
           className="min-w-0 flex-1 bg-transparent text-[14px] font-medium text-white outline-none placeholder:text-white/30"
         />
         <button
           onClick={() => setAsTask((v) => !v)}
-          title="Save as a checkbox"
+          title={t("Save as a checkbox")}
           className="shrink-0 rounded-md p-1 transition-colors"
           style={{
             background: asTask ? "var(--accent)" : "rgba(255,255,255,0.08)",
@@ -70,9 +82,9 @@ export default function CaptureWindow() {
       </div>
 
       <div className="flex items-center justify-between text-[10px] font-semibold text-white/35">
-        <span>{saved ? "Saved to Notes" : asTask ? "Saves as a task" : "Saves as a line"}</span>
+        <span>{saved ? t("Saved to Notes") : asTask ? t("Saves as a task") : t("Saves as a line")}</span>
         <span className="flex items-center gap-1">
-          <CornerDownLeft size={10} /> enter · esc to dismiss
+          <CornerDownLeft size={10} className="rtl:-scale-x-100" /> {t("enter · esc to dismiss")}
         </span>
       </div>
     </div>

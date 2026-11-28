@@ -24,6 +24,8 @@ export function Toggle({
           "block size-4 rounded-full bg-white shadow-[0_1px_4px_rgba(0,0,0,0.5)]",
           "translate-x-0.75 transition-transform duration-200 ease-out-expo",
           "data-checked:translate-x-4.75",
+          // the switch is mirrored in right-to-left, so the thumb travels the other way
+          "rtl:-translate-x-0.75 rtl:data-checked:-translate-x-4.75",
         )}
       />
     </Switch.Root>

@@ -4,6 +4,7 @@ import { AI_PROVIDERS, hasKey, openManagerSettings, readClipboard, type AiTarget
 import { isTauri } from "@/shared/lib/env";
 import type { AskState } from "../data/useAsk";
 import { Markdown } from "./Markdown";
+import { useT } from "../i18n";
 
 const SAMPLE_CLIP = "The quarterly report shows revenue up 12% while costs held flat, mostly thanks to the new pricing.";
 
@@ -23,6 +24,7 @@ export function AskPanel({ ask, ai, focusSignal, onFocusChange, onClose }: {
   onFocusChange: (focused: boolean) => void;
   onClose: () => void;
 }) {
+  const t = useT();
   const [text, setText] = useState("");
   const input = useRef<HTMLInputElement>(null);
   const clip = useClipboard(focusSignal);
@@ -50,7 +52,7 @@ export function AskPanel({ ask, ai, focusSignal, onFocusChange, onClose }: {
       {talking ? (
         <Conversation ask={ask} />
       ) : needsKey ? (
-        <SetupCard message="Add your Claude API key to start asking." />
+        <SetupCard message={t("Add your Claude API key to start asking.")} />
       ) : (
         <Starters clip={clip} onPick={send} />
       )}
@@ -86,22 +88,23 @@ export function AskPanel({ ask, ai, focusSignal, onFocusChange, onClose }: {
               else onClose();
             }
           }}
-          placeholder={talking ? "Ask a follow-up…" : `Ask ${name}…`}
+          dir="auto"
+          placeholder={talking ? t("Ask a follow-up…") : t("Ask {name}…", { name })}
           spellCheck={false}
           autoComplete="off"
           className="min-w-0 flex-1 bg-transparent text-[12.5px] font-medium text-white outline-none placeholder:text-white/35"
         />
         {talking && !ask.streaming && (
-          <button type="button" className="island-icon-btn island-icon-xs" title="New chat" onClick={ask.reset}>
+          <button type="button" className="island-icon-btn island-icon-xs" title={t("New chat")} onClick={ask.reset}>
             <Plus size={13} />
           </button>
         )}
         {ask.streaming ? (
-          <button type="button" className="island-ask-send" title="Stop" onClick={ask.stop}>
+          <button type="button" className="island-ask-send" title={t("Stop")} onClick={ask.stop}>
             <Square size={9} className="fill-current" />
           </button>
         ) : (
-          <button type="submit" className="island-ask-send" title="Ask" disabled={!text.trim() || needsKey}>
+          <button type="submit" className="island-ask-send" title={t("Ask")} disabled={!text.trim() || needsKey}>
             <ArrowUp size={13} strokeWidth={2.6} />
           </button>
         )}
@@ -113,12 +116,13 @@ export function AskPanel({ ask, ai, focusSignal, onFocusChange, onClose }: {
 /* ------------------------------------------------------------ empty state */
 
 function Starters({ clip, onPick }: { clip: string | null; onPick: (q: string, label: string) => void }) {
+  const t = useT();
   if (!clip) {
     return (
       <div className="flex min-h-0 flex-1 flex-col justify-center gap-1 px-1">
-        <div className="text-[13.5px] font-bold text-white/90">Ask anything</div>
+        <div className="text-[13.5px] font-bold text-white/90">{t("Ask anything")}</div>
         <div className="text-[11.5px] font-medium text-white/45">
-          Copy some text first to summarize, explain, fix or translate it in one click.
+          {t("Copy some text first to summarize, explain, fix or translate it in one click.")}
         </div>
       </div>
     );
@@ -126,18 +130,18 @@ function Starters({ clip, onPick }: { clip: string | null; onPick: (q: string, l
   return (
     <div className="flex min-h-0 flex-1 flex-col justify-center gap-2">
       <div className="flex items-center gap-1.5 px-1 text-[11px] font-medium text-white/40">
-        <span className="shrink-0 font-semibold text-white/55">Copied</span>
-        <span className="truncate">“{clip.replace(/\s+/g, " ").slice(0, 120)}”</span>
+        <span className="shrink-0 font-semibold text-white/55">{t("Copied")}</span>
+        <span dir="auto" className="truncate">“{clip.replace(/\s+/g, " ").slice(0, 120)}”</span>
       </div>
       <div className="flex flex-wrap gap-1.5">
         {CLIP_ACTIONS.map(({ id, label, icon: I, prompt }) => (
           <button
             key={id}
             className="island-ask-chip"
-            onClick={() => onPick(`${prompt}\n\n${clip}`, `${label} · copied text`)}
+            onClick={() => onPick(`${t(prompt)}\n\n${clip}`, t("{action} · copied text", { action: t(label) }))}
           >
             <I size={12} />
-            {label}
+            {t(label)}
           </button>
         ))}
       </div>
@@ -146,10 +150,11 @@ function Starters({ clip, onPick }: { clip: string | null; onPick: (q: string, l
 }
 
 function SetupCard({ message }: { message: string }) {
+  const t = useT();
   return (
     <div className="flex min-h-0 flex-1 items-center gap-3 px-1">
       <div className="min-w-0 flex-1">
-        <div className="text-[13.5px] font-bold text-white/90">Set up Ask AI</div>
+        <div className="text-[13.5px] font-bold text-white/90">{t("Set up Ask AI")}</div>
         <div className="text-[11.5px] font-medium text-white/45">{message}</div>
       </div>
       <SettingsButton />
@@ -158,6 +163,7 @@ function SetupCard({ message }: { message: string }) {
 }
 
 function SettingsButton() {
+  const t = useT();
   return (
     <button
       className="island-ask-chip shrink-0"
@@ -166,7 +172,7 @@ function SettingsButton() {
       }}
     >
       <Settings2 size={12} />
-      Open settings
+      {t("Open settings")}
     </button>
   );
 }
@@ -184,22 +190,23 @@ function Conversation({ ask }: { ask: AskState }) {
   }, [ask.draft, ask.turns.length]);
 
   const last = ask.turns.length - 1;
+  const t = useT();
   return (
     <div
       ref={box}
-      className="island-ask-scroll min-h-0 flex-1 overflow-y-auto pr-1"
+      className="island-ask-scroll min-h-0 flex-1 overflow-y-auto pe-1"
       onScroll={(e) => {
         const el = e.currentTarget;
         stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 24;
       }}
     >
-      {ask.turns.map((t, i) =>
-        t.role === "user" ? (
-          <div key={i} className={`island-ask-q ${i > 0 ? "mt-3" : ""}`}>
-            {t.label ?? t.text}
+      {ask.turns.map((turn, i) =>
+        turn.role === "user" ? (
+          <div key={i} dir="auto" className={`island-ask-q ${i > 0 ? "mt-3" : ""}`}>
+            {turn.label ?? turn.text}
           </div>
         ) : (
-          <Answer key={i} text={t.text} copyable={i === last && !ask.streaming} />
+          <Answer key={i} text={turn.text} copyable={i === last && !ask.streaming} />
         ),
       )}
       {ask.streaming &&
@@ -208,7 +215,7 @@ function Conversation({ ask }: { ask: AskState }) {
             <Markdown text={ask.draft} />
           </div>
         ) : (
-          <div className="island-ask-thinking" aria-label="Thinking">
+          <div className="island-ask-thinking" aria-label={t("Thinking")}>
             <i />
             <i />
             <i />
@@ -220,6 +227,7 @@ function Conversation({ ask }: { ask: AskState }) {
 }
 
 function Answer({ text, copyable }: { text: string; copyable: boolean }) {
+  const t = useT();
   const [copied, setCopied] = useState(false);
   return (
     <div className="island-ask-a group">
@@ -227,7 +235,7 @@ function Answer({ text, copyable }: { text: string; copyable: boolean }) {
       {copyable && (
         <button
           className="island-ask-copy"
-          title="Copy answer"
+          title={t("Copy answer")}
           onClick={() => {
             void navigator.clipboard?.writeText(text).then(() => {
               setCopied(true);
@@ -236,7 +244,7 @@ function Answer({ text, copyable }: { text: string; copyable: boolean }) {
           }}
         >
           {copied ? <Check size={11} /> : <Copy size={11} />}
-          {copied ? "Copied" : "Copy"}
+          {copied ? t("Copied") : t("Copy")}
         </button>
       )}
     </div>

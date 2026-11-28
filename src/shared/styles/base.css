@@ -24,3 +24,18 @@ body {
   background-clip: content-box;
 }
 ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.16); background-clip: content-box; }
+
+/* ---------- Persian ---------- */
+/* Vazirmatn first, so Latin words inside Persian text match its letterforms */
+html:lang(fa) body {
+  font-family: "Vazirmatn Variable", var(--font-sans);
+}
+/*
+ * Tracking pulls Persian letters out of their joins, and the tight negative
+ * values used on Latin headings make them collide. Persian runs untracked.
+ */
+html:lang(fa) * { letter-spacing: normal !important; }
+/* things that read left to right whatever the UI language */
+html:lang(fa) [dir="ltr"] {
+  font-family: var(--font-sans);
+}

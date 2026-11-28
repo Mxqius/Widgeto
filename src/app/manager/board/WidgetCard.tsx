@@ -4,8 +4,16 @@ import { Tip, cn } from "@/app/manager/ui";
 import { useApp } from "@/app/manager/store";
 import type { WidgetDef } from "@/app/manager/widgets/catalogue";
 import type { SizeKey, WidgetInstance, WidgetKind } from "@/shared/types/widget";
+import { digits, useT } from "@/app/manager/i18n";
 
 const SIZES: SizeKey[] = ["sm", "md", "lg"];
+
+const SIZE_TITLE = { sm: "Small size", md: "Medium size", lg: "Large size" } as const;
+const SIZE_LETTER = { sm: "S", md: "M", lg: "L" } as const;
+const DOCK = {
+  "top-left": "top left", top: "top", "top-right": "top right", left: "left", center: "centre",
+  right: "right", "bottom-left": "bottom left", bottom: "bottom", "bottom-right": "bottom right",
+} as const;
 
 /**
  * Memoised, and subscribed to `lockAll` rather than the whole settings object.
@@ -25,6 +33,7 @@ export const WidgetCard = memo(function WidgetCard({
   tuning: boolean;
   onTune: (kind: WidgetKind | null) => void;
 }) {
+  const t = useT();
   const lockAll = useApp((s) => s.settings.lockAll);
   const areas = useApp((s) => s.areas);
   const setOpen = useApp((s) => s.setOpen);
@@ -47,7 +56,7 @@ export const WidgetCard = memo(function WidgetCard({
       <div className="flex items-start gap-2.5">
         <button
           onClick={() => setOpen(def.kind, !widget.open)}
-          title={widget.open ? "Remove from desktop" : "Add to desktop"}
+          title={widget.open ? t("Remove from desktop") : t("Add to desktop")}
           className="relative grid size-9 shrink-0 place-items-center rounded-[10px] border border-white/8 transition-transform active:scale-95"
           style={{
             background: `color-mix(in srgb, ${def.accent} ${widget.open ? 20 : 9}%, transparent)`,
@@ -57,7 +66,7 @@ export const WidgetCard = memo(function WidgetCard({
         >
           <Icon size={16} />
           <span
-            className="absolute -right-1 -bottom-1 grid size-4 place-items-center rounded-full border-2 border-ink-950"
+            className="absolute -end-1 -bottom-1 grid size-4 place-items-center rounded-full border-2 border-ink-950"
             style={{ background: widget.open ? def.accent : "#3a3a40" }}
           >
             {widget.open ? (
@@ -72,12 +81,12 @@ export const WidgetCard = memo(function WidgetCard({
           <div className="truncate text-[12.5px] font-medium text-ink-100">{def.name}</div>
           <div className="truncate text-[10.5px] text-ink-500">
             {widget.open
-              ? `${Math.round(widget.x)}, ${Math.round(widget.y)}${widget.dock ? ` · ${widget.dock}` : ""}`
+              ? `${digits(Math.round(widget.x))}, ${digits(Math.round(widget.y))}${widget.dock ? ` · ${t(DOCK[widget.dock as keyof typeof DOCK] ?? "top")}` : ""}`
               : def.description}
           </div>
         </div>
 
-        <Tip label="Widget settings">
+        <Tip label={t("Widget settings")}>
           <button
             className="btn size-7 shrink-0 px-0"
             data-selected={tuning}
@@ -95,7 +104,7 @@ export const WidgetCard = memo(function WidgetCard({
               <button
                 key={sz}
                 onClick={() => setSize(def.kind, sz)}
-                title={`${sz.toUpperCase()} size`}
+                title={t(SIZE_TITLE[sz])}
                 className={cn(
                   "h-6 w-7 rounded-md text-[10px] font-semibold uppercase transition-colors",
                   widget.size === sz
@@ -103,18 +112,18 @@ export const WidgetCard = memo(function WidgetCard({
                     : "text-ink-500 hover:text-ink-300",
                 )}
               >
-                {sz[0]}
+                {t(SIZE_LETTER[sz])}
               </button>
             ))}
           </div>
           {areas.length > 1 && (
             <div className="flex items-center gap-0.5 rounded-lg border border-white/6 bg-white/3 p-0.5">
-              <Monitor size={11} className="ml-1 text-ink-500" />
+              <Monitor size={11} className="ms-1 text-ink-500" />
               {areas.map((a, i) => (
                 <button
                   key={i}
                   onClick={() => setDisplay(def.kind, i)}
-                  title={`Move to ${a.name || `display ${i + 1}`}`}
+                  title={a.name ? t("Move to {name}", { name: a.name }) : t("Move to display {n}", { n: i + 1 })}
                   className={cn(
                     "h-6 w-6 rounded-md text-[10px] font-semibold transition-colors",
                     widget.display === i
@@ -122,13 +131,13 @@ export const WidgetCard = memo(function WidgetCard({
                       : "text-ink-500 hover:text-ink-300",
                   )}
                 >
-                  {i + 1}
+                  {digits(i + 1)}
                 </button>
               ))}
             </div>
           )}
           <div className="flex-1" />
-          <Tip label={locked ? "Unlock position" : "Lock position"}>
+          <Tip label={locked ? t("Unlock position") : t("Lock position")}>
             <button
               className="btn size-7 px-0"
               data-selected={locked}

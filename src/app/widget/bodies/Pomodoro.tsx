@@ -5,12 +5,17 @@ import { pad } from "../lib/format";
 import { bySize, isSm } from "../lib/scale";
 import { useWidgetConfig } from "../prefs";
 import type { WidgetBodyProps } from "./props";
+import { digits, useT } from "../i18n";
 
 type Mode = "focus" | "short" | "long";
 
 const ORDER: Mode[] = ["focus", "short", "long"];
 
+const LABEL = { focus: "focus", short: "short", long: "long" } as const;
+const SESSION = { focus: "focus session", short: "short session", long: "long session" } as const;
+
 export default function PomodoroWidget({ size }: WidgetBodyProps) {
+  const t = useT();
   const cfg = useWidgetConfig("pomodoro");
   const modes = useMemo<Record<Mode, number>>(
     () => ({ focus: cfg.focusMin * 60, short: cfg.shortMin * 60, long: cfg.longMin * 60 }),
@@ -70,10 +75,10 @@ export default function PomodoroWidget({ size }: WidgetBodyProps) {
     <Pad size={size} className="justify-between">
       <div>
         <Stat
-          value={`${pad(Math.floor(left / 60))}:${pad(left % 60)}`}
+          value={digits(`${pad(Math.floor(left / 60))}:${pad(left % 60)}`)}
           size={bySize(size, 32, 40, 48)}
         />
-        <div className="dim mt-1 text-[11px] font-semibold uppercase">{mode} session</div>
+        <div className="dim mt-1 text-[11px] font-semibold uppercase">{t(SESSION[mode])}</div>
       </div>
 
       <TickMeter
@@ -91,9 +96,9 @@ export default function PomodoroWidget({ size }: WidgetBodyProps) {
             onClick={() => setMode(ORDER[(ORDER.indexOf(mode) + 1) % ORDER.length])}
             className="rounded-full px-2 py-1 text-[10px] font-semibold capitalize"
             style={{ background: "var(--accent)", color: "#fff" }}
-            title="Tap to change mode"
+            title={t("Tap to change mode")}
           >
-            {mode}
+            {t(LABEL[mode])}
           </button>
         ) : (
           <div className="flex min-w-0 gap-1">
@@ -108,7 +113,7 @@ export default function PomodoroWidget({ size }: WidgetBodyProps) {
                     : { background: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.6)" }
                 }
               >
-                {m}
+                {t(LABEL[m])}
               </button>
             ))}
           </div>
@@ -117,7 +122,7 @@ export default function PomodoroWidget({ size }: WidgetBodyProps) {
           <button
             onClick={() => setRunning((r) => !r)}
             className="grid size-7 shrink-0 place-items-center rounded-full bg-white text-black"
-            title={running ? "Pause" : "Start"}
+            title={running ? t("Pause") : t("Start")}
           >
             {running ? (
               <Pause size={12} className="fill-current" />
@@ -128,7 +133,7 @@ export default function PomodoroWidget({ size }: WidgetBodyProps) {
           <button
             onClick={reset}
             className="dim grid size-7 shrink-0 place-items-center rounded-full transition-colors hover:text-white"
-            title="Reset"
+            title={t("Reset")}
           >
             <RotateCcw size={12} />
           </button>

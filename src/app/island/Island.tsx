@@ -23,6 +23,8 @@ import { Toast } from "./views/Toast";
 import { TuckHandle } from "./views/TuckHandle";
 import { Expanded, TAB_ORDER, type Tab } from "./views/Expanded";
 import { ResizeHandles, useAskSize, type Size } from "./views/ResizeHandles";
+import { digits, t, useT } from "./i18n";
+import { fmtNumber } from "@/shared/i18n/format";
 
 type Mode = "hidden" | "tucked" | "idle" | "media" | "timer" | "volume" | "toast" | "expanded";
 
@@ -88,6 +90,8 @@ const leftOf = (align: IslandAlign, width: number, room: number) =>
   align === "left" ? ISLAND_SIDE_PAD : align === "right" ? room - ISLAND_SIDE_PAD - width : (room - width) / 2;
 
 export default function Island() {
+  // re-render on a language switch, for the strings built right here
+  useT();
   const live = isTauri();
   const { cfg, nativeHover, fullscreen, volume: nativeVolume, privacy, caps, simulate } = useIslandBridge();
 
@@ -245,8 +249,8 @@ export default function Island() {
       chime();
       push(
         m === "focus"
-          ? { icon: "focus", title: "Focus session done", subtitle: "Time for a break", tone: "var(--accent)" }
-          : { icon: "break", title: "Break's over", subtitle: "Ready when you are", tone: "#60a5fa" },
+          ? { icon: "focus", title: t("Focus session done"), subtitle: t("Time for a break"), tone: "var(--accent)" }
+          : { icon: "break", title: t("Break’s over"), subtitle: t("Ready when you are"), tone: "#60a5fa" },
       );
     },
     [push],
@@ -314,7 +318,7 @@ export default function Island() {
     push({
       icon: "note",
       title: task ? line.slice(6) : line,
-      subtitle: task ? "Added as a task" : "Saved to Notes",
+      subtitle: task ? t("Added as a task") : t("Saved to Notes"),
       tone: "#fbbf24",
     });
   });
@@ -335,9 +339,9 @@ export default function Island() {
     if (!allowRef.current) return;
     push({
       icon: "update",
-      title: `Widgeto ${version} is ready`,
-      subtitle: "Open Widgeto from the tray to install",
-      trailing: "New",
+      title: t("Widgeto {version} is ready", { version }),
+      subtitle: t("Open Widgeto from the tray to install"),
+      trailing: t("New"),
       tone: "#a78bff",
       ms: 7000,
     });
@@ -438,7 +442,7 @@ export default function Island() {
 
   /* ---------------------------------------------------------------- render */
   const temp = useCallback(
-    (c: number) => `${Math.round(cfg.temperatureUnit === "F" ? c * 1.8 + 32 : c)}°`,
+    (c: number) => `${digits(Math.round(cfg.temperatureUnit === "F" ? c * 1.8 + 32 : c))}°`,
     [cfg.temperatureUnit],
   );
 
@@ -702,7 +706,7 @@ function useActivityTriggers({ allow, push, track, battery }: {
       push({
         icon: "track",
         title: track.media.title ?? "",
-        subtitle: track.media.artist ?? "Now playing",
+        subtitle: track.media.artist ?? t("Now playing"),
         art: track.art,
       });
     }
@@ -717,13 +721,13 @@ function useActivityTriggers({ allow, push, track, battery }: {
     if (!battery?.present || !was?.present || !allow) return;
     const pct = Math.round(battery.percent);
     if (battery.charging && !was.charging) {
-      push({ icon: "charging", title: "Charging", subtitle: "Power connected", trailing: `${pct}%`, tone: "#4ade80" });
+      push({ icon: "charging", title: t("Charging"), subtitle: t("Power connected"), trailing: digits(`${pct}%`), tone: "#4ade80" });
     } else if (!battery.charging && was.charging) {
-      push({ icon: "unplugged", title: "On battery", subtitle: "Power disconnected", trailing: `${pct}%`, tone: "#e5e7eb" });
+      push({ icon: "unplugged", title: t("On battery"), subtitle: t("Power disconnected"), trailing: digits(`${pct}%`), tone: "#e5e7eb" });
     } else if (!battery.charging) {
-      for (const t of [20, 10, 5]) {
-        if (was.percent > t && battery.percent <= t) {
-          push({ icon: "battery", title: "Battery low", subtitle: "Plug in soon", trailing: `${pct}%`, tone: "#f87171" });
+      for (const at of [20, 10, 5]) {
+        if (was.percent > at && battery.percent <= at) {
+          push({ icon: "battery", title: t("Battery low"), subtitle: t("Plug in soon"), trailing: digits(`${pct}%`), tone: "#f87171" });
           break;
         }
       }
@@ -768,9 +772,9 @@ function usePresenceTriggers({ allow, push, privacy, caps }: {
     const cam = fresh(privacy.camera, was.camera);
     const mic = fresh(privacy.mic, was.mic);
     if (cam.length) {
-      push({ icon: "camera", title: cam.join(", "), subtitle: "Camera is on", tone: CAMERA_TONE, ms: 2600 });
+      push({ icon: "camera", title: cam.join(", "), subtitle: t("Camera is on"), tone: CAMERA_TONE, ms: 2600 });
     } else if (mic.length) {
-      push({ icon: "mic", title: mic.join(", "), subtitle: "Microphone is on", tone: MIC_TONE, ms: 2600 });
+      push({ icon: "mic", title: mic.join(", "), subtitle: t("Microphone is on"), tone: MIC_TONE, ms: 2600 });
     }
   }, [privacy, allow, push]);
 
@@ -781,8 +785,8 @@ function usePresenceTriggers({ allow, push, privacy, caps }: {
     if (was === undefined || caps === undefined || was === caps || !allow) return;
     push({
       icon: "caps",
-      title: caps ? "Caps Lock on" : "Caps Lock off",
-      subtitle: "Keyboard",
+      title: caps ? t("Caps Lock on") : t("Caps Lock off"),
+      subtitle: t("Keyboard"),
       tone: caps ? "#fff" : "rgba(255,255,255,0.5)",
       ms: 1300,
     });
@@ -880,27 +884,27 @@ function clipActivity(c: Clip): Omit<Activity, "id" | "at"> {
     case "files":
       return {
         ...base,
-        title: c.text ?? "Files",
-        subtitle: c.count > 1 ? `Copied ${c.count} files` : "Copied file",
+        title: c.text ?? t("Files"),
+        subtitle: c.count > 1 ? t("Copied {n} files", { n: c.count }) : t("Copied file"),
         trailing: c.count > 1 ? `+${c.count - 1}` : undefined,
       };
     case "image":
       return {
         ...base,
-        title: "Image",
-        subtitle: "Copied",
+        title: t("Image"),
+        subtitle: t("Copied"),
         trailing: c.width && c.height ? `${c.width}×${c.height}` : undefined,
       };
     case "link":
-      return { ...base, title: (c.text ?? "").replace(/^https?:\/\/(www\.)?/, ""), subtitle: "Copied link" };
+      return { ...base, title: (c.text ?? "").replace(/^https?:\/\/(www\.)?/, ""), subtitle: t("Copied link") };
     case "text":
       return {
         ...base,
-        title: c.text || "Text",
-        subtitle: c.count > 90 ? `Copied · ${c.count.toLocaleString()} characters` : "Copied",
+        title: c.text || t("Text"),
+        subtitle: c.count > 90 ? t("Copied · {n} characters", { n: fmtNumber(c.count) }) : t("Copied"),
       };
     default:
-      return { ...base, title: "Copied to clipboard", subtitle: "Contents hidden" };
+      return { ...base, title: t("Copied to clipboard"), subtitle: t("Contents hidden") };
   }
 }
 

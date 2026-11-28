@@ -1,6 +1,8 @@
 import { Picker, Range, SettingGroup, SettingRow, Toggle, cn } from "@/app/manager/ui";
 import { useApp } from "@/app/manager/store";
 import { LowMemoryToggle } from "../controls/LowMemoryToggle";
+import type { LangSetting } from "@/shared/i18n/locale";
+import { useT } from "@/app/manager/i18n";
 
 const ACCENTS = [
   "#ff4dd8", "#ff5b2e", "#7c6cff", "#4aa8ff",
@@ -8,13 +10,29 @@ const ACCENTS = [
 ];
 
 export function AppearanceTab() {
+  const t = useT();
   const s = useApp((st) => st.settings);
   const update = useApp((st) => st.update);
 
   return (
     <>
-      <SettingGroup title="Accent">
-        <SettingRow title="Accent colour" hint="Tints controls, guides and dock targets.">
+      <SettingGroup title={t("Language")}>
+        <SettingRow title={t("Language")} hint={t("System follows the Windows display language.")}>
+          <Picker<LangSetting>
+            value={s.language}
+            onChange={(v) => update({ language: v })}
+            options={[
+              { value: "system", label: t("System") },
+              // each language is named in itself, so it can be found from either
+              { value: "en", label: "English" },
+              { value: "fa", label: "فارسی" },
+            ]}
+          />
+        </SettingRow>
+      </SettingGroup>
+
+      <SettingGroup title={t("Accent")}>
+        <SettingRow title={t("Accent colour")} hint={t("Tints controls, guides and dock targets.")}>
           <div className="flex items-center gap-1.5">
             {ACCENTS.map((c) => (
               <button
@@ -31,8 +49,8 @@ export function AppearanceTab() {
         </SettingRow>
       </SettingGroup>
 
-      <SettingGroup title="Surface">
-        <SettingRow title="Tile opacity" hint="Below 100% the tiles turn to glass.">
+      <SettingGroup title={t("Surface")}>
+        <SettingRow title={t("Tile opacity")} hint={t("Below 100% the tiles turn to glass.")}>
           <div className="w-47.5">
             <Range
               min={0.3}
@@ -45,11 +63,11 @@ export function AppearanceTab() {
           </div>
         </SettingRow>
         <SettingRow
-          title="Background blur"
+          title={t("Background blur")}
           hint={
             s.lowMemory
-              ? "Off while Low-memory mode is on."
-              : "Only applies when tiles are translucent."
+              ? t("Off while Low-memory mode is on.")
+              : t("Only applies when tiles are translucent.")
           }
         >
           <div className="w-47.5">
@@ -62,7 +80,7 @@ export function AppearanceTab() {
             />
           </div>
         </SettingRow>
-        <SettingRow title="Corner radius">
+        <SettingRow title={t("Corner radius")}>
           <div className="w-47.5">
             <Range
               min={8}
@@ -73,45 +91,45 @@ export function AppearanceTab() {
             />
           </div>
         </SettingRow>
-        <SettingRow title="Wallpaper" hint="Preview backdrop used in windowed mode.">
+        <SettingRow title={t("Wallpaper")} hint={t("Preview backdrop used in windowed mode.")}>
           <Picker
             value={s.wallpaper}
             onChange={(v) => update({ wallpaper: v })}
             options={[
-              { value: "aurora", label: "Aurora" },
-              { value: "mesh", label: "Mesh" },
-              { value: "void", label: "Void" },
-              { value: "none", label: "Transparent" },
+              { value: "aurora", label: t("Aurora") },
+              { value: "mesh", label: t("Mesh") },
+              { value: "void", label: t("Void") },
+              { value: "none", label: t("Transparent") },
             ]}
           />
         </SettingRow>
       </SettingGroup>
 
-      <SettingGroup title="Performance">
-        <SettingRow title="Show dot grid" hint="Subtle alignment grid on the desktop map.">
+      <SettingGroup title={t("Performance")}>
+        <SettingRow title={t("Show dot grid")} hint={t("Subtle alignment grid on the desktop map.")}>
           <Toggle checked={s.showGrid} onChange={(v) => update({ showGrid: v })} />
         </SettingRow>
         <SettingRow
-          title="Power saver"
-          hint="Stretches every widget's refresh interval fourfold."
+          title={t("Power saver")}
+          hint={t("Stretches every widget's refresh interval fourfold.")}
         >
           <Picker
             value={s.powerSaver}
             onChange={(v) => update({ powerSaver: v })}
             options={[
-              { value: "onBattery", label: "On battery" },
-              { value: "always", label: "Always" },
-              { value: "off", label: "Off" },
+              { value: "onBattery", label: t("On battery") },
+              { value: "always", label: t("Always") },
+              { value: "off", label: t("Off") },
             ]}
           />
         </SettingRow>
         <SettingRow
-          title="Low-memory mode"
-          hint="Drops the tile blur, stretches every poll further, and hands compositing back to the CPU — about a quarter less memory, for slightly heavier animation. Takes full effect after a restart."
+          title={t("Low-memory mode")}
+          hint={t("Drops the tile blur, stretches every poll further, and hands compositing back to the CPU — about a quarter less memory, for slightly heavier animation. Takes full effect after a restart.")}
         >
           <LowMemoryToggle />
         </SettingRow>
-        <SettingRow title="Reduce motion" hint="Disable springs and micro-animations.">
+        <SettingRow title={t("Reduce motion")} hint={t("Disable springs and micro-animations.")}>
           <Toggle checked={s.reduceMotion} onChange={(v) => update({ reduceMotion: v })} />
         </SettingRow>
       </SettingGroup>
