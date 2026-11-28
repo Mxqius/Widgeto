@@ -43,10 +43,19 @@ export const SummaryStrip = memo(function SummaryStrip({
       </div>
 
       <div className="flex flex-1 flex-wrap items-center justify-end gap-1.5">
-        <button className="btn" onClick={() => autoArrangeNow()}>
+        {/* nothing may move while everything is locked */}
+        <button
+          className="btn disabled:pointer-events-none disabled:opacity-40"
+          disabled={lockAll}
+          onClick={() => autoArrangeNow()}
+        >
           <ArrowDownUp size={13} /> {t("Arrange")}
         </button>
-        <button className="btn" onClick={redock}>
+        <button
+          className="btn disabled:pointer-events-none disabled:opacity-40"
+          disabled={lockAll}
+          onClick={redock}
+        >
           <Magnet size={13} /> {t("Dock")}
         </button>
         <button

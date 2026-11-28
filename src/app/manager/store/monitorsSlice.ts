@@ -61,10 +61,12 @@ export const createMonitorsSlice: Slice<MonitorsSlice> = (set, get) => ({
 
   autoArrangeNow: (mode) => {
     const { widgets, areas, settings } = get();
+    // a locked widget stays where it was put; everything locked, nothing moves
+    if (settings.lockAll) return;
     const m = mode ?? settings.arrangeMode;
     const next = [...widgets];
     areas.forEach((a, di) => {
-      const onThis = widgets.filter((w) => w.display === di && w.open);
+      const onThis = widgets.filter((w) => w.display === di && w.open && !w.locked);
       if (!onThis.length) return;
       const items = onThis.map((w) => {
         const [ww, wh] = sizeOf(w.kind, w.size);
@@ -81,10 +83,11 @@ export const createMonitorsSlice: Slice<MonitorsSlice> = (set, get) => ({
 
   redock: () => {
     const { widgets, areas, settings } = get();
+    if (settings.lockAll) return;
     let n = 0;
     set({
       widgets: widgets.map((w) => {
-        if (!w.open) return w;
+        if (!w.open || w.locked) return w;
         const a = areas[w.display] ?? areas[0];
         if (!a) return w;
         const [ww, wh] = sizeOf(w.kind, w.size);

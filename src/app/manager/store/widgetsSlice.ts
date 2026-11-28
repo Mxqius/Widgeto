@@ -118,8 +118,22 @@ export const createWidgetsSlice: Slice<WidgetsSlice> = (set, get) => ({
     get().setSize(kind, order[(order.indexOf(w.size) + 1) % order.length]);
   },
 
-  toggleLock: (kind) =>
-    set({ widgets: patch(get().widgets, kind, (w) => ({ ...w, locked: !w.locked })) }),
+  toggleLock: (kind) => {
+    const { settings, widgets } = get();
+    if (settings.lockAll) {
+      // "lock all" is on, so flipping this widget's own flag would change
+      // nothing anyone can see. Unlock just this one: the others keep their
+      // lock as individual locks.
+      set({
+        settings: { ...settings, lockAll: false },
+        widgets: widgets.map((w) =>
+          w.kind === kind ? { ...w, locked: false } : w.locked ? w : { ...w, locked: true },
+        ),
+      });
+      return;
+    }
+    set({ widgets: patch(widgets, kind, (w) => ({ ...w, locked: !w.locked })) });
+  },
 
   setAppearance: (kind, patchIn) =>
     set({ widgets: patch(get().widgets, kind, (w) => merged(w, patchIn)) }),

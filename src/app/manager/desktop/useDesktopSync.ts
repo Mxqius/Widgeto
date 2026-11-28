@@ -198,7 +198,7 @@ export function useDesktopSync() {
 
   /* --------------- per-widget appearance and config -> its window ------
    * Position and size reach the window through the reconcile pass above, but
-   * accent, ground, alpha and a widget's own config change nothing about the
+   * accent, ground, alpha, the lock and a widget's own config change nothing about the
    * OS window — only what is painted inside it — so they were never pushed at
    * all, and a colour override sat in the store until something else happened
    * to move the widget.
@@ -215,7 +215,9 @@ export function useDesktopSync() {
           sent.current.delete(w.kind);
           continue;
         }
-        const look = JSON.stringify([w.accent, w.theme, w.alpha, w.config]);
+        // the lock too: it moves no window either, but the widget needs it to
+        // refuse a drag and to show the right icon on its lock button
+        const look = JSON.stringify([w.accent, w.theme, w.alpha, w.config, w.locked]);
         if (sent.current.get(w.kind) === look) continue;
         sent.current.set(w.kind, look);
         void broadcast(w.kind);

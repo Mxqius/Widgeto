@@ -9,6 +9,7 @@ import { widgetBody } from "../bodies";
 import { PrefsContext } from "../prefs";
 import { ShellChip } from "./ShellChip";
 import { useT } from "../i18n";
+import { getLang, isRtl } from "@/shared/i18n/locale";
 
 export function WidgetShell({
   widget,
@@ -99,18 +100,31 @@ export function WidgetShell({
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
+      // double-click the card itself (not a control inside it) to step its size
+      onDoubleClick={(e) => {
+        if (!(e.target as HTMLElement).closest("[data-nodrag], button, input, textarea")) {
+          onAction("cycle-size");
+        }
+      }}
       onMouseEnter={() => onHover(true)}
       onMouseLeave={() => onHover(false)}
     >
+      {/* window controls keep one order in every language, like the manager's
+          title bar, and sit in the corner the content does not start from */}
       <div
         data-nodrag
+        dir="ltr"
         className={cx(
           "absolute z-20 flex items-center gap-0.5 rounded-full p-0.5 transition-all duration-150",
           theme === "dark" ? "bg-white/12 text-white" : "bg-black/8 text-black",
-          circle ? "top-2 left-1/2 -translate-x-1/2" : "top-2 end-2",
-          hovered && !dragging
-            ? "pointer-events-auto opacity-100"
-            : "pointer-events-none opacity-0",
+          circle ? "top-2 left-1/2 -translate-x-1/2" : isRtl(getLang()) ? "top-2 left-2" : "top-2 right-2",
+          // CSS hover as well as the tracked state: activating the window on a
+          // press can fire a stray mouseleave and drop the state mid-click
+          dragging
+            ? "pointer-events-none opacity-0"
+            : hovered
+              ? "pointer-events-auto opacity-100"
+              : "pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100",
         )}
         style={{ backdropFilter: settings.lowMemory ? undefined : "blur(8px)" }}
       >

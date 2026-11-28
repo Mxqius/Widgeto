@@ -166,7 +166,8 @@ export function useWidgetDrag(
       stop();
       d.startX = e.screenX;
       d.startY = e.screenY;
-      d.dock = null;
+      // a click that never moves must not undock it; moving recomputes this
+      d.dock = widget.dock ?? null;
       d.freeX = widget.x;
       d.freeY = widget.y;
       d.offX = d.offY = d.curOffX = d.curOffY = 0;
