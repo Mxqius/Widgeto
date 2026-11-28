@@ -45,6 +45,7 @@ export default {
   "Buy groceries": "خرید مواد غذایی",
   "TASKS DONE": "کار انجام شده",
   "Add a task…": "افزودن کار…",
+  "today: {n}": "امروز: {n}",
   "Clear completed": "پاک کردن کارهای انجام‌شده",
   "Double-click to edit": "برای ویرایش دوبار کلیک کنید",
   "Edit task": "ویرایش کار",

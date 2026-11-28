@@ -45,3 +45,9 @@ export function appendTask(text: string) {
   const prev = read<Task[]>(TASKS_KEY);
   write(TASKS_KEY, [...(Array.isArray(prev) ? prev : []), { id: uid(), text, done: false }]);
 }
+
+/**
+ * The Focus Timer widget finished a session (payload: "focus" | "short" |
+ * "long"), so the island can chime and say so as it does for its own timer.
+ */
+export const FOCUS_DONE_EVT = "focus:done";

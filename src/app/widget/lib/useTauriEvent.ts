@@ -26,3 +26,10 @@ export function useTauriEvent<T>(name: string, on: (payload: T) => void) {
     };
   }, [name]);
 }
+
+/** Fire an app-wide Tauri event; a no-op in the browser preview. */
+export async function emitTauri(name: string, payload?: unknown) {
+  if (!isTauri()) return;
+  const { emit } = await import("@tauri-apps/api/event");
+  await emit(name, payload);
+}

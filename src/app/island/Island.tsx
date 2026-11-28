@@ -25,7 +25,7 @@ import { Expanded, TAB_ORDER, type Tab } from "./views/Expanded";
 import { ResizeHandles, useAskSize, type Size } from "./views/ResizeHandles";
 import { digits, t, useT } from "./i18n";
 import { fmtNumber } from "@/shared/i18n/format";
-import { INBOX_EVT } from "@/shared/widgets/inbox";
+import { FOCUS_DONE_EVT, INBOX_EVT } from "@/shared/widgets/inbox";
 
 type Mode = "hidden" | "tucked" | "idle" | "media" | "timer" | "volume" | "toast" | "expanded";
 
@@ -318,6 +318,10 @@ export default function Island() {
   });
   useTauriEvent<string>(INBOX_EVT.task, (line) => {
     if (allowRef.current) push({ icon: "note", title: line, subtitle: t("Added as a task"), tone: "#fbbf24" });
+  });
+  // the Focus Timer widget's own sessions get the same chime and pop-out
+  useTauriEvent<FocusMode>(FOCUS_DONE_EVT, (mode) => {
+    if (allowRef.current) onFocusDone(mode);
   });
 
   // something new on the clipboard; the native side only watches while this is on
