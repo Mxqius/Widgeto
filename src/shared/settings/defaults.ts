@@ -59,4 +59,5 @@ export const DEFAULT_SETTINGS: Settings = {
   wallpaper: "aurora",
   autoUpdateEnabled: true,
   skippedUpdateVersion: null,
+  onboarded: false,
 };

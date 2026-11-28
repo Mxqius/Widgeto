@@ -41,6 +41,9 @@ export interface SettingsSlice {
   settingsRequest: { tab: string; n: number } | null;
   requestSettings: (tab: string) => void;
   clearSettingsRequest: () => void;
+  /** the welcome tour was asked for again from Settings → About; not persisted */
+  onboardingReplay: boolean;
+  setOnboardingReplay: (on: boolean) => void;
 }
 
 export interface UpdaterSlice {

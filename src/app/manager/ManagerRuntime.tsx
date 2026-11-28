@@ -88,14 +88,14 @@ export default function ManagerRuntime() {
 
   // ...and so does the one that opens the island's Ask tab
   const aiHotkey = useApp((s) => s.settings.aiHotkey);
-  const aiOn = useApp((s) => s.settings.aiEnabled && s.settings.island);
+  const aiOn = useApp((s) => s.settings.aiEnabled && s.settings.island && s.settings.onboarded);
   useEffect(() => {
     void bindHotkey("ask", aiOn ? aiHotkey : "", () => void askIsland());
   }, [aiHotkey, aiOn]);
 
   // ...and the one that tucks the island into the top edge
   const tuckHotkey = useApp((s) => s.settings.islandTuckHotkey);
-  const islandOn = useApp((s) => s.settings.island);
+  const islandOn = useApp((s) => s.settings.island && s.settings.onboarded);
   useEffect(() => {
     void bindTuckHotkey(islandOn ? tuckHotkey : "");
   }, [tuckHotkey, islandOn]);

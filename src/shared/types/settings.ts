@@ -103,4 +103,9 @@ export interface Settings {
   autoUpdateEnabled: boolean;
   /** version the user chose to skip; suppresses the background prompt for it */
   skippedUpdateVersion: string | null;
+  /**
+   * The first-run setup has been finished or skipped. Until it is, nothing is
+   * put on the desktop: no widget windows and no island.
+   */
+  onboarded: boolean;
 }

@@ -1,4 +1,4 @@
-import { Check, Copy, FolderOpen, Github, Globe, Heart, RefreshCw, Send } from "lucide-react";
+import { Check, Copy, FolderOpen, Github, Globe, Heart, RefreshCw, Send, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { useApp } from "@/app/manager/store";
 import { WIDGETS } from "@/app/manager/widgets/catalogue";
@@ -13,6 +13,7 @@ export function AboutTab() {
   const b = useBuild();
   const widgets = useApp((s) => s.widgets);
   const live = widgets.filter((w) => w.open).length;
+  const replayTour = useApp((s) => s.setOnboardingReplay);
   const [copied, setCopied] = useState(false);
 
   const diagnostics = [
@@ -131,6 +132,9 @@ export function AboutTab() {
           </button>
           <button className="btn" onClick={() => window.location.reload()}>
             <RefreshCw size={13} /> {t("Restart Widgeto")}
+          </button>
+          <button className="btn" onClick={() => replayTour(true)}>
+            <Sparkles size={13} /> {t("Replay welcome tour")}
           </button>
         </div>
         <p className="mt-2.5 text-[11px] leading-relaxed text-ink-600">

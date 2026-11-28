@@ -39,18 +39,21 @@ const MONITOR_POLL_MS = 30_000;
 export function useDesktopSync() {
   const widgets = useApp((s) => s.widgets);
   const layer = useApp((s) => s.settings.layer);
+  const onboarded = useApp((s) => s.settings.onboarded);
   const setAreas = useApp((s) => s.setAreas);
 
   // Reconciliation only cares about these fields — not every settings tweak.
+  // Until first-run setup is done the desktop is held empty, so the widgets
+  // the user picks appear together at the end rather than all thirteen at once.
   const signature = useMemo(
     () =>
-      widgets
+      (onboarded ? widgets : [])
         .map((w) =>
           w.open ? `${w.kind}:${Math.round(w.x)}:${Math.round(w.y)}:${w.size}:${w.display}` : "",
         )
         .filter(Boolean)
-        .join("|") + `#${layer}`,
-    [widgets, layer],
+        .join("|") + `#${layer}#${onboarded}`,
+    [widgets, layer, onboarded],
   );
 
   /* -------------------------------------------------- monitors --------- */
@@ -224,7 +227,9 @@ export function useDesktopSync() {
 
 /** One full pass: create, close, move, resize and re-layer every widget window. */
 async function reconcile(applied: Map<WidgetKind, Applied>) {
-  const { widgets, areas, settings } = useApp.getState();
+  const { areas, settings } = useApp.getState();
+  // nothing goes on the desktop until first-run setup is done
+  const widgets = settings.onboarded ? useApp.getState().widgets : [];
   const touched: WidgetKind[] = [];
 
   for (const [kind] of applied) {

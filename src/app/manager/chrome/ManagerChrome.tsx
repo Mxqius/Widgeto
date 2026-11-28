@@ -5,7 +5,14 @@ import { isTauri } from "@/shared/lib/env";
 import { setAlwaysOnTop, winClose, winMinimize, winToggleMax } from "@/app/manager/lib/window";
 import { useT } from "@/app/manager/i18n";
 
-export default function ManagerChrome({ onOpenSettings }: { onOpenSettings: () => void }) {
+export default function ManagerChrome({
+  onOpenSettings,
+  minimal = false,
+}: {
+  onOpenSettings: () => void;
+  /** during first-run setup: just the name and the window buttons */
+  minimal?: boolean;
+}) {
   const t = useT();
   const s = useApp((st) => st.settings);
   const update = useApp((st) => st.update);
@@ -31,26 +38,30 @@ export default function ManagerChrome({ onOpenSettings }: { onOpenSettings: () =
 
       <div className="flex-1" />
 
-      <span dir="auto" className="chip no-drag">{t("{n} on desktop", { n: live })}</span>
+      {!minimal && <span dir="auto" className="chip no-drag">{t("{n} on desktop", { n: live })}</span>}
 
       <div className="no-drag flex items-center gap-1.5">
-        <Tip label={t("Keep this manager above other windows")}>
-          <button
-            className="btn"
-            data-selected={s.managerAlwaysOnTop}
-            onClick={() => {
-              update({ managerAlwaysOnTop: !s.managerAlwaysOnTop });
-              setAlwaysOnTop(!s.managerAlwaysOnTop);
-            }}
-          >
-            {s.managerAlwaysOnTop ? <Pin size={13} /> : <PinOff size={13} />}
-          </button>
-        </Tip>
-        <Tip label={t("Settings")}>
-          <button className="btn" onClick={onOpenSettings}>
-            <Settings2 size={14} />
-          </button>
-        </Tip>
+        {!minimal && (
+          <>
+            <Tip label={t("Keep this manager above other windows")}>
+              <button
+                className="btn"
+                data-selected={s.managerAlwaysOnTop}
+                onClick={() => {
+                  update({ managerAlwaysOnTop: !s.managerAlwaysOnTop });
+                  setAlwaysOnTop(!s.managerAlwaysOnTop);
+                }}
+              >
+                {s.managerAlwaysOnTop ? <Pin size={13} /> : <PinOff size={13} />}
+              </button>
+            </Tip>
+            <Tip label={t("Settings")}>
+              <button className="btn" onClick={onOpenSettings}>
+                <Settings2 size={14} />
+              </button>
+            </Tip>
+          </>
+        )}
 
         {isTauri() && (
           <div className="ms-1 flex items-center gap-0.5 border-s border-white/[0.07] ps-1.5">

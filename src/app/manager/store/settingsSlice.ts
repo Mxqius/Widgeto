@@ -7,4 +7,6 @@ export const createSettingsSlice: Slice<SettingsSlice> = (set, get) => ({
   settingsRequest: null,
   requestSettings: (tab) => set({ settingsRequest: { tab, n: (get().settingsRequest?.n ?? 0) + 1 } }),
   clearSettingsRequest: () => set({ settingsRequest: null }),
+  onboardingReplay: false,
+  setOnboardingReplay: (on) => set({ onboardingReplay: on }),
 });

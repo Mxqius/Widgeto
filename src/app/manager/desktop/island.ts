@@ -120,14 +120,15 @@ function islandConfig(
 export async function askIsland() {
   const { emitTo } = await import("@tauri-apps/api/event");
   const st = useApp.getState().settings;
-  if (!st.island || !st.aiEnabled) return;
+  if (!st.island || !st.onboarded || !st.aiEnabled) return;
   await emitTo(ISLAND_LABEL, ISLAND_EVT.ask, null).catch(() => {});
 }
 
 /** The tuck hotkey: fold the island into the top edge, or bring it back. */
 export async function toggleIslandTuck() {
   const { emitTo } = await import("@tauri-apps/api/event");
-  if (!useApp.getState().settings.island) return;
+  const st = useApp.getState().settings;
+  if (!st.island || !st.onboarded) return;
   await emitTo(ISLAND_LABEL, ISLAND_EVT.tuck, null).catch(() => {});
 }
 
@@ -138,7 +139,8 @@ export async function toggleIslandTuck() {
  */
 export async function announceUpdate(version: string) {
   const { emitTo } = await import("@tauri-apps/api/event");
-  if (!useApp.getState().settings.island) return;
+  const st = useApp.getState().settings;
+  if (!st.island || !st.onboarded) return;
   await emitTo(ISLAND_LABEL, ISLAND_EVT.update, version).catch(() => {});
 }
 
@@ -160,7 +162,8 @@ async function closeIsland() {
  */
 export function useIslandSync() {
   const settings = useApp((s) => s.settings);
-  const enabled = settings.island;
+  // held back until first-run setup is done, along with the widgets
+  const enabled = settings.island && settings.onboarded;
   const weatherCfg = useApp((s) => s.widgets.find((w) => w.kind === "weather")?.config);
   const focusCfg = useApp((s) => s.widgets.find((w) => w.kind === "pomodoro")?.config);
   // a monitor plugged in or out may move the island's home

@@ -5,6 +5,7 @@ import ManagerChrome from "./chrome/ManagerChrome";
 import ManagerBoard from "./board/ManagerBoard";
 import SettingsScreen from "./settings/SettingsScreen";
 import UpdateDialog from "./updates/UpdateDialog";
+import Onboarding from "./onboarding/Onboarding";
 import { useApp } from "./store";
 import { TABS, type TabId } from "./settings/tabs";
 
@@ -35,6 +36,13 @@ export default function ManagerUI() {
     clearRequest();
   }, [request, clearRequest]);
   const update = useApp((s) => s.update);
+  // first run, or the tour asked for again from Settings → About
+  const onboarded = useApp((s) => s.settings.onboarded);
+  const replay = useApp((s) => s.onboardingReplay);
+  const onboarding = !onboarded || replay;
+  useEffect(() => {
+    if (replay) setSettingsOpen(false);
+  }, [replay]);
   const autoArrangeNow = useApp((s) => s.autoArrangeNow);
   const redock = useApp((s) => s.redock);
 
@@ -49,7 +57,7 @@ export default function ManagerUI() {
       const typing =
         e.target instanceof HTMLElement && ["INPUT", "TEXTAREA"].includes(e.target.tagName);
 
-      if (!mod || typing) return;
+      if (!mod || typing || onboarding) return;
 
       switch (e.key.toLowerCase()) {
         case ",":
@@ -72,7 +80,7 @@ export default function ManagerUI() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [autoArrangeNow, redock, update]);
+  }, [autoArrangeNow, redock, update, onboarding]);
 
   return (
     <Tooltip.Provider delay={350} closeDelay={80}>
@@ -80,12 +88,16 @@ export default function ManagerUI() {
         className="flex h-full w-full flex-col overflow-hidden rounded-xl"
         style={{ background: BACKDROP }}
       >
-        <ManagerChrome onOpenSettings={() => openSettings()} />
+        <ManagerChrome onOpenSettings={() => openSettings()} minimal={onboarding} />
 
         <main className="relative min-h-0 flex-1">
-          <ManagerBoard onOpenSettings={() => openSettings()} />
+          {/* the board is not drawn behind a first run: there is nothing on it yet */}
+          {(onboarded || replay) && <ManagerBoard onOpenSettings={() => openSettings()} />}
           <AnimatePresence>
-            {settingsOpen && (
+            {onboarding && <Onboarding key={replay ? "replay" : "first"} replay={onboarded} />}
+          </AnimatePresence>
+          <AnimatePresence>
+            {settingsOpen && !onboarding && (
               <div className="absolute inset-0 z-700">
                 <SettingsScreen
                   key={settingsTab}
@@ -97,7 +109,7 @@ export default function ManagerUI() {
           </AnimatePresence>
         </main>
       </div>
-      <UpdateDialog />
+      {!onboarding && <UpdateDialog />}
     </Tooltip.Provider>
   );
 }

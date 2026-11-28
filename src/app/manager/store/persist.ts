@@ -83,27 +83,32 @@ function coalescedStorage(): PersistStorage<Persisted> {
  */
 export const persistOptions: PersistOptions<AppState, Persisted> = {
   name: "widgeto.v3",
-  version: 2,
+  version: 3,
 
-  /**
-   * The tile redesign changed what the appearance defaults mean. Anyone
-   * carrying settings from before it would otherwise keep the old purple
-   * accent and small radius on top of the new flat tiles, so those four
-   * fields are re-based while positions and visibility are kept.
-   */
   migrate: (persisted, from) => {
     const p = (persisted ?? {}) as Persisted & { settings?: Settings };
-    if (from >= 2 || !p.settings) return p;
-    return {
-      ...p,
-      settings: {
-        ...p.settings,
+    if (!p.settings) return p;
+    let settings = p.settings;
+
+    // The tile redesign changed what the appearance defaults mean. Anyone
+    // carrying settings from before it would otherwise keep the old purple
+    // accent and small radius on top of the new flat tiles, so those four
+    // fields are re-based while positions and visibility are kept.
+    if (from < 2) {
+      settings = {
+        ...settings,
         accent: DEFAULT_SETTINGS.accent,
         radius: DEFAULT_SETTINGS.radius,
         widgetAlpha: DEFAULT_SETTINGS.widgetAlpha,
         blur: DEFAULT_SETTINGS.blur,
-      },
-    };
+      };
+    }
+
+    // First-run setup arrived in v3. Anyone with saved settings already has a
+    // desktop they arranged, so they skip it; only a fresh install sees it.
+    if (from < 3) settings = { ...settings, onboarded: true };
+
+    return { ...p, settings };
   },
 
   storage: coalescedStorage(),

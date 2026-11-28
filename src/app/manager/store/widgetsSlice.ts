@@ -138,7 +138,13 @@ export const createWidgetsSlice: Slice<WidgetsSlice> = (set, get) => ({
     set({ zTop: z, widgets: patch(get().widgets, kind, (w) => ({ ...w, z })) });
   },
 
-  reset: () => set({ widgets: seed(), zTop: WIDGET_KINDS.length, settings: DEFAULT_SETTINGS }),
+  // a reset starts the desktop over, not the first-run setup
+  reset: () =>
+    set({
+      widgets: seed(),
+      zTop: WIDGET_KINDS.length,
+      settings: { ...DEFAULT_SETTINGS, onboarded: get().settings.onboarded },
+    }),
 
   closeAll: () =>
     set({ widgets: get().widgets.map((w) => (w.open ? { ...w, open: false } : w)) }),

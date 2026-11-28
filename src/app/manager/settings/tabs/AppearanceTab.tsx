@@ -1,13 +1,9 @@
 import { Picker, Range, SettingGroup, SettingRow, Toggle, cn } from "@/app/manager/ui";
 import { useApp } from "@/app/manager/store";
+import { ACCENTS } from "@/app/manager/ui/accents";
 import { LowMemoryToggle } from "../controls/LowMemoryToggle";
 import type { LangSetting } from "@/shared/i18n/locale";
 import { useT } from "@/app/manager/i18n";
-
-const ACCENTS = [
-  "#ff4dd8", "#ff5b2e", "#7c6cff", "#4aa8ff",
-  "#3ddc84", "#f2b544", "#ff6b8b", "#e8e8e8",
-];
 
 export function AppearanceTab() {
   const t = useT();
