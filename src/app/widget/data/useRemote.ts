@@ -44,7 +44,7 @@ export function useMarkets(symbols: string[], sec = 60) {
   const q = useQuery({
     queryKey: ["markets", key],
     queryFn: () => fetchMarkets(key.split(",")),
-    enabled: isTauri(),
+    enabled: isTauri() && symbols.length > 0,
     refetchInterval: sec * 1000 * slow,
   });
   return {

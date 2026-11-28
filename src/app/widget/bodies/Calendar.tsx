@@ -27,6 +27,11 @@ const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDat
 const ymd = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
+const fromYmd = (s: string) => {
+  const [y, m, d] = s.split("-").map(Number);
+  return new Date(y, m - 1, d);
+};
+
 /** ISO-8601 week number. */
 function isoWeek(d: Date) {
   const t = startOfDay(d);
@@ -74,9 +79,15 @@ export default function CalendarWidget({ size }: WidgetBodyProps) {
         <button onClick={() => setOffset((o) => o - 1)} className="dim hover:opacity-100" title={t("Previous week")}>
           <ChevronLeft size={13} className="rtl:-scale-x-100" />
         </button>
-        <span className="text-[11.5px] font-bold tracking-tight">
+        {/* paged away from today: the month name leads back */}
+        <button
+          onClick={() => setOffset(0)}
+          disabled={offset === 0}
+          title={offset === 0 ? undefined : t("Back to this week")}
+          className="text-[11.5px] font-bold tracking-tight disabled:cursor-default"
+        >
           {small ? label.split(" ")[0] : label}
-        </span>
+        </button>
         <button onClick={() => setOffset((o) => o + 1)} className="dim hover:opacity-100" title={t("Next week")}>
           <ChevronRight size={13} className="rtl:-scale-x-100" />
         </button>
@@ -129,7 +140,11 @@ export default function CalendarWidget({ size }: WidgetBodyProps) {
                 className="numeral shrink-0 text-[10px]"
                 style={{ color: "var(--accent)", minWidth: 30 }}
               >
-                {e.allDay ? t("all") : digits(hhmm(e.startMin ?? 0))}
+                {e.date !== todayKey
+                  ? fmtDate(fromYmd(e.date), { weekday: "short" })
+                  : e.allDay
+                    ? t("all")
+                    : digits(hhmm(e.startMin ?? 0))}
               </span>
               <span dir="auto" className="truncate text-[11px] font-medium">{e.summary}</span>
             </div>
