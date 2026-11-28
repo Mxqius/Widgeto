@@ -1,6 +1,6 @@
 [package]
 name = "widgeto"
-version = "0.2.0"
+version = "0.3.0"
 description = "Desktop widgets, always on your screen"
 license = "MIT"
 repository = "https://github.com/mxqius/widgeto"
